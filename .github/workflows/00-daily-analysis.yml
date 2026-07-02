@@ -507,11 +507,16 @@ jobs:
             python main.py $FORCE_RUN_ARG
           fi
       
+      - name: 生成 artifact 显示名
+        id: artifact_name
+        if: always()
+        run: echo "name=AI股票基金每日盯盘报告-$(TZ=Asia/Shanghai date '+%Y-%m-%d-%H%M')" >> "$GITHUB_OUTPUT"
+
       - name: 上传分析报告
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: AI股票基金每日盯盘报告
+          name: ${{ steps.artifact_name.outputs.name }}
           path: |
             reports/
             logs/
