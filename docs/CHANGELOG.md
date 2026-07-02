@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] AI 股票基金每日盯盘报告 workflow 启用同分支并发取消、pip 缓存、45 分钟主任务超时和 PERF 配置日志，减少重复手动触发排队与依赖安装耗时。
 - [改进] Discord 大盘复盘在盘面快照后新增“涨跌结构”，展示上涨/下跌集中板块与领涨/领跌个股 Top 5。
 - [改进] Discord 大盘复盘将盘面快照和指数表格转换为移动端友好的条目/卡片格式，指数结构按 A股、港股、美股、日股、韩股展示，缺失市场标注数据暂缺。
 - [改进] AI 股票基金每日盯盘报告 workflow 支持 `repository_dispatch` 的 `run-stock-report` 外部触发，解析 `run_mode`、`model_profile`、`trigger_source`、`request_id`、`command_text` 并输出 RUN CONTEXT 日志。
