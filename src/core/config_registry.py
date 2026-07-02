@@ -1069,6 +1069,9 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": [],
         "validation": {"multi_value": True, "delimiter": ","},
         "display_order": 41,
+        "help_key": "settings.data_source.search_api_keys",
+        "examples": ["SEARCH_PROVIDER_PRIORITY=anspire,searxng,serpapi"],
+        "docs": _DOC_FULL_GUIDE_SEARCH,
     },
     "SERPAPI_MODE": {
         "title": "SerpAPI Mode",
@@ -1086,6 +1089,9 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         ],
         "validation": {"enum": ["fallback_only", "always"]},
         "display_order": 42,
+        "help_key": "settings.data_source.search_api_keys",
+        "examples": ["SERPAPI_MODE=fallback_only"],
+        "docs": _DOC_FULL_GUIDE_SEARCH,
     },
     "SERPAPI_MAX_CALLS_PER_RUN": {
         "title": "SerpAPI Max Calls Per Run",
@@ -1100,6 +1106,9 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": [],
         "validation": {"min": 0},
         "display_order": 43,
+        "help_key": "settings.data_source.search_api_keys",
+        "examples": ["SERPAPI_MAX_CALLS_PER_RUN=3"],
+        "docs": _DOC_FULL_GUIDE_SEARCH,
     },
     "SERPAPI_MIN_NEWS_RESULTS": {
         "title": "SerpAPI Minimum News Results",
@@ -1114,6 +1123,9 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": [],
         "validation": {"min": 0},
         "display_order": 44,
+        "help_key": "settings.data_source.search_api_keys",
+        "examples": ["SERPAPI_MIN_NEWS_RESULTS=2"],
+        "docs": _DOC_FULL_GUIDE_SEARCH,
     },
     "BRAVE_API_KEYS": {
         "title": "Brave API Keys",
