@@ -213,6 +213,38 @@ daily_stock_analysis/
 4. 选择运行模式
 5. 点击绿色的 `Run workflow` 确认
 
+
+### GitHub Actions 外部触发（repository_dispatch）
+
+`00-daily-analysis.yml` 支持通过 GitHub REST API 发送 `repository_dispatch` 事件触发 AI 股票基金每日盯盘报告重跑，事件类型固定为 `run-stock-report`。外部机器人或脚本可以在 `client_payload` 中传入 `run_mode`、`model_profile`、`trigger_source`、`request_id` 和 `command_text`；当前阶段只用于触发参数解析和 Actions 日志识别，不会真实切换模型，也不会改变报告正文、artifact 名称或时间戳。
+
+```bash
+curl -X POST \
+  -H "Accept: application/vnd.github+json" \
+  -H "Authorization: Bearer YOUR_GITHUB_TOKEN" \
+  https://api.github.com/repos/hanchanqaq-source/ai-stock-daily-report/dispatches \
+  -d '{
+    "event_type": "run-stock-report",
+    "client_payload": {
+      "run_mode": "full",
+      "model_profile": "daily",
+      "trigger_source": "channel_command",
+      "request_id": "discord-20260702-001",
+      "command_text": "@AI日报助手 日常版重跑"
+    }
+  }'
+```
+
+安全说明：
+
+1. `YOUR_GITHUB_TOKEN` 不要写入仓库。
+2. token 应放在外部机器人服务或安全环境变量里。
+3. `repository_dispatch` 只是 GitHub Actions 触发入口，不负责鉴权机器人用户身份。
+4. 后续 Discord Bot、飞书或其他频道可以在完成自身鉴权后调用这个接口。
+5. `command_text` 只按固定中文口令解析 `model_profile` / `run_mode`，不会被执行、`eval` 或拼接进 shell 命令；日志展示会截断到 120 字符。
+
+支持的显式参数白名单：`run_mode` 仅允许 `full`、`market-only`、`stocks-only`，非法值回退 `full`；`model_profile` 仅允许 `free`、`daily`、`pro`、`auto`、`final`，非法值回退 `daily`。如果 `client_payload` 已显式传入 `run_mode` 或 `model_profile`，优先使用显式字段；否则可从 `command_text` 中识别“免费版 / 日常版 / 增强版 / 自动版 / 最终版”和“只看大盘 / 只看股票 / 完整日报”等固定口令。
+
 ### 5. 完成！
 
 默认每个工作日 **18:00（北京时间）** 自动执行。

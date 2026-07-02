@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] AI 股票基金每日盯盘报告 workflow 支持 `repository_dispatch` 的 `run-stock-report` 外部触发，解析 `run_mode`、`model_profile`、`trigger_source`、`request_id`、`command_text` 并输出 RUN CONTEXT 日志。
+- [文档] 补充外部机器人/脚本通过 GitHub REST API 触发日报重跑的 `repository_dispatch` curl 示例与 token 安全说明。
 - [改进] AI 股票基金每日盯盘报告新增运行上下文和阶段日志，展示 request_id、trigger_source、run_mode、model_profile 与关键阶段状态，并在 Discord 报告底部附简短运行信息。
 - [改进] AI 股票基金每日盯盘报告支持 `model_profile` 参数识别与启动日志展示，当前仅记录档位选择，不切换模型。
 - [改进] AI 股票基金每日盯盘报告新增“盘面结构观察”固定模块，并在 Discord 摘要中展示指数承接、成交额变化和板块持续性简版。

@@ -185,6 +185,109 @@ def parse_model_profile(value: Optional[str]) -> Tuple[str, bool]:
     )
 
 
+@dataclass(frozen=True)
+class DispatchRunParameters:
+    """Resolved GitHub Actions dispatch parameters and their sources."""
+
+    requested_mode: str
+    resolved_mode: str
+    mode_source: str
+    mode_valid: bool
+    requested_profile: str
+    resolved_profile: str
+    profile_source: str
+    profile_valid: bool
+    safe_command_text: str
+
+
+def parse_command_text_overrides(command_text: Optional[str]) -> Tuple[Optional[str], Optional[str]]:
+    """Parse fixed Chinese channel commands without executing user input.
+
+    Returns ``(run_mode, model_profile)`` overrides when known command words are
+    present. The raw text is only searched for fixed phrases.
+    """
+    text = command_text or ""
+    resolved_profile = None
+    for phrase, profile in MODEL_PROFILE_ALIASES.items():
+        if phrase in text:
+            resolved_profile = profile
+            break
+
+    resolved_mode = None
+    for phrase, mode in RUN_MODE_ALIASES.items():
+        if phrase in text:
+            resolved_mode = mode
+            break
+
+    return resolved_mode, resolved_profile
+
+
+def _first_non_blank(*values: Tuple[str, Optional[str]]) -> Tuple[str, str]:
+    for source, value in values:
+        raw_value = (value or "").strip()
+        if raw_value:
+            return source, raw_value
+    return "default", ""
+
+
+def _truncate_log_text(value: Optional[str], max_length: int = 120) -> str:
+    text = (value or "").replace("\r", " ").replace("\n", " ").strip()
+    if len(text) <= max_length:
+        return text
+    return f"{text[:max_length]}..."
+
+
+def resolve_dispatch_run_parameters(
+    *,
+    client_payload_run_mode: Optional[str] = None,
+    input_run_mode: Optional[str] = None,
+    default_run_mode: Optional[str] = None,
+    client_payload_model_profile: Optional[str] = None,
+    input_model_profile: Optional[str] = None,
+    default_model_profile: Optional[str] = None,
+    command_text: Optional[str] = None,
+) -> DispatchRunParameters:
+    """Resolve external dispatch mode/profile with command-text fallback.
+
+    Explicit client payload fields win over command text. Command text is only
+    parsed for fixed whitelisted phrases and is never executed.
+    """
+    command_mode, command_profile = parse_command_text_overrides(command_text)
+
+    mode_source, requested_mode = _first_non_blank(
+        ("client_payload", client_payload_run_mode),
+        ("command_text", command_mode),
+        ("inputs", input_run_mode),
+        ("vars.DEFAULT_RUN_MODE", default_run_mode),
+    )
+    if not requested_mode:
+        requested_mode = RUN_MODE_DEFAULT
+
+    profile_source, requested_profile = _first_non_blank(
+        ("client_payload", client_payload_model_profile),
+        ("command_text", command_profile),
+        ("inputs", input_model_profile),
+        ("vars.DEFAULT_MODEL_PROFILE", default_model_profile),
+    )
+    if not requested_profile:
+        requested_profile = MODEL_PROFILE_DEFAULT
+
+    resolved_mode, mode_valid = parse_run_mode(requested_mode)
+    resolved_profile, profile_valid = parse_model_profile(requested_profile)
+
+    return DispatchRunParameters(
+        requested_mode=requested_mode,
+        resolved_mode=resolved_mode,
+        mode_source=mode_source,
+        mode_valid=mode_valid,
+        requested_profile=requested_profile,
+        resolved_profile=resolved_profile,
+        profile_source=profile_source,
+        profile_valid=profile_valid,
+        safe_command_text=_truncate_log_text(command_text),
+    )
+
+
 def resolve_model_profile() -> str:
     """Resolve the requested model profile for logging-only runs.
 
