@@ -507,7 +507,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: ai-investment-daily-report
+          name: AI股票基金每日盯盘报告
           path: |
             reports/
             logs/
