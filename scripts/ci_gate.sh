@@ -23,7 +23,8 @@ deterministic_checks() {
 
 offline_test_suite() {
   echo "==> backend-gate: offline test suite"
-  python -m pytest -m "not network"
+  echo "==> backend-gate: offline test suite timeout: 30m"
+  timeout --preserve-status 30m python -m pytest -m "not network"
 }
 
 run_all() {
