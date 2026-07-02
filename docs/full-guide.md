@@ -245,17 +245,39 @@ curl -X POST \
 
 支持的显式参数白名单：`run_mode` 仅允许 `full`、`market-only`、`stocks-only`，非法值回退 `full`；`model_profile` 仅允许 `free`、`daily`、`pro`、`auto`、`final`，非法值回退 `daily`。如果 `client_payload` 已显式传入 `run_mode` 或 `model_profile`，优先使用显式字段；否则可从 `command_text` 中识别“免费版 / 日常版 / 增强版 / 自动版 / 最终版”和“只看大盘 / 只看股票 / 完整日报”等固定口令。
 
-### Discord 指令执行层
+### Discord Bot 命令监听
 
-P3 已完成 Discord 操作面板和 `command_text` 指令解析；P4-A 在此基础上新增 `src.command_executor` 命令执行器和 `src.github_dispatcher` GitHub `repository_dispatch` 客户端，用于把 `rerun_report` 解析结果转换为 GitHub Actions 重跑请求。真正的 Discord Bot 长连接监听、消息鉴权和频道事件接入将在后续 P4-B 实现；当前阶段不会读取 `DISCORD_BOT_TOKEN`，也不会启动长期运行服务。
+P4-B 新增独立的 Discord Bot listener：`src.discord_command_bot`。它只在用户单独部署或手动运行时启动，不会随日报 GitHub Actions workflow 自动运行，也不会改变现有 Discord webhook 日报推送逻辑。
 
-执行层需要的环境变量：
+手动运行示例：
 
+```bash
+python -m src.discord_command_bot
+```
+
+运行前需要安装项目依赖中的 `discord.py`，并配置以下环境变量：
+
+- `DISCORD_BOT_TOKEN`：Discord Bot Token，只能来自运行环境，禁止写入代码。
+- `DISCORD_COMMAND_CHANNEL_IDS`：允许响应命令的频道 ID，支持逗号分隔多个频道，例如 `123456789,987654321`。
 - `GITHUB_DISPATCH_TOKEN`：GitHub dispatch token，仅允许来自运行环境，禁止写入代码或文档示例中的真实值。
 - `GITHUB_DISPATCH_REPO`：目标仓库，默认 `hanchanqaq-source/ai-stock-daily-report`。
 - `GITHUB_DISPATCH_EVENT_TYPE`：事件类型，默认 `run-stock-report`。
 
-可以用 `dry_run=True` 调用 `execute_command_text(command_text, dry_run=True)` 验证 payload，此时只返回将要发送的 `repository_dispatch` 请求体，不会发起网络请求。`resend_latest` 当前只返回“已识别、待 Bot 接入后启用”的计划回执，不会触发 GitHub Actions、模型调用或数据抓取。
+支持的频道命令：
+
+- `@AI日报助手 重推`
+- `@AI日报助手 日常版重跑`
+- `@AI日报助手 增强版重跑`
+- `@AI日报助手 最终版重跑`
+- `@AI日报助手 只看大盘`
+- `@AI日报助手 只看股票`
+- `@AI日报助手 帮助` / `@AI日报助手 help`
+
+`重推` 表示不重新生成，只重发最近一次报告；当前版本只识别并返回预留回执，待最近日报缓存接入后启用实际重发。`重跑` 表示通过 GitHub `repository_dispatch` 触发 GitHub Actions，重新抓数、分析并推送。
+
+安全边界：Bot 会忽略机器人自己发送的消息，只响应 `DISCORD_COMMAND_CHANNEL_IDS` 白名单频道中明确 `@AI日报助手` 的消息；用户输入只交给固定口令解析和 `execute_command_text(command_text, dry_run=False)`，不会被执行、`eval` 或拼接进 shell 命令；日志中的 `command_text` 最多保留 120 字符，Discord/GitHub token 只允许输出掩码预览。GitHub Token 应只授予触发 `repository_dispatch` 所需权限。
+
+可以用 `dry_run=True` 调用 `execute_command_text(command_text, dry_run=True)` 验证 payload，此时只返回将要发送的 `repository_dispatch` 请求体，不会发起网络请求。
 
 ### 5. 完成！
 
