@@ -39,10 +39,10 @@ on:
           - "auto｜自动版｜智能选择"
           - "final｜最终版｜最高质量"
 
-# 并发控制：同一时间只运行一个分析任务
+# 并发控制：仅取消同一分支上当前日报 workflow 的旧运行，避免手动重复触发排队堆积
 concurrency:
-  group: stock-analysis
-  cancel-in-progress: false
+  group: daily-report-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   analyze:
@@ -50,10 +50,16 @@ jobs:
     # 兼容误将 STOCK_LIST 配到同名 Environment variables 的场景；
     # 推荐位置仍是 Settings -> Secrets and variables -> Actions -> Repository variables。
     environment: STOCK_LIST
-    # 添加超时限制，防止任务卡死
-    timeout-minutes: ${{ fromJSON(vars.ANALYSIS_TIMEOUT_MINUTES || '30') }}
+    # 添加超时限制，防止日报主任务卡死
+    timeout-minutes: 45
     
     steps:
+      - name: 输出性能配置
+        run: |
+          echo "[PERF] concurrency=enabled"
+          echo "[PERF] pip_cache=enabled"
+          echo "[PERF] job_timeout_minutes=45"
+
       - name: 随机延迟（避免固定时间访问）
         run: sleep $((RANDOM % 60))  # 随机延迟0-60秒启动
       
@@ -65,6 +71,9 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
       
       - name: 安装依赖
         run: |
