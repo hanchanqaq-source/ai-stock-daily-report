@@ -17,6 +17,7 @@ A股自选股智能分析系统 - 通知层
 from __future__ import annotations
 
 import logging
+import re
 import time
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -76,6 +77,130 @@ from src.notification_sender import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+DISCORD_ARTIFACT_HINT = "完整报告请查看 artifact 附件。"
+
+
+def format_discord_report_summary(content: str, *, max_chars: int = 2000) -> str:
+    """Build a Discord-only report summary without Markdown table rows."""
+    text = str(content or "").strip()
+    if not text:
+        return ""
+    converted = _convert_markdown_tables_to_discord_lists(text)
+    return _compact_discord_report_summary(converted, max_chars=max_chars) or converted
+
+
+def _convert_markdown_tables_to_discord_lists(content: str) -> str:
+    lines = content.splitlines()
+    output: List[str] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if (
+            _is_markdown_table_header(line)
+            and i + 1 < len(lines)
+            and _is_markdown_table_separator(lines[i + 1])
+        ):
+            title = _pop_nearest_markdown_heading(output)
+            rows: List[List[str]] = []
+            i += 2
+            while i < len(lines) and _is_markdown_table_row(lines[i]):
+                rows.append(_split_markdown_table_row(lines[i]))
+                i += 1
+            rendered = _render_discord_numbered_list(title, rows)
+            if rendered:
+                if output and output[-1].strip():
+                    output.append("")
+                output.extend(rendered)
+            continue
+        output.append(line)
+        i += 1
+    return "\n".join(output).strip()
+
+
+def _is_markdown_table_row(line: str) -> bool:
+    stripped = line.strip()
+    return stripped.startswith("|") and stripped.endswith("|")
+
+
+def _is_markdown_table_header(line: str) -> bool:
+    cells = _split_markdown_table_row(line)
+    if len(cells) < 2:
+        return False
+    normalized = {cell.strip().lower() for cell in cells}
+    return bool({"排名", "rank"} & normalized) or any(
+        cell in normalized for cell in {"涨跌幅", "change"}
+    )
+
+
+def _is_markdown_table_separator(line: str) -> bool:
+    cells = _split_markdown_table_row(line)
+    if len(cells) < 2:
+        return False
+    return all(re.fullmatch(r":?-{3,}:?", cell.strip()) for cell in cells)
+
+
+def _split_markdown_table_row(line: str) -> List[str]:
+    stripped = line.strip()
+    if not stripped.startswith("|") or not stripped.endswith("|"):
+        return []
+    return [cell.strip() for cell in stripped.strip("|").split("|")]
+
+
+def _pop_nearest_markdown_heading(output: List[str]) -> str:
+    index = len(output) - 1
+    while index >= 0 and not output[index].strip():
+        index -= 1
+    if index >= 0 and output[index].lstrip().startswith("#"):
+        heading = re.sub(r"^#+\s*", "", output.pop(index)).strip()
+        while output and not output[-1].strip():
+            output.pop()
+        return heading
+    return "重点榜单"
+
+
+def _render_discord_numbered_list(title: str, rows: List[List[str]]) -> List[str]:
+    items: List[str] = []
+    for fallback_rank, cells in enumerate(rows, 1):
+        if len(cells) < 2:
+            continue
+        rank = cells[0] or str(fallback_rank)
+        name = cells[1]
+        change = cells[2] if len(cells) >= 3 else ""
+        suffix = f"：{change}" if change else ""
+        items.append(f"{rank}. {name}{suffix}")
+    if not items:
+        return []
+    icon = "📉" if any(keyword in title for keyword in ("领跌", "Lagging", "lagging")) else "📈"
+    return [f"{icon} {title}", *items]
+
+
+def _compact_discord_report_summary(content: str, *, max_chars: int) -> str:
+    lines = [line.rstrip() for line in content.splitlines()]
+    kept: List[str] = []
+    list_headings = ("📈 ", "📉 ")
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            if kept and kept[-1]:
+                kept.append("")
+            continue
+        if stripped.startswith("#") and len([x for x in kept if x.strip()]) < 3:
+            kept.append(stripped)
+            continue
+        if stripped.startswith(list_headings) or re.match(r"^\d+\.\s+", stripped):
+            kept.append(stripped)
+            continue
+        if len([x for x in kept if x.strip() and not x.startswith("#")]) < 8:
+            kept.append(stripped)
+
+    compact = "\n".join(kept).strip()
+    if compact and len(compact) > max_chars - len(DISCORD_ARTIFACT_HINT) - 8:
+        compact = compact[: max_chars - len(DISCORD_ARTIFACT_HINT) - 9].rstrip() + "…"
+    if compact and DISCORD_ARTIFACT_HINT not in compact:
+        compact = f"{compact}\n\n{DISCORD_ARTIFACT_HINT}"
+    return compact
 
 
 def _safe_float(value: Any) -> Optional[float]:
@@ -2388,6 +2513,7 @@ class NotificationService(
         image_bytes: Optional[bytes],
         email_stock_codes: Optional[List[str]],
         email_send_to_all: bool,
+        format_discord_report: bool = False,
     ) -> bool:
         use_image = self._should_use_image_for_channel(channel, image_bytes)
         if channel == NotificationChannel.WECHAT:
@@ -2424,7 +2550,12 @@ class NotificationService(
                 return self._send_custom_webhook_image(image_bytes, fallback_content=content)
             return self.send_to_custom(content)
         if channel == NotificationChannel.DISCORD:
-            return self.send_to_discord(content)
+            discord_content = (
+                format_discord_report_summary(content, max_chars=self._discord_max_words)
+                if format_discord_report
+                else content
+            )
+            return self.send_to_discord(discord_content)
         if channel == NotificationChannel.SLACK:
             if use_image:
                 return self._send_slack_image(image_bytes, fallback_content=content)
@@ -2595,6 +2726,7 @@ class NotificationService(
                     image_bytes=image_bytes,
                     email_stock_codes=email_stock_codes,
                     email_send_to_all=email_send_to_all,
+                    format_discord_report=(route_type == "report"),
                 )
                 latency_ms = int((time.monotonic() - started_at) * 1000)
 

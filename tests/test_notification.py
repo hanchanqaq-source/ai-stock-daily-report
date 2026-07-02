@@ -1951,7 +1951,7 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
         mock_post.return_value = _make_response(204)
 
         service = NotificationService()
-        ok = service.send_to_discord(
+        ok = service.send(
             "# 大盘复盘\n\n"
             "#### 概念板块领涨 Top 5\n"
             "| 排名 | 概念板块 | 涨跌幅 |\n"
@@ -1961,7 +1961,8 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
             "#### 概念板块领跌 Top 5\n"
             "| 排名 | 概念板块 | 涨跌幅 |\n"
             "|------|----------|--------|\n"
-            "| 1 | 高带宽内存 | -7.08% |\n"
+            "| 1 | 高带宽内存 | -7.08% |\n",
+            route_type="report",
         )
 
         self.assertTrue(ok)
