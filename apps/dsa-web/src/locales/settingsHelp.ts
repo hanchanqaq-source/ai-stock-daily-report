@@ -1168,6 +1168,14 @@ const settingsHelpZhCN: SettingsHelpMap = {
     impact: ['影响分析总耗时。'],
     notes: ['总耗时 ≈ 股票数 × 单股耗时 + (股票数-1) × ANALYSIS_DELAY。'],
   },
+  'settings.system.MODEL_PROFILE': {
+    title: '模型档位',
+    summary: '记录本次运行选择的模型档位。',
+    usage: '可选 free、daily、pro、auto、final；当前阶段只写入运行日志，不会真实切换模型。',
+    valueNotes: ['非法或留空会回退到 daily。'],
+    impact: ['仅影响启动日志中的档位展示，不会调用 DeepSeek，也不会改变日报生成逻辑。'],
+    notes: ['这是后续模型档位能力的占位识别字段，当前不产生额外模型调用费用。'],
+  },
   'settings.system.SAVE_CONTEXT_SNAPSHOT': {
     title: '保存分析上下文快照',
     summary: '控制是否将分析历史的整份 context_snapshot 持久化到数据库。',
@@ -2302,6 +2310,14 @@ const settingsHelpEnUS: SettingsHelpMap = {
     valueNotes: ['Useful when APIs have strict rate limits.'],
     impact: ['Affects total analysis time.'],
     notes: ['Total time ≈ stock count × per-stock time + (count-1) × ANALYSIS_DELAY.'],
+  },
+  'settings.system.MODEL_PROFILE': {
+    title: 'Model Profile',
+    summary: 'Records the model profile selected for this run.',
+    usage: 'Allowed values: free, daily, pro, auto, final. This stage only logs the selection and does not switch models.',
+    valueNotes: ['Invalid or blank values fall back to daily.'],
+    impact: ['Only affects startup log visibility; it does not call DeepSeek or change daily report generation.'],
+    notes: ['This is a placeholder recognition field for future profile support and does not create extra model-call costs.'],
   },
   'settings.system.SAVE_CONTEXT_SNAPSHOT': {
     title: 'Save Context Snapshot',
