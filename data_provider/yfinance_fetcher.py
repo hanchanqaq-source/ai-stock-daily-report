@@ -335,6 +335,7 @@ class YfinanceFetcher(BaseFetcher):
             'volume': float(today_row['Volume']),
             'amount': 0.0,  # Yahoo Finance 不提供准确成交额
             'amplitude': amplitude,
+            'data_date': today_row.name.strftime('%Y-%m-%d') if hasattr(today_row.name, 'strftime') else str(today_row.name)[:10],
         }
 
     def get_main_indices(self, region: str = "cn") -> Optional[List[Dict[str, Any]]]:
@@ -388,22 +389,28 @@ class YfinanceFetcher(BaseFetcher):
         return None
 
     def _get_us_main_indices(self, yf) -> Optional[List[Dict[str, Any]]]:
-        """获取美股主要指数行情（SPX、IXIC、DJI、VIX），复用 _fetch_yf_ticker_data"""
+        """获取美股主要指数行情（道琼斯、纳斯达克、标普500），复用 _fetch_yf_ticker_data"""
         # 大盘复盘所需核心美股指数
-        us_indices = ['SPX', 'IXIC', 'DJI', 'VIX']
+        us_indices = ['DJI', 'IXIC', 'SPX']
         results = []
         try:
             for code in us_indices:
                 yf_symbol, name = get_us_index_yf_symbol(code)
                 if not yf_symbol:
                     continue
+                display_name = {
+                    'DJI': '道琼斯指数',
+                    'IXIC': '纳斯达克指数',
+                    'SPX': '标普500指数',
+                }.get(code, name)
                 try:
-                    item = self._fetch_yf_ticker_data(yf, yf_symbol, name, code)
+                    item = self._fetch_yf_ticker_data(yf, yf_symbol, display_name, code)
                     if item:
                         results.append(item)
-                        logger.debug(f"[Yfinance] 获取美股指数 {name} 成功")
+                        logger.debug(f"[Yfinance] 获取美股指数 {display_name} 成功")
                 except Exception as e:
-                    logger.warning(f"[Yfinance] 获取美股指数 {name} 失败: {e}")
+                    logger.warning("[GLOBAL_INDEX] symbol=%s status=failed reason=%s", code, e)
+                    logger.warning(f"[Yfinance] 获取美股指数 {display_name} 失败: {e}")
 
             if results:
                 logger.info(f"[Yfinance] 成功获取 {len(results)} 个美股指数行情")
@@ -435,6 +442,7 @@ class YfinanceFetcher(BaseFetcher):
                         results.append(item)
                         logger.debug(f"[Yfinance] 获取港股指数 {name} 成功")
                 except Exception as e:
+                    logger.warning("[GLOBAL_INDEX] symbol=%s status=failed reason=%s", code, e)
                     logger.warning(f"[Yfinance] 获取港股指数 {name} 失败: {e}")
 
             if results:
@@ -461,6 +469,7 @@ class YfinanceFetcher(BaseFetcher):
                         results.append(item)
                         logger.debug(f"[Yfinance] 获取日本指数 {name} 成功")
                 except Exception as e:
+                    logger.warning("[GLOBAL_INDEX] symbol=%s status=failed reason=%s", code, e)
                     logger.warning(f"[Yfinance] 获取日本指数 {name} 失败: {e}")
             if results:
                 logger.info(f"[Yfinance] 成功获取 {len(results)} 个日本指数行情")
@@ -484,6 +493,7 @@ class YfinanceFetcher(BaseFetcher):
                         results.append(item)
                         logger.debug(f"[Yfinance] 获取韩国指数 {name} 成功")
                 except Exception as e:
+                    logger.warning("[GLOBAL_INDEX] symbol=%s status=failed reason=%s", code, e)
                     logger.warning(f"[Yfinance] 获取韩国指数 {name} 失败: {e}")
             if results:
                 logger.info(f"[Yfinance] 成功获取 {len(results)} 个韩国指数行情")

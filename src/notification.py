@@ -388,7 +388,7 @@ def _normalize_snapshot_observation(observation: str) -> str:
 
 def _render_discord_global_indices(rows: List[List[str]]) -> List[str]:
     markets = [
-        ("🇨🇳 A股", ("上证", "深证", "创业", "科创", "沪深", "中证")),
+        ("🇨🇳 A股", ("上证", "深证", "创业", "科创", "上证50", "沪深", "中证")),
         ("🇭🇰 港股", ("恒生", "国企", "红筹")),
         ("🇺🇸 美股", ("道琼", "纳斯达克", "标普", "S&P", "NASDAQ", "DOW")),
         ("🇯🇵 日股", ("日经", "东证", "TOPIX", "Nikkei")),
@@ -415,6 +415,8 @@ def _render_discord_global_indices(rows: List[List[str]]) -> List[str]:
             lines.append(f"• {cells[0].strip()}")
             lines.append(f"  点位：{cells[1].strip()}")
             lines.append(f"  涨跌：{_normalize_index_change_color(cells[2].strip())}")
+            if len(cells) >= 9 and cells[8].strip():
+                lines.append(f"  数据日期：{cells[8].strip()}")
     return lines
 
 
