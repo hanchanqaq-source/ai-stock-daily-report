@@ -2692,7 +2692,7 @@ class NotificationService(
         from pathlib import Path
 
         if filename is None:
-            date_str = datetime.now().strftime('%Y%m%d')
+            date_str = datetime.now().strftime('%Y-%m-%d')
             filename = f"ai-investment-daily-report-{date_str}.md"
 
         # 确保 reports 目录存在（使用项目根目录下的 reports）

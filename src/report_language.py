@@ -232,8 +232,8 @@ _GENERIC_STOCK_NAME_BY_LANGUAGE = {
 
 _REPORT_LABELS: Dict[str, Dict[str, str]] = {
     "zh": {
-        "dashboard_title": "AI股票基金每日盯盘报告",
-        "brief_title": "AI股票基金每日盯盘报告",
+        "dashboard_title": "决策仪表盘",
+        "brief_title": "决策简报",
         "analyzed_prefix": "共分析",
         "stock_unit": "只股票",
         "stock_unit_compact": "只",
