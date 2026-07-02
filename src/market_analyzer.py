@@ -69,6 +69,7 @@ class MarketIndex:
     volume: float = 0.0          # 成交量（手）
     amount: float = 0.0          # 成交额（元）
     amplitude: float = 0.0       # 振幅(%)
+    data_date: str = ""          # 数据日期（最新可得交易日）
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -83,6 +84,7 @@ class MarketIndex:
             'volume': self.volume,
             'amount': self.amount,
             'amplitude': self.amplitude,
+            'data_date': self.data_date,
         }
 
 
@@ -479,7 +481,8 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                         prev_close=item['prev_close'],
                         volume=item['volume'],
                         amount=item['amount'],
-                        amplitude=item['amplitude']
+                        amplitude=item['amplitude'],
+                        data_date=str(item.get('data_date') or '')
                     )
                     indices.append(index)
 
@@ -491,11 +494,62 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                     self._log_context(),
                     len(indices),
                 )
+                if self.region == "cn":
+                    indices.extend(self._get_overseas_indices_for_global_structure())
 
         except Exception as e:
             logger.error("[大盘] %s action=get_main_indices status=failed error=%s", self._log_context(), e)
 
         return indices
+
+    def _get_overseas_indices_for_global_structure(self) -> List[MarketIndex]:
+        """Fetch overseas indices for the Discord global-index structure without affecting A-share data."""
+        extra_indices: List[MarketIndex] = []
+        for market, region in (("HK", "hk"), ("US", "us"), ("JP", "jp"), ("KR", "kr")):
+            try:
+                data_list = self.data_manager.get_main_indices(region=region) or []
+            except Exception as exc:
+                logger.warning("[GLOBAL_INDEX] market=%s status=missing reason=%s", market, exc)
+                continue
+
+            market_indices: List[MarketIndex] = []
+            for item in data_list:
+                try:
+                    market_indices.append(
+                        MarketIndex(
+                            code=item["code"],
+                            name=item["name"],
+                            current=item["current"],
+                            change=item["change"],
+                            change_pct=item["change_pct"],
+                            open=item["open"],
+                            high=item["high"],
+                            low=item["low"],
+                            prev_close=item["prev_close"],
+                            volume=item["volume"],
+                            amount=item["amount"],
+                            amplitude=item["amplitude"],
+                            data_date=str(item.get("data_date") or ""),
+                        )
+                    )
+                except Exception as exc:
+                    logger.warning(
+                        "[GLOBAL_INDEX] symbol=%s status=failed reason=%s",
+                        item.get("code") or item.get("name") or "unknown",
+                        exc,
+                    )
+
+            expected = {"HK": 2, "US": 3, "JP": 2, "KR": 2}[market]
+            if not market_indices:
+                logger.info("[GLOBAL_INDEX] market=%s status=missing", market)
+            else:
+                status = "success" if len(market_indices) >= expected else "partial"
+                logger.info("[GLOBAL_INDEX] market=%s status=%s count=%d", market, status, len(market_indices))
+                extra_indices.extend(market_indices)
+                dates = sorted({idx.data_date for idx in market_indices if idx.data_date})
+                if dates and (len(dates) > 1 or dates[0] != datetime.now().strftime("%Y-%m-%d")):
+                    logger.info("[GLOBAL_INDEX] market=%s data_date=%s", market, ",".join(dates))
+        return extra_indices
 
     def _get_market_statistics(self, overview: MarketOverview):
         """获取市场涨跌统计"""
@@ -1288,13 +1342,13 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             return ""
         if self._get_review_language() == "en":
             lines = [
-                f"| Index | Last | Change % | Open | High | Low | Amplitude | Turnover ({self._get_turnover_unit_label()}) |",
-                "|-------|------|----------|------|------|-----|-----------|-----------------|",
+                f"| Index | Last | Change % | Open | High | Low | Amplitude | Turnover ({self._get_turnover_unit_label()}) | Data date |",
+                "|-------|------|----------|------|------|-----|-----------|-----------------|-----------|",
             ]
         else:
             lines = [
-                "| 指数 | 最新 | 涨跌幅 | 开盘 | 最高 | 最低 | 振幅 | 成交额(亿) |",
-                "|------|------|--------|------|------|------|------|-----------|",
+                "| 指数 | 最新 | 涨跌幅 | 开盘 | 最高 | 最低 | 振幅 | 成交额(亿) | 数据日期 |",
+                "|------|------|--------|------|------|------|------|-----------|----------|",
             ]
         for idx in overview.indices:
             arrow = self._get_index_change_arrow(idx.change_pct)
@@ -1303,7 +1357,8 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             lines.append(
                 f"| {idx.name} | {idx.current:.2f} | {arrow} {idx.change_pct:+.2f}% | "
                 f"{self._format_optional_number(idx.open)} | {self._format_optional_number(idx.high)} | "
-                f"{self._format_optional_number(idx.low)} | {self._format_optional_pct(idx.amplitude)} | {amount_str} |"
+                f"{self._format_optional_number(idx.low)} | {self._format_optional_pct(idx.amplitude)} | {amount_str} | "
+                f"{idx.data_date or overview.date} |"
             )
         return "\n".join(lines)
 
