@@ -93,6 +93,9 @@ def format_discord_report_summary(content: str, *, max_chars: int = 2000) -> str
     if not text:
         return ""
     converted = _convert_markdown_tables_to_discord_lists(text)
+    structure_lines = _extract_market_structure_summary(converted.splitlines())
+    if structure_lines and "📌 盘面结构" not in converted:
+        converted = "\n".join([*structure_lines, "", converted]).strip()
     if DISCORD_ARTIFACT_HINT in converted:
         return converted
     return f"{converted}\n\n{DISCORD_ARTIFACT_HINT}"
