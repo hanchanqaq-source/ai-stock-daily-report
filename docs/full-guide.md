@@ -245,6 +245,18 @@ curl -X POST \
 
 支持的显式参数白名单：`run_mode` 仅允许 `full`、`market-only`、`stocks-only`，非法值回退 `full`；`model_profile` 仅允许 `free`、`daily`、`pro`、`auto`、`final`，非法值回退 `daily`。如果 `client_payload` 已显式传入 `run_mode` 或 `model_profile`，优先使用显式字段；否则可从 `command_text` 中识别“免费版 / 日常版 / 增强版 / 自动版 / 最终版”和“只看大盘 / 只看股票 / 完整日报”等固定口令。
 
+### Discord 指令执行层
+
+P3 已完成 Discord 操作面板和 `command_text` 指令解析；P4-A 在此基础上新增 `src.command_executor` 命令执行器和 `src.github_dispatcher` GitHub `repository_dispatch` 客户端，用于把 `rerun_report` 解析结果转换为 GitHub Actions 重跑请求。真正的 Discord Bot 长连接监听、消息鉴权和频道事件接入将在后续 P4-B 实现；当前阶段不会读取 `DISCORD_BOT_TOKEN`，也不会启动长期运行服务。
+
+执行层需要的环境变量：
+
+- `GITHUB_DISPATCH_TOKEN`：GitHub dispatch token，仅允许来自运行环境，禁止写入代码或文档示例中的真实值。
+- `GITHUB_DISPATCH_REPO`：目标仓库，默认 `hanchanqaq-source/ai-stock-daily-report`。
+- `GITHUB_DISPATCH_EVENT_TYPE`：事件类型，默认 `run-stock-report`。
+
+可以用 `dry_run=True` 调用 `execute_command_text(command_text, dry_run=True)` 验证 payload，此时只返回将要发送的 `repository_dispatch` 请求体，不会发起网络请求。`resend_latest` 当前只返回“已识别、待 Bot 接入后启用”的计划回执，不会触发 GitHub Actions、模型调用或数据抓取。
+
 ### 5. 完成！
 
 默认每个工作日 **18:00（北京时间）** 自动执行。
