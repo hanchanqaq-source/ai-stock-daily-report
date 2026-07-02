@@ -104,6 +104,7 @@ class MarketOverview:
     bottom_sectors: List[Dict] = field(default_factory=list)  # 跌幅前5板块
     top_concepts: List[Dict] = field(default_factory=list)    # 涨幅前5概念
     bottom_concepts: List[Dict] = field(default_factory=list) # 跌幅前5概念
+    breadth_structure: Dict[str, Any] = field(default_factory=dict)  # 涨跌结构明细摘要
 
 
 @dataclass
@@ -443,6 +444,10 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
         if self.profile.has_sector_rankings:
             self._get_sector_rankings(overview)
             self._get_concept_rankings(overview)
+
+        # 4. 获取涨跌结构（A 股实时行情可用时提供，失败不影响日报）
+        if self.profile.has_market_stats:
+            self._get_breadth_structure(overview)
         
         # 4. 获取北向资金（可选）
         # self._get_north_flow(overview)
@@ -546,6 +551,30 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
         except Exception as e:
             logger.error("[大盘] %s action=get_sector_rankings status=failed error=%s", self._log_context(), e)
+
+
+    def _get_breadth_structure(self, overview: MarketOverview):
+        """获取涨跌结构摘要：集中板块与领涨/领跌个股。"""
+        try:
+            getter = getattr(self.data_manager, "get_market_breadth_structure", None)
+            if not callable(getter):
+                return
+            logger.info("[大盘] %s action=get_breadth_structure status=start", self._log_context())
+            structure = getter(limit=5, purpose=f"market_review:{self.region}")
+            if isinstance(structure, dict) and structure:
+                overview.breadth_structure = structure
+                # 盘面快照与涨跌结构使用同一批实时行情时，以结构数据为准保持一致。
+                overview.up_count = int(structure.get("up_count") or overview.up_count or 0)
+                overview.down_count = int(structure.get("down_count") or overview.down_count or 0)
+                overview.flat_count = int(structure.get("flat_count") or overview.flat_count or 0)
+                logger.info(
+                    "[大盘] %s action=get_breadth_structure status=success up=%s down=%s flat=%s",
+                    self._log_context(), overview.up_count, overview.down_count, overview.flat_count,
+                )
+            else:
+                logger.warning("[大盘] %s action=get_breadth_structure status=empty", self._log_context())
+        except Exception as e:
+            logger.warning("[大盘] %s action=get_breadth_structure status=failed error=%s", self._log_context(), e)
 
     def _get_concept_rankings(self, overview: MarketOverview):
         """获取概念/题材涨跌榜（fail-open）。"""
@@ -806,6 +835,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 "top": list(overview.top_concepts or []),
                 "bottom": list(overview.bottom_concepts or []),
             },
+            "breadth_structure": dict(overview.breadth_structure or {}),
             "news": [self._normalize_news_item(item) for item in (news or [])[:8]],
             "sections": sections,
             "markdown_report": report,
@@ -896,6 +926,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
         # Build data blocks
         stats_block = self._build_stats_block(overview)
         indices_block = self._build_indices_block(overview)
+        breadth_structure_block = self._build_breadth_structure_block(overview)
         sector_block = self._build_sector_block(overview)
         patterns = (
             _ENGLISH_SECTION_PATTERNS
@@ -915,6 +946,13 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 review,
                 patterns["index_commentary"],
                 indices_block,
+            )
+
+        if breadth_structure_block:
+            review = self._insert_after_section(
+                review,
+                patterns["market_summary"],
+                breadth_structure_block,
             )
 
         structure_block = self._build_market_structure_observation_block(overview)
@@ -1076,6 +1114,74 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             f"| 上涨/下跌/平盘 | {overview.up_count} / {overview.down_count} / {overview.flat_count} | 上涨占比(不含平盘) {up_ratio:.1%} |",
             f"| 涨停/跌停 | {overview.limit_up_count} / {overview.limit_down_count} | 涨跌停差 {limit_spread:+d} |",
             f"| 两市成交额 | {overview.total_amount:.0f} 亿 | {self._describe_turnover(overview.total_amount)} |",
+        ]
+        return "\n".join(lines)
+
+    def _build_breadth_structure_block(self, overview: MarketOverview) -> str:
+        """Build the up/down structure block inserted after the market snapshot."""
+        if self._get_review_language() == "en":
+            return ""
+        data = overview.breadth_structure or {}
+        up_count = int(data.get("up_count") or overview.up_count or 0)
+        down_count = int(data.get("down_count") or overview.down_count or 0)
+        if up_count <= 0 and down_count <= 0:
+            return ""
+
+        def stock_name(item: Dict[str, Any]) -> str:
+            return str(item.get("name") or item.get("股票名称") or item.get("code") or "数据暂缺")
+
+        def sector_name(item: Dict[str, Any]) -> str:
+            value = str(item.get("sector") or item.get("所属板块") or "").strip()
+            return value or "数据暂缺"
+
+        def pct_text(value: Any) -> str:
+            try:
+                return f"{float(value):+.2f}%"
+            except (TypeError, ValueError):
+                return "数据暂缺"
+
+        def concentration_lines(rows: List[Dict[str, Any]], *, direction: str) -> List[str]:
+            if not rows:
+                return ["  数据暂缺"]
+            lines: List[str] = []
+            count_key = "up_count" if direction == "up" else "down_count"
+            leader_key = "leader" if direction == "up" else "laggard"
+            verb = "上涨" if direction == "up" else "下跌"
+            lead_word = "领涨股" if direction == "up" else "领跌股"
+            for idx, item in enumerate(rows[:5], 1):
+                leader = item.get(leader_key) if isinstance(item.get(leader_key), dict) else {}
+                lines.append(
+                    f"  {idx}. {sector_name(item)}：{verb} {int(item.get(count_key) or 0)} 家，"
+                    f"{lead_word} {stock_name(leader)} {pct_text(leader.get('change_pct'))}"
+                )
+            return lines
+
+        def stock_lines(rows: List[Dict[str, Any]], *, icon: str) -> List[str]:
+            if not rows:
+                return ["  数据暂缺"]
+            return [
+                f"  {idx}. {icon} {stock_name(item)}：{pct_text(item.get('change_pct'))}，所属板块：{sector_name(item)}"
+                for idx, item in enumerate(rows[:5], 1)
+            ]
+
+        lines = [
+            "### 📌 涨跌结构",
+            "",
+            "📈 上涨结构",
+            f"• 今日上涨股票：{up_count} 家",
+            "• 主要集中板块：",
+            *concentration_lines(data.get("up_sectors") or [], direction="up"),
+            "",
+            "• 领涨个股 Top 5：",
+            *stock_lines(data.get("top_gainers") or [], icon="🔴"),
+            "",
+            "📉 下跌结构",
+            f"• 今日下跌股票：{down_count} 家",
+            "• 主要集中板块：",
+            *concentration_lines(data.get("down_sectors") or [], direction="down"),
+            "",
+            "• 领跌个股 Top 5：",
+            *stock_lines(data.get("top_losers") or [], icon="🟢"),
         ]
         return "\n".join(lines)
 
@@ -1813,6 +1919,7 @@ Market conditions can change quickly. The data above is for reference only and d
         market_labels = {"cn": "A股", "us": "美股", "hk": "港股", "jp": "日股", "kr": "韩股"}
         market_label = market_labels.get(self.region, "A股")
         dashboard_block = self._build_stats_block(overview) if self.profile.has_market_stats else ""
+        breadth_structure_block = self._build_breadth_structure_block(overview) if self.profile.has_market_stats else ""
         indices_block = self._build_indices_block(overview)
         sector_block = self._build_sector_block(overview) if self.profile.has_sector_rankings else ""
         summary_focus = (
@@ -1852,6 +1959,8 @@ Market conditions can change quickly. The data above is for reference only and d
 
 ### 一、盘面总览
 {market_summary_block}
+
+{breadth_structure_block}
 
 ### 二、指数结构
 {indices_block or indices_text or "暂无指数数据。"}

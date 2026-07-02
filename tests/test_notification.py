@@ -2202,3 +2202,49 @@ def test_discord_runtime_info_footer(monkeypatch):
     assert "触发来源：manual_action" in content
     assert "运行模式：full" in content
     assert "模型档位：daily" in content
+
+class TestDiscordMarketBreadthStructure(unittest.TestCase):
+    def test_discord_summary_keeps_breadth_structure_without_markdown_tables(self):
+        content = """### 一、盘面总览
+📌 盘面快照
+• 上涨：2219 家
+• 下跌：3161 家
+• 平盘：136 家
+  ↳ 上涨占比：41.2%
+
+### 📌 涨跌结构
+
+📈 上涨结构
+• 今日上涨股票：2219 家
+• 主要集中板块：
+  1. 半导体：上涨 128 家，领涨股 芯片A +10.01%
+
+• 领涨个股 Top 5：
+  1. 🔴 芯片A：+10.01%，所属板块：半导体
+  2. 🔴 算力B：+8.32%，所属板块：数据暂缺
+
+📉 下跌结构
+• 今日下跌股票：3161 家
+• 主要集中板块：
+  1. 煤炭：下跌 88 家，领跌股 煤炭A -7.21%
+
+• 领跌个股 Top 5：
+  1. 🟢 煤炭A：-7.21%，所属板块：煤炭
+
+### 二、指数结构
+| 指数 | 最新 | 涨跌幅 |
+|------|------|--------|
+| 上证指数 | 3000.00 | +0.10% |
+"""
+
+        summary = format_discord_report_summary(content)
+
+        self.assertIn("📌 涨跌结构", summary)
+        self.assertIn("📈 上涨结构", summary)
+        self.assertIn("📉 下跌结构", summary)
+        self.assertIn("今日上涨股票", summary)
+        self.assertIn("今日下跌股票", summary)
+        self.assertIn("半导体：上涨 128 家，领涨股 芯片A +10.01%", summary)
+        self.assertIn("煤炭：下跌 88 家，领跌股 煤炭A -7.21%", summary)
+        self.assertIn("所属板块：数据暂缺", summary)
+        self.assertNotRegex(summary, r"^\|", msg="Discord summary should not contain Markdown table rows")

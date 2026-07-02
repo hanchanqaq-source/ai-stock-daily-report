@@ -400,6 +400,10 @@ class BaseFetcher(ABC):
         """
         return None
 
+    def get_market_breadth_structure(self, limit: int = 5) -> Optional[Dict[str, Any]]:
+        """获取涨跌结构摘要。子类可按实时行情返回集中板块与领涨/领跌个股。"""
+        return None
+
     def get_sector_rankings(self, n: int = 5) -> Optional[Tuple[List[Dict], List[Dict]]]:
         """
         获取板块涨跌榜
@@ -3635,6 +3639,39 @@ class DataFetcherManager:
                     logger.warning(f"[{fetcher.name}] 获取板块排行失败: {error_reason}")
 
             return [], [], source_chain, last_error
+
+
+    def get_market_breadth_structure(self, limit: int = 5, *, purpose: str = "unspecified") -> Dict[str, Any]:
+        """获取涨跌结构摘要（自动切换数据源）。"""
+        logger.info("[BreadthStructure] component=market_breadth_structure action=start purpose=%s", purpose)
+        for fetcher in self._fetchers:
+            getter = getattr(fetcher, "get_market_breadth_structure", None)
+            if not callable(getter):
+                continue
+            started_at = time.monotonic()
+            try:
+                data = getter(limit)
+                elapsed = time.monotonic() - started_at
+                if data:
+                    logger.info(
+                        "[BreadthStructure] component=market_breadth_structure action=provider_success "
+                        "purpose=%s provider=%s elapsed=%.2fs",
+                        purpose, fetcher.name, elapsed,
+                    )
+                    return data
+                logger.info(
+                    "[BreadthStructure] component=market_breadth_structure action=provider_empty "
+                    "purpose=%s provider=%s elapsed=%.2fs",
+                    purpose, fetcher.name, elapsed,
+                )
+            except Exception as e:
+                elapsed = time.monotonic() - started_at
+                logger.warning(
+                    "[BreadthStructure] component=market_breadth_structure action=provider_failed "
+                    "purpose=%s provider=%s elapsed=%.2fs error=%s",
+                    purpose, fetcher.name, elapsed, e,
+                )
+        return {}
 
     def get_sector_rankings(self, n: int = 5) -> Tuple[List[Dict], List[Dict]]:
         """获取板块涨跌榜（自动切换数据源）"""
