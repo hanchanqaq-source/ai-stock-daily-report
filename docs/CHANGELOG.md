@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] AI 股票基金每日盯盘报告新增“盘面结构观察”固定模块，并在 Discord 摘要中展示指数承接、成交额变化和板块持续性简版。
 - [改进] 将默认搜索源优先级调整为 Anspire、SearXNG、SerpAPI，并支持 SerpAPI fallback_only 与单次运行调用上限配置。
 
 - [改进] 日报工作流、对外报告总标题、artifact 名称和默认本地报告文件名统一为 AI 股票基金每日盯盘报告 / ai-investment-daily-report。

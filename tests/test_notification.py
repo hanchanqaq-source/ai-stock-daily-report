@@ -30,7 +30,7 @@ for optional_module in ("litellm", "json_repair"):
         sys.modules[optional_module] = mock.MagicMock()
 
 from src.config import Config
-from src.notification import NotificationService, NotificationChannel
+from src.notification import NotificationService, NotificationChannel, format_discord_report_summary
 from src.notification_noise import reset_notification_noise_state
 from src.analyzer import AnalysisResult
 from bot.models import BotMessage, ChatType
@@ -564,6 +564,29 @@ class TestNotificationServiceSendToMethods(unittest.TestCase):
 
 class TestNotificationServiceReportGeneration(unittest.TestCase):
     """报告生成与选路相关测试。"""
+
+
+    def test_discord_summary_includes_market_structure_block(self) -> None:
+        content = """# 🎯 大盘复盘
+
+### 一、盘面总览
+今日震荡。
+
+### 三、盘面结构观察
+- 指数承接：承接一般。缺少分时数据，承接仅作粗略判断。
+- 成交额变化：数据不足，暂不判断。
+- 板块持续性：持续性一般。
+
+### 五、资金与情绪
+资金观望。
+"""
+
+        summary = format_discord_report_summary(content)
+
+        self.assertIn("📌 盘面结构", summary)
+        self.assertIn("指数承接", summary)
+        self.assertIn("成交额变化", summary)
+        self.assertIn("板块持续性", summary)
 
     @mock.patch("src.notification.get_config")
     def test_generate_aggregate_report_routes_by_report_type(self, mock_get_config: mock.MagicMock):

@@ -176,9 +176,36 @@ def _render_discord_numbered_list(title: str, rows: List[List[str]]) -> List[str
     return [f"{icon} {title}", *items]
 
 
+
+def _extract_market_structure_summary(lines: List[str]) -> List[str]:
+    """Extract the fixed market-structure block for compact Discord summaries."""
+    start = None
+    for index, line in enumerate(lines):
+        title = line.strip().lstrip("#").strip()
+        if title in {"三、盘面结构观察", "四、承接、量能与持续性"}:
+            start = index
+            break
+    if start is None:
+        return []
+
+    extracted = ["📌 盘面结构"]
+    for line in lines[start + 1:]:
+        stripped = line.strip()
+        if stripped.startswith("###"):
+            break
+        if stripped.startswith("- ") and any(key in stripped for key in ("指数承接", "成交额变化", "板块持续性")):
+            extracted.append(stripped)
+        if len(extracted) >= 4:
+            break
+    return extracted if len(extracted) > 1 else []
+
 def _compact_discord_report_summary(content: str, *, max_chars: int) -> str:
     lines = [line.rstrip() for line in content.splitlines()]
     kept: List[str] = []
+    structure_lines = _extract_market_structure_summary(lines)
+    if structure_lines:
+        kept.extend(structure_lines)
+        kept.append("")
     list_headings = ("📈 ", "📉 ")
     for line in lines:
         stripped = line.strip()
