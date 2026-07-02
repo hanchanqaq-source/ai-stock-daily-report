@@ -82,6 +82,13 @@ WEB_SETTINGS_HIDDEN_FROM_UI = {
     "PROXY_PORT",
 }
 
+_DOC_FULL_GUIDE_SEARCH = [
+    {
+        "label": "完整指南：搜索服务配置",
+        "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#搜索服务配置",
+    },
+]
+
 _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "STOCK_LIST": {
         "title": "Stock List",
@@ -4402,12 +4409,6 @@ _DOC_FULL_GUIDE_ENV = [
     },
 ]
 
-_DOC_FULL_GUIDE_SEARCH = [
-    {
-        "label": "完整指南：搜索服务配置",
-        "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#搜索服务配置",
-    },
-]
 
 _DOC_FULL_GUIDE_DATA_SOURCE = [
     {
