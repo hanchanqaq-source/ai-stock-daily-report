@@ -1910,6 +1910,88 @@ class AkshareFetcher(BaseFetcher):
             
         return stats
 
+
+    def get_market_breadth_structure(self, limit: int = 5) -> Optional[Dict[str, Any]]:
+        """Build up/down structure from full-market realtime quotes."""
+        import akshare as ak
+
+        try:
+            self._set_random_user_agent()
+            self._enforce_rate_limit()
+            current_time = time.time()
+            if _realtime_cache['data'] is not None and current_time - _realtime_cache['timestamp'] < _realtime_cache['ttl']:
+                df = _realtime_cache['data']
+            else:
+                df = ak.stock_zh_a_spot_em()
+                _realtime_cache['data'] = df
+                _realtime_cache['timestamp'] = current_time
+            return self._build_breadth_structure_from_dataframe(df, limit=limit)
+        except Exception as e:
+            logger.warning("[Akshare] 获取涨跌结构失败: %s", e)
+            return None
+
+    @staticmethod
+    def _build_breadth_structure_from_dataframe(df: pd.DataFrame, limit: int = 5) -> Optional[Dict[str, Any]]:
+        if df is None or df.empty:
+            return None
+        code_col = next((c for c in ('股票代码', '代码', 'code', 'ts_code') if c in df.columns), None)
+        name_col = next((c for c in ('股票名称', '名称', 'name') if c in df.columns), None)
+        price_col = next((c for c in ('最新价', '最新价格', 'close', 'lastPrice') if c in df.columns), None)
+        pct_col = next((c for c in ('涨跌幅', '涨幅', 'pct_chg', 'change_pct') if c in df.columns), None)
+        amount_col = next((c for c in ('成交额', 'amount') if c in df.columns), None)
+        turnover_col = next((c for c in ('换手率', 'turnover_rate') if c in df.columns), None)
+        sector_col = next((c for c in ('行业', '所属行业', '板块', '所属板块') if c in df.columns), None)
+        if not (code_col and name_col and price_col and pct_col):
+            return None
+        work = df.copy()
+        work[pct_col] = pd.to_numeric(work[pct_col], errors='coerce')
+        work[price_col] = pd.to_numeric(work[price_col], errors='coerce')
+        if amount_col:
+            work[amount_col] = pd.to_numeric(work[amount_col], errors='coerce')
+        if turnover_col:
+            work[turnover_col] = pd.to_numeric(work[turnover_col], errors='coerce')
+        work = work.dropna(subset=[pct_col, price_col])
+
+        def row_to_stock(row) -> Dict[str, Any]:
+            sector = str(row.get(sector_col) or '').strip() if sector_col else ''
+            return {
+                'code': str(row.get(code_col) or '').strip(),
+                'name': str(row.get(name_col) or '').strip(),
+                'price': float(row.get(price_col) or 0),
+                'change_pct': float(row.get(pct_col) or 0),
+                'amount': float(row.get(amount_col) or 0) if amount_col else 0.0,
+                'turnover_rate': float(row.get(turnover_col) or 0) if turnover_col else 0.0,
+                'sector': sector or '数据暂缺',
+            }
+
+        up = work[work[pct_col] > 0].copy()
+        down = work[work[pct_col] < 0].copy()
+        flat = work[work[pct_col].abs() <= 1e-9].copy()
+
+        def sector_stats(part: pd.DataFrame, direction: str) -> List[Dict[str, Any]]:
+            if not sector_col or part.empty:
+                return []
+            rows: List[Dict[str, Any]] = []
+            count_key = 'up_count' if direction == 'up' else 'down_count'
+            leader_key = 'leader' if direction == 'up' else 'laggard'
+            for sector, group in part.groupby(sector_col, dropna=True):
+                sector_text = str(sector or '').strip()
+                if not sector_text:
+                    continue
+                lead = group.nlargest(1, pct_col).iloc[0] if direction == 'up' else group.nsmallest(1, pct_col).iloc[0]
+                rows.append({'sector': sector_text, count_key: int(len(group)), leader_key: row_to_stock(lead)})
+            return sorted(rows, key=lambda item: item[count_key], reverse=True)[:limit]
+
+        return {
+            'up_count': int(len(up)),
+            'down_count': int(len(down)),
+            'flat_count': int(len(flat)),
+            'up_sectors': sector_stats(up, 'up'),
+            'down_sectors': sector_stats(down, 'down'),
+            'top_gainers': [row_to_stock(row) for _, row in up.nlargest(limit, pct_col).iterrows()],
+            'top_losers': [row_to_stock(row) for _, row in down.nsmallest(limit, pct_col).iterrows()],
+        }
+
     def get_sector_rankings(self, n: int = 5) -> Optional[Tuple[List[Dict], List[Dict]]]:
         """
         获取行业板块涨跌榜

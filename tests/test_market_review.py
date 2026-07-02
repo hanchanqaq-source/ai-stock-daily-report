@@ -80,6 +80,31 @@ class MarketReviewLocalizationTestCase(unittest.TestCase):
                     expected,
                 )
 
+
+    def test_template_review_includes_breadth_structure_after_snapshot(self) -> None:
+        analyzer = MarketAnalyzer(config=SimpleNamespace(report_language="zh", market_review_region="cn"))
+        overview = MarketOverview(date="2026-07-02")
+        overview.up_count = 2
+        overview.down_count = 1
+        overview.breadth_structure = {
+            "up_count": 2,
+            "down_count": 1,
+            "flat_count": 0,
+            "up_sectors": [{"sector": "半导体", "up_count": 2, "leader": {"name": "芯片A", "change_pct": 10.01, "sector": "半导体"}}],
+            "down_sectors": [{"sector": "煤炭", "down_count": 1, "laggard": {"name": "煤炭A", "change_pct": -7.21, "sector": "煤炭"}}],
+            "top_gainers": [{"name": "芯片A", "change_pct": 10.01, "sector": "半导体"}],
+            "top_losers": [{"name": "煤炭A", "change_pct": -7.21, "sector": "煤炭"}],
+        }
+
+        report = analyzer._generate_template_review(overview, [])
+
+        self.assertIn("### 📌 涨跌结构", report)
+        self.assertIn("📈 上涨结构", report)
+        self.assertIn("📉 下跌结构", report)
+        self.assertIn("半导体：上涨 2 家，领涨股 芯片A +10.01%", report)
+        self.assertIn("煤炭：下跌 1 家，领跌股 煤炭A -7.21%", report)
+        self.assertLess(report.index("### 📌 涨跌结构"), report.index("### 二、指数结构"))
+
     def test_run_market_review_uses_english_notification_title(self) -> None:
         notifier = self._make_notifier()
         market_analyzer = MagicMock()
