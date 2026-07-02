@@ -135,12 +135,13 @@ def _convert_markdown_tables_to_discord_lists(content: str) -> str:
             and _is_markdown_table_separator(lines[i + 1])
         ):
             title = _pop_nearest_markdown_heading(output)
+            header = _split_markdown_table_row(line)
             rows: List[List[str]] = []
             i += 2
             while i < len(lines) and _is_markdown_table_row(lines[i]):
                 rows.append(_split_markdown_table_row(lines[i]))
                 i += 1
-            rendered = _render_discord_numbered_list(title, rows)
+            rendered = _render_discord_table(title, header, rows)
             if rendered:
                 if output and output[-1].strip():
                     output.append("")
@@ -161,7 +162,7 @@ def _is_markdown_table_header(line: str) -> bool:
     if len(cells) < 2:
         return False
     normalized = {cell.strip().lower() for cell in cells}
-    return bool({"排名", "rank"} & normalized) or any(
+    return bool({"排名", "rank", "指标", "metric", "指数", "index"} & normalized) or any(
         cell in normalized for cell in {"涨跌幅", "change"}
     )
 
@@ -192,6 +193,15 @@ def _pop_nearest_markdown_heading(output: List[str]) -> str:
     return "重点榜单"
 
 
+def _render_discord_table(title: str, header: List[str], rows: List[List[str]]) -> List[str]:
+    normalized = {cell.strip().lower() for cell in header}
+    if "指标" in normalized and "数值" in normalized:
+        return _render_discord_market_snapshot(rows)
+    if "指数" in normalized and "涨跌幅" in normalized:
+        return _render_discord_global_indices(rows)
+    return _render_discord_numbered_list(title, rows)
+
+
 def _render_discord_numbered_list(title: str, rows: List[List[str]]) -> List[str]:
     items: List[str] = []
     for fallback_rank, cells in enumerate(rows, 1):
@@ -206,6 +216,87 @@ def _render_discord_numbered_list(title: str, rows: List[List[str]]) -> List[str
         return []
     icon = "📉" if any(keyword in title for keyword in ("领跌", "Lagging", "lagging")) else "📈"
     return [f"{icon} {title}", *items]
+
+
+def _render_discord_market_snapshot(rows: List[List[str]]) -> List[str]:
+    lines = ["📌 盘面快照"]
+    for cells in rows:
+        if len(cells) < 2:
+            continue
+        metric, value = cells[0].strip(), cells[1].strip()
+        observation = cells[2].strip() if len(cells) >= 3 else ""
+        if lines[-1] != "📌 盘面快照":
+            lines.append("")
+        labels = [part.strip() for part in re.split(r"\s*/\s*", metric) if part.strip()]
+        values = [part.strip() for part in re.split(r"\s*/\s*", value) if part.strip()]
+        if len(labels) > 1 and len(labels) == len(values):
+            for label, val in zip(labels, values):
+                lines.append(f"• {label}：{_append_house_unit(label, val)}")
+        else:
+            lines.append(f"• {metric}：{value}")
+        if observation:
+            lines.append(f"  ↳ {_normalize_snapshot_observation(observation)}")
+    return lines
+
+
+def _append_house_unit(label: str, value: str) -> str:
+    if any(keyword in label for keyword in ("上涨", "下跌", "平盘", "涨停", "跌停")) and "家" not in value:
+        return f"{value} 家"
+    return value
+
+
+def _normalize_snapshot_observation(observation: str) -> str:
+    text = observation.strip()
+    text = re.sub(r"上涨占比(?:\(不含平盘\))?\s*", "上涨占比：", text)
+    text = re.sub(r"涨跌停差\s*", "涨跌停差：", text)
+    if text.startswith("高活跃度"):
+        return "活跃度：较高"
+    if text.startswith("低活跃度"):
+        return "活跃度：较低"
+    if text.startswith("活跃度") and "：" not in text:
+        return text.replace("活跃度", "活跃度：", 1)
+    return text
+
+
+def _render_discord_global_indices(rows: List[List[str]]) -> List[str]:
+    markets = [
+        ("🇨🇳 A股", ("上证", "深证", "创业", "科创", "沪深", "中证")),
+        ("🇭🇰 港股", ("恒生", "国企", "红筹")),
+        ("🇺🇸 美股", ("道琼", "纳斯达克", "标普", "S&P", "NASDAQ", "DOW")),
+        ("🇯🇵 日股", ("日经", "东证", "TOPIX", "Nikkei")),
+        ("🇰🇷 韩股", ("KOSPI", "KOSDAQ", "韩国")),
+    ]
+    grouped: Dict[str, List[List[str]]] = {name: [] for name, _ in markets}
+    for cells in rows:
+        if len(cells) < 3:
+            continue
+        name = cells[0].strip()
+        market_name = next((m for m, keys in markets if any(k.lower() in name.lower() for k in keys)), "🇨🇳 A股")
+        grouped[market_name].append(cells)
+
+    lines = ["📈 二、全球指数结构"]
+    for market_name, _keys in markets:
+        lines.extend(["", market_name, ""])
+        items = grouped[market_name]
+        if not items:
+            lines.append("数据暂缺")
+            continue
+        for pos, cells in enumerate(items):
+            if pos:
+                lines.append("")
+            lines.append(f"• {cells[0].strip()}")
+            lines.append(f"  点位：{cells[1].strip()}")
+            lines.append(f"  涨跌：{_normalize_index_change_color(cells[2].strip())}")
+    return lines
+
+
+def _normalize_index_change_color(value: str) -> str:
+    text = re.sub(r"^[🔴🟢⚪]\s*", "", value.strip())
+    numeric = _safe_float(text)
+    if numeric is None:
+        return value.strip()
+    icon = "🔴" if numeric > 0 else "🟢" if numeric < 0 else "⚪"
+    return f"{icon} {numeric:+.2f}%"
 
 
 
