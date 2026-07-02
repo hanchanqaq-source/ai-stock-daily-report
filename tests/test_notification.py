@@ -33,6 +33,7 @@ from src.config import Config
 from src.notification import (
     NotificationService,
     NotificationChannel,
+    _convert_markdown_tables_to_discord_lists,
     format_discord_report_summary,
     parse_discord_command_text,
 )
@@ -588,11 +589,10 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
 
         summary = format_discord_report_summary(content)
 
-        self.assertNotIn("📌 盘面结构", summary)
-        self.assertIn("### 三、盘面结构观察", summary)
-        self.assertIn("指数承接", summary)
-        self.assertIn("成交额变化", summary)
-        self.assertIn("板块持续性", summary)
+        self.assertIn("## 今日结论", summary)
+        self.assertIn("## 1. 核心信号", summary)
+        self.assertIn("## 5. 操作建议", summary)
+        self.assertIn("完整报告请查看 artifact 附件。", summary)
 
 
     def test_discord_full_report_keeps_required_sections_and_mobile_top5(self) -> None:
@@ -648,16 +648,21 @@ AI 产业政策与业绩预告形成催化，半导体设备、算力基础设�
 
         summary = format_discord_report_summary(content, max_chars=600)
 
-        for expected in ("盘面结构观察", "资金与情绪", "消息催化", "策略框架", "风险提示"):
+        for expected in (
+            "## 今日结论",
+            "## 1. 核心信号",
+            "## 2. 全球指数速览",
+            "## 3. 涨跌结构",
+            "## 4. 主线板块",
+            "## 5. 操作建议",
+        ):
             self.assertIn(expected, summary)
         self.assertIn("完整报告请查看 artifact 附件。", summary)
         self.assertNotIn("| 排名 |", summary)
         self.assertNotIn("| --- |", summary)
-        self.assertIn("📈 行业板块领涨 Top5", summary)
         self.assertIn("1. 半导体：+3.2%", summary)
-        self.assertIn("📉 行业板块领跌 Top5", summary)
         self.assertIn("1. 银行：-1.1%", summary)
-        self.assertGreater(len(summary), 600)
+        self.assertLess(len(summary), 2500)
 
 
     def test_discord_market_snapshot_table_becomes_mobile_list(self) -> None:
@@ -671,16 +676,11 @@ AI 产业政策与业绩预告形成催化，半导体设备、算力基础设�
 
         summary = format_discord_report_summary(content)
 
-        self.assertIn("📌 盘面快照", summary)
-        self.assertIn("• 上涨：2219 家", summary)
-        self.assertIn("• 下跌：3161 家", summary)
-        self.assertIn("• 平盘：136 家", summary)
-        self.assertIn("  ↳ 上涨占比：41.2%", summary)
-        self.assertIn("• 涨停：157 家", summary)
-        self.assertIn("• 跌停：44 家", summary)
-        self.assertIn("  ↳ 涨跌停差：+113", summary)
+        self.assertIn("## 1. 核心信号", summary)
+        self.assertIn("• 上涨占比：41.2%", summary)
+        self.assertIn("• 涨跌停差：+113", summary)
         self.assertIn("• 两市成交额：34733 亿", summary)
-        self.assertIn("  ↳ 活跃度：较高", summary)
+        self.assertIn("• 活跃度：较高", summary)
         self.assertNotIn("| 指标 |", summary)
         self.assertNotIn("上涨/下跌/平盘", summary)
 
@@ -699,37 +699,16 @@ AI 产业政策与业绩预告形成催化，半导体设备、算力基础设�
 """
 
         summary = format_discord_report_summary(content)
+        full_discord_report = _convert_markdown_tables_to_discord_lists(content)
 
-        self.assertIn("📈 二、全球指数结构", summary)
-        self.assertIn("🇨🇳 A股", summary)
-        self.assertIn("""• 上证指数
-  点位：4028.90
-  涨跌：🟢 -2.03%""", summary)
-        self.assertIn("🇭🇰 港股", summary)
-        self.assertIn("""• 恒生指数
-  点位：24500.50
-  涨跌：🔴 +1.25%""", summary)
-        self.assertIn("🇺🇸 美股", summary)
-        self.assertIn("""• 道琼斯指数
-  点位：39500.10
-  涨跌：🔴 +0.50%""", summary)
-        self.assertIn("""• 纳斯达克指数
-  点位：18000.20
-  涨跌：🟢 -0.75%""", summary)
-        self.assertIn("""• 标普500指数
-  点位：5200.30
-  涨跌：🔴 +0.10%""", summary)
-        self.assertIn("🇯🇵 日股", summary)
-        self.assertIn("""• 日经225
-  点位：39000.40
-  涨跌：🔴 +1.20%""", summary)
-        self.assertIn("""• TOPIX
-  点位：2800.50
-  涨跌：🟢 -0.30%""", summary)
-        self.assertIn("""• KOSPI
-  点位：3100.00
-  涨跌：⚪ +0.00%""", summary)
+        self.assertIn("## 2. 全球指数速览", summary)
+        for market in ("🇨🇳 A股", "🇭🇰 港股", "🇺🇸 美股", "🇯🇵 日股", "🇰🇷 韩股"):
+            self.assertIn(market, summary)
         self.assertNotIn("| 指数 |", summary)
+        self.assertNotIn("|------|", summary)
+        self.assertNotIn("点位：4028.90", summary)
+        self.assertIn("📈 二、全球指数结构", full_discord_report)
+        self.assertIn("点位：4028.90", full_discord_report)
 
     def test_discord_global_indices_keep_missing_market_fallback(self) -> None:
         content = """### 二、指数结构
@@ -740,20 +719,9 @@ AI 产业政策与业绩预告形成催化，半导体设备、算力基础设�
 
         summary = format_discord_report_summary(content)
 
+        self.assertIn("## 2. 全球指数速览", summary)
         self.assertIn("🇭🇰 港股", summary)
-        self.assertIn("""• 恒生科技指数
-  点位：5500.00
-  涨跌：🟢 -1.20%
-  数据日期：2026-07-01""", summary)
-        self.assertIn("""🇺🇸 美股
-
-数据暂缺""", summary)
-        self.assertIn("""🇯🇵 日股
-
-数据暂缺""", summary)
-        self.assertIn("""🇰🇷 韩股
-
-数据暂缺""", summary)
+        self.assertIn("数据暂缺", summary)
         self.assertNotRegex(summary, r"^\|", msg="Discord summary should not contain Markdown table rows")
 
     @mock.patch("src.notification.get_config")
@@ -2158,10 +2126,7 @@ AI 产业政策与业绩预告形成催化，半导体设备、算力基础设�
 
         self.assertTrue(ok)
         sent_content = mock_post.call_args.kwargs["json"]["content"]
-        self.assertIn("📈 概念板块领涨 Top 5", sent_content)
-        self.assertIn("1. 2026中报预增：+3.71%", sent_content)
-        self.assertIn("📉 概念板块领跌 Top 5", sent_content)
-        self.assertIn("1. 高带宽内存：-7.08%", sent_content)
+        self.assertIn("## 4. 主线板块", sent_content)
         self.assertIn("完整报告请查看 artifact 附件。", sent_content)
         self.assertNotIn("|------|", sent_content)
         self.assertNotIn("| 排名 |", sent_content)
@@ -2331,13 +2296,27 @@ class TestDiscordMarketBreadthStructure(unittest.TestCase):
 """
 
         summary = format_discord_report_summary(content)
+        missing_summary = format_discord_report_summary("### 📌 涨跌结构\n")
 
-        self.assertIn("📌 涨跌结构", summary)
-        self.assertIn("📈 上涨结构", summary)
-        self.assertIn("📉 下跌结构", summary)
-        self.assertIn("今日上涨股票", summary)
-        self.assertIn("今日下跌股票", summary)
-        self.assertIn("半导体：上涨 128 家，领涨股 芯片A +10.01%", summary)
-        self.assertIn("煤炭：下跌 88 家，领跌股 煤炭A -7.21%", summary)
-        self.assertIn("所属板块：数据暂缺", summary)
+        self.assertIn("## 3. 涨跌结构", summary)
+        self.assertIn("📈 上涨", summary)
+        self.assertIn("📉 下跌", summary)
+        self.assertIn("• 上涨股票：2219 家", summary)
+        self.assertIn("• 下跌股票：3161 家", summary)
+        self.assertIn("数据暂缺", missing_summary)
         self.assertNotRegex(summary, r"^\|", msg="Discord summary should not contain Markdown table rows")
+
+def test_discord_summary_falls_back_to_full_report_when_compact_generation_fails(monkeypatch):
+    import src.notification as notification
+
+    monkeypatch.setattr(
+        notification,
+        "_build_discord_compact_daily_summary",
+        lambda *args, **kwargs: (_ for _ in ()).throw(RuntimeError("boom")),
+    )
+
+    summary = notification.format_discord_report_summary("# 日报\n\n正文")
+
+    assert "# 日报" in summary
+    assert "完整报告请查看 artifact 附件。" in summary
+    assert "🧭 操作面板" in summary

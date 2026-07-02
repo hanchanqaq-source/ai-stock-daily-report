@@ -84,24 +84,12 @@ DISCORD_ARTIFACT_HINT = "完整报告请查看 artifact 附件。"
 
 
 DISCORD_OPERATION_PANEL = """🧭 操作面板
-
 • @AI日报助手 重推
-  ↳ 重发最近一次成功日报
-
 • @AI日报助手 日常版重跑
-  ↳ 重新生成 daily 日常版
-
 • @AI日报助手 增强版重跑
-  ↳ 重新生成 pro 增强版
-
 • @AI日报助手 最终版重跑
-  ↳ 重新生成 final 最终版
-
 • @AI日报助手 只看大盘
-  ↳ 只生成大盘复盘
-
-• @AI日报助手 只看股票
-  ↳ 只生成股票/基金部分"""
+• @AI日报助手 只看股票"""
 
 _ALLOWED_ACTIONS = {"resend_latest", "rerun_report", "help", "unknown"}
 _ALLOWED_RUN_MODES = {"full", "market-only", "stocks-only"}
@@ -231,24 +219,274 @@ def append_runtime_info_footer(content: str, status: str = "success") -> str:
 
 
 def format_discord_report_summary(content: str, *, max_chars: int = 2000) -> str:
-    """Build a Discord-friendly full report body without Markdown table rows.
+    """Build a mobile-first two-layer Discord report summary.
 
-    ``max_chars`` is kept for backward compatibility with existing callers, but
-    Discord length handling happens in ``DiscordSender`` so the report is split
-    into multiple messages instead of being shortened here.
+    The Discord channel message is intentionally concise while the unmodified
+    Markdown report remains the artifact source.  If compact extraction ever
+    fails, fall back to the previous full-report Discord rendering so the daily
+    push is still sent.
     """
     text = str(content or "").strip()
     if not text:
         return ""
-    converted = _convert_markdown_tables_to_discord_lists(text)
-    # Keep the formal "### 三、盘面结构观察" section as the single source of
-    # market-structure commentary.  Older Discord summaries injected a compact
-    # top-level "📌 盘面结构" block from that section, which duplicated the same
-    # bullets in full-report pushes.
+    try:
+        converted = _convert_markdown_tables_to_discord_lists(text)
+        summary = _build_discord_compact_daily_summary(converted, max_chars=max_chars)
+        if summary:
+            return summary
+    except Exception as exc:  # pragma: no cover - defensive delivery fallback
+        logger.warning("Discord compact summary failed, falling back to full report: %s", exc)
+    return _format_discord_full_report_for_fallback(text)
+
+
+def _format_discord_full_report_for_fallback(content: str) -> str:
+    """Render the legacy Discord full report body as a delivery fallback."""
+    converted = _convert_markdown_tables_to_discord_lists(str(content or "").strip())
     converted = append_discord_operation_panel(converted)
     if DISCORD_ARTIFACT_HINT in converted:
         return converted
     return f"{converted}\n\n{DISCORD_ARTIFACT_HINT}"
+
+
+def _build_discord_compact_daily_summary(content: str, *, max_chars: int) -> str:
+    body, runtime = _split_runtime_info(content)
+    lines: List[str] = ["# 📈 AI股票基金每日盯盘报告", ""]
+    lines.extend(_discord_conclusion_lines(body))
+    lines.extend(["", "## 1. 核心信号"])
+    lines.extend(_discord_core_signal_lines(body))
+    lines.extend(["", "## 2. 全球指数速览"])
+    lines.extend(_discord_global_brief_lines(body))
+    lines.extend(["", "## 3. 涨跌结构"])
+    lines.extend(_discord_breadth_lines(body))
+    lines.extend(["", "## 4. 主线板块"])
+    lines.extend(_discord_sector_lines(body))
+    lines.extend(["", "## 5. 操作建议"])
+    lines.extend(_discord_advice_lines(body))
+    lines.extend(["", "---", DISCORD_ARTIFACT_HINT, ""])
+    lines.extend(runtime or _default_runtime_lines())
+    lines.extend(["", DISCORD_OPERATION_PANEL])
+    compact = "\n".join(lines).strip()
+    compact = _remove_markdown_table_rows(compact)
+    return _fit_discord_compact_summary(compact, max_chars=max_chars)
+
+
+def _split_runtime_info(content: str) -> Tuple[str, List[str]]:
+    marker = "运行信息："
+    index = content.find(marker)
+    if index < 0:
+        return content, _default_runtime_lines()
+    body = content[:index].rstrip()
+    runtime_text = content[index:].strip()
+    stop = runtime_text.find("\n\n")
+    if stop >= 0:
+        runtime_text = runtime_text[:stop].strip()
+    return body, runtime_text.splitlines()
+
+
+def _default_runtime_lines() -> List[str]:
+    return [
+        "运行信息：",
+        f"- 请求编号：{(os.getenv('REQUEST_ID') or 'unknown').strip() or 'unknown'}",
+        f"- 触发来源：{(os.getenv('TRIGGER_SOURCE') or 'unknown').strip() or 'unknown'}",
+        f"- 运行模式：{(os.getenv('MODE') or os.getenv('RUN_MODE') or 'full').strip() or 'full'}",
+        f"- 模型档位：{(os.getenv('MODEL_PROFILE') or 'daily').strip() or 'daily'}",
+        "- 生成状态：success",
+    ]
+
+
+def _discord_conclusion_lines(content: str) -> List[str]:
+    conclusion = _first_regex(content, [r"一句话结论[:：]\s*(.+)", r"今日结论[:：]\s*(.+)"])
+    if not conclusion:
+        signal = _first_regex(content, [r"盘面信号[:：]\s*([^\n]+)"])
+        if signal:
+            conclusion = f"今日市场状态：{signal}，短线以防守和等待确认为主。"
+        else:
+            conclusion = "今日市场状态数据暂缺，建议优先控制仓位并等待更多确认。"
+    return ["## 今日结论", _clean_inline(conclusion)]
+
+
+def _discord_core_signal_lines(content: str) -> List[str]:
+    score = _first_regex(content, [r"盘面信号[:：]\s*([^\n]+)", r"市场信号[:：]\s*([^\n]+)"])
+    up_ratio = _first_regex(content, [r"上涨占比[:：]?\s*([+-]?[\d.]+%)"])
+    limit_diff = _first_regex(content, [r"涨跌停差[:：]?\s*([+-]?\d+)"])
+    turnover = _first_regex(content, [r"两市成交额[:：]\s*([^\n]+)"])
+    activity = _first_regex(content, [r"活跃度[:：]\s*([^\n]+)"])
+    return [
+        f"• 盘面信号：{_value_or_missing(score)}",
+        f"• 上涨占比：{_value_or_missing(up_ratio)}",
+        f"• 涨跌停差：{_value_or_missing(limit_diff)}",
+        f"• 两市成交额：{_value_or_missing(turnover)}",
+        f"• 活跃度：{_value_or_missing(activity)}",
+    ]
+
+
+def _discord_global_brief_lines(content: str) -> List[str]:
+    markets = [
+        ("🇨🇳 A股", ("上证", "深证", "创业", "科创", "沪深", "中证")),
+        ("🇭🇰 港股", ("恒生", "国企", "红筹")),
+        ("🇺🇸 美股", ("道琼", "纳斯达克", "标普", "S&P", "NASDAQ", "DOW")),
+        ("🇯🇵 日股", ("日经", "TOPIX", "东证", "Nikkei")),
+        ("🇰🇷 韩股", ("KOSPI", "KOSDAQ", "韩国")),
+    ]
+    lines: List[str] = []
+    for label, keys in markets:
+        changes = []
+        for name, change in re.findall(r"•\s*([^\n]+)\n\s*点位[:：][^\n]*\n\s*涨跌[:：]\s*([^\n]+)", content):
+            if any(k.lower() in name.lower() for k in keys):
+                changes.append(_safe_float(change))
+        if not changes:
+            lines.append(f"{label}：数据暂缺")
+        else:
+            vals = [v for v in changes if v is not None]
+            if not vals:
+                direction = "数据暂缺"
+            elif sum(vals) > 0:
+                direction = "整体偏强"
+            elif sum(vals) < 0:
+                direction = "整体偏弱"
+            else:
+                direction = "整体震荡"
+            lines.append(f"{label}：{direction}")
+    return lines
+
+
+def _discord_breadth_lines(content: str) -> List[str]:
+    up_count = _first_regex(content, [r"(?:今日)?上涨股票[:：]\s*(\d+\s*家)", r"•\s*上涨[:：]\s*(\d+\s*家)"])
+    down_count = _first_regex(content, [r"(?:今日)?下跌股票[:：]\s*(\d+\s*家)", r"•\s*下跌[:：]\s*(\d+\s*家)"])
+    rising_topics = _top_names_after(content, "上涨结构", ("主要集中板块", "领涨方向"), 3)
+    falling_topics = _top_names_after(content, "下跌结构", ("主要集中板块", "领跌方向"), 3)
+    rising_stocks = _top_names_after(content, "上涨结构", ("领涨个股 Top 5", "领涨个股 Top5"), 3)
+    falling_stocks = _top_names_after(content, "下跌结构", ("领跌个股 Top 5", "领跌个股 Top5"), 3)
+    return [
+        "📈 上涨：",
+        f"• 上涨股票：{_value_or_missing(up_count)}",
+        f"• 领涨方向：{_join_or_missing(rising_topics)}",
+        f"• 领涨个股 Top 3：{_join_or_missing(rising_stocks)}",
+        "",
+        "📉 下跌：",
+        f"• 下跌股票：{_value_or_missing(down_count)}",
+        f"• 领跌方向：{_join_or_missing(falling_topics)}",
+        f"• 领跌个股 Top 3：{_join_or_missing(falling_stocks)}",
+    ]
+
+
+def _discord_sector_lines(content: str) -> List[str]:
+    rising = _top_numbered_items(content, ("行业板块领涨 Top 5", "行业板块领涨 Top5"), 3)
+    falling = _top_numbered_items(content, ("行业板块领跌 Top 5", "行业板块领跌 Top5"), 3)
+    lines = ["📈 领涨行业 Top 3："]
+    lines.extend(rising or ["1. 数据暂缺"])
+    lines.append("")
+    lines.append("📉 领跌行业 Top 3：")
+    lines.extend(falling or ["1. 数据暂缺"])
+    return lines
+
+
+def _discord_advice_lines(content: str) -> List[str]:
+    advice = _first_regex(content, [r"操作建议[:：]\s*([^\n]+)"])
+    defaults = [
+        "风险偏高，优先控制回撤。",
+        "等待指数承接、成交额变化和板块持续性确认。",
+        "避免仅凭单一热点追高。",
+    ]
+    if not advice:
+        return [f"• {item}" for item in defaults]
+    return [f"• {_clean_inline(advice)}", *[f"• {item}" for item in defaults[1:]]]
+
+
+def _top_names_after(content: str, section: str, headings: Tuple[str, ...], limit: int) -> List[str]:
+    section_text = _section_after(content, section)
+    if not section_text:
+        return []
+    block = _section_after(section_text, headings[0])
+    for heading in headings[1:]:
+        block = block or _section_after(section_text, heading)
+    names = []
+    started = False
+    for line in block.splitlines():
+        stripped = line.strip()
+        if started and stripped.startswith("•"):
+            break
+        match = re.match(r"\s*\d+\.\s*(?:[🔴🟢⚪]\s*)?([^：:，,]+)", stripped)
+        if match:
+            started = True
+            names.append(_clean_inline(match.group(1)))
+        if len(names) >= limit:
+            break
+    return names
+
+
+def _top_numbered_items(content: str, headings: Tuple[str, ...], limit: int) -> List[str]:
+    block = ""
+    for heading in headings:
+        block = _section_after(content, heading)
+        if block:
+            break
+    items = []
+    for line in block.splitlines():
+        match = re.match(r"\s*(\d+)\.\s*(.+)", line.strip())
+        if match:
+            items.append(f"{len(items)+1}. {_clean_inline(match.group(2))}")
+        if len(items) >= limit:
+            break
+    return items
+
+
+def _section_after(content: str, heading: str) -> str:
+    index = content.find(heading)
+    if index < 0:
+        return ""
+    tail = content[index + len(heading):]
+    stop = re.search(
+        r"\n\s*(?:#{1,6}\s+|[📈📉]\s+|•\s*[^\n]*(?:Top|结构|集中板块|方向)|---|运行信息：)",
+        tail,
+    )
+    return tail[: stop.start()] if stop else tail
+
+
+def _first_regex(content: str, patterns: List[str]) -> str:
+    for pattern in patterns:
+        match = re.search(pattern, content)
+        if match:
+            return _clean_inline(match.group(1))
+    return ""
+
+
+def _clean_inline(value: Any) -> str:
+    text = re.sub(r"^[•\-\s]+", "", str(value or "").strip())
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _value_or_missing(value: Any) -> str:
+    text = _clean_inline(value)
+    return text or "数据暂缺"
+
+
+def _join_or_missing(items: List[str]) -> str:
+    return " / ".join([item for item in items if item]) or "数据暂缺"
+
+
+def _remove_markdown_table_rows(content: str) -> str:
+    return "\n".join(line for line in content.splitlines() if not _is_markdown_table_row(line))
+
+
+def _fit_discord_compact_summary(content: str, *, max_chars: int) -> str:
+    if len(content) <= max_chars or max_chars < 1200:
+        return content
+    must_keep = ["# 📈 AI股票基金每日盯盘报告", "", *_discord_conclusion_lines(content), "", "## 1. 核心信号"]
+    core_start = content.find("## 1. 核心信号")
+    advice_start = content.find("## 5. 操作建议")
+    tail_start = content.find("---\n" + DISCORD_ARTIFACT_HINT)
+    parts = []
+    if core_start >= 0 and advice_start > core_start:
+        parts.append(content[core_start:content.find("## 2.", core_start)].strip())
+    if advice_start >= 0 and tail_start > advice_start:
+        parts.append(content[advice_start:tail_start].strip())
+    if tail_start >= 0:
+        parts.append(content[tail_start:].strip())
+    compact = "\n\n".join(["# 📈 AI股票基金每日盯盘报告", *_discord_conclusion_lines(content), *parts]).strip()
+    if len(compact) > max_chars:
+        return compact[: max_chars - 1].rstrip() + "…"
+    return compact
 
 
 def _convert_markdown_tables_to_discord_lists(content: str) -> str:
