@@ -83,6 +83,132 @@ logger = logging.getLogger(__name__)
 DISCORD_ARTIFACT_HINT = "完整报告请查看 artifact 附件。"
 
 
+DISCORD_OPERATION_PANEL = """🧭 操作面板
+
+• @AI日报助手 重推
+  ↳ 重发最近一次成功日报
+
+• @AI日报助手 日常版重跑
+  ↳ 重新生成 daily 日常版
+
+• @AI日报助手 增强版重跑
+  ↳ 重新生成 pro 增强版
+
+• @AI日报助手 最终版重跑
+  ↳ 重新生成 final 最终版
+
+• @AI日报助手 只看大盘
+  ↳ 只生成大盘复盘
+
+• @AI日报助手 只看股票
+  ↳ 只生成股票/基金部分"""
+
+_ALLOWED_ACTIONS = {"resend_latest", "rerun_report", "help", "unknown"}
+_ALLOWED_RUN_MODES = {"full", "market-only", "stocks-only"}
+_ALLOWED_MODEL_PROFILES = {"free", "daily", "pro", "auto", "final"}
+
+_RESEND_COMMANDS = ("重推", "重新推送", "重发日报")
+_RERUN_COMMANDS = ("重跑", "重新生成", "重新跑", "再跑一次")
+_HELP_COMMANDS = ("帮助", "help", "指令", "怎么用")
+
+_MODEL_PROFILE_ALIASES = {
+    "free": ("免费版", "白嫖版", "省钱版", "低成本版", "free"),
+    "daily": ("日常版", "普通版", "默认版", "daily", "flash"),
+    "pro": ("增强版", "高级版", "深度版", "pro"),
+    "auto": ("自动版", "智能版", "auto"),
+    "final": ("最终版", "完整版", "全量版", "final"),
+}
+
+_RUN_MODE_ALIASES = {
+    "market-only": ("只看大盘", "大盘复盘", "仅市场", "market-only"),
+    "stocks-only": ("只看股票", "股票持仓", "仅股票", "stocks-only"),
+    "full": ("完整日报", "完整", "满载", "full"),
+}
+
+
+def append_discord_operation_panel(content: str) -> str:
+    """Append the static Discord operation panel without changing report artifacts."""
+    text = str(content or "").rstrip()
+    if not text or DISCORD_OPERATION_PANEL in text:
+        return text
+    if DISCORD_ARTIFACT_HINT in text:
+        before, after = text.rsplit(DISCORD_ARTIFACT_HINT, 1)
+        return f"{before.rstrip()}\n\n{DISCORD_OPERATION_PANEL}\n\n{DISCORD_ARTIFACT_HINT}{after}".strip()
+    return f"{text}\n\n{DISCORD_OPERATION_PANEL}"
+
+
+def parse_discord_command_text(command_text: str) -> Dict[str, Any]:
+    """Parse reserved Discord command text into a safe, declarative action payload.
+
+    This helper only parses text for future bot reuse. It does not execute any
+    command, read tokens, dispatch GitHub workflows, or touch shell commands.
+    """
+    raw_text = str(command_text or "")
+    normalized = _normalize_discord_command_text(raw_text)
+    result: Dict[str, Any] = {
+        "action": "unknown",
+        "run_mode": "full",
+        "model_profile": "daily",
+        "command_text": raw_text,
+        "normalized_command": normalized,
+        "reason": "无法识别的指令",
+    }
+    if not normalized:
+        return result
+
+    if _contains_any(normalized, _HELP_COMMANDS):
+        result.update(action="help", reason="显示帮助信息")
+        return result
+
+    run_mode = _match_alias(normalized, _RUN_MODE_ALIASES) or "full"
+    model_profile = _match_alias(normalized, _MODEL_PROFILE_ALIASES) or "daily"
+
+    if _contains_any(normalized, _RESEND_COMMANDS):
+        result.update(
+            action="resend_latest",
+            run_mode=run_mode,
+            model_profile=model_profile,
+            reason="重发最近一次成功日报",
+        )
+        return result
+
+    has_rerun = _contains_any(normalized, _RERUN_COMMANDS)
+    has_explicit_run_mode = (
+        run_mode != "full"
+        or _match_alias(normalized, {"full": _RUN_MODE_ALIASES["full"]}) == "full"
+    )
+    has_explicit_model = _match_alias(normalized, _MODEL_PROFILE_ALIASES) is not None
+    if has_rerun or has_explicit_run_mode or has_explicit_model:
+        result.update(
+            action="rerun_report",
+            run_mode=run_mode,
+            model_profile=model_profile,
+            reason="重新生成日报",
+        )
+        return result
+
+    return result
+
+
+def _normalize_discord_command_text(command_text: str) -> str:
+    text = str(command_text or "").strip().lower()
+    text = re.sub(r"<@!?\d+>", " ", text)
+    text = text.replace("@ai日报助手", " ").replace("@ai 日报助手", " ")
+    text = text.replace("@AI日报助手".lower(), " ")
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _contains_any(text: str, aliases: Tuple[str, ...]) -> bool:
+    return any(alias.lower() in text for alias in aliases)
+
+
+def _match_alias(text: str, alias_map: Dict[str, Tuple[str, ...]]) -> Optional[str]:
+    for value, aliases in alias_map.items():
+        if _contains_any(text, aliases):
+            return value
+    return None
+
+
 def append_runtime_info_footer(content: str, status: str = "success") -> str:
     """Append a compact, non-sensitive runtime footer when context is available."""
     request_id = (os.getenv("REQUEST_ID") or "").strip()
@@ -119,6 +245,7 @@ def format_discord_report_summary(content: str, *, max_chars: int = 2000) -> str
     # market-structure commentary.  Older Discord summaries injected a compact
     # top-level "📌 盘面结构" block from that section, which duplicated the same
     # bullets in full-report pushes.
+    converted = append_discord_operation_panel(converted)
     if DISCORD_ARTIFACT_HINT in converted:
         return converted
     return f"{converted}\n\n{DISCORD_ARTIFACT_HINT}"

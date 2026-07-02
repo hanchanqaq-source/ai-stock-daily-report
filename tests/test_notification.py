@@ -30,7 +30,12 @@ for optional_module in ("litellm", "json_repair"):
         sys.modules[optional_module] = mock.MagicMock()
 
 from src.config import Config
-from src.notification import NotificationService, NotificationChannel, format_discord_report_summary
+from src.notification import (
+    NotificationService,
+    NotificationChannel,
+    format_discord_report_summary,
+    parse_discord_command_text,
+)
 from src.notification_noise import reset_notification_noise_state
 from src.analyzer import AnalysisResult
 from bot.models import BotMessage, ChatType
@@ -2203,6 +2208,52 @@ def test_discord_runtime_info_footer(monkeypatch):
     assert "触发来源：manual_action" in content
     assert "运行模式：full" in content
     assert "模型档位：daily" in content
+
+
+def test_discord_summary_appends_operation_panel_without_markdown_table():
+    summary = format_discord_report_summary("日报正文")
+
+    assert "🧭 操作面板" in summary
+    assert "@AI日报助手 重推" in summary
+    assert "@AI日报助手 日常版重跑" in summary
+    assert "@AI日报助手 增强版重跑" in summary
+    assert "@AI日报助手 最终版重跑" in summary
+    assert "@AI日报助手 只看大盘" in summary
+    assert "@AI日报助手 只看股票" in summary
+    assert "完整报告请查看 artifact 附件。" in summary
+    assert "|" not in summary
+
+
+def test_parse_discord_command_text_examples():
+    cases = [
+        ("@AI日报助手 重推", "resend_latest", "full", "daily"),
+        ("@AI日报助手 重新推送", "resend_latest", "full", "daily"),
+        ("@AI日报助手 日常版重跑", "rerun_report", "full", "daily"),
+        ("@AI日报助手 增强版重跑", "rerun_report", "full", "pro"),
+        ("@AI日报助手 最终版重跑", "rerun_report", "full", "final"),
+        ("@AI日报助手 免费版重跑", "rerun_report", "full", "free"),
+        ("@AI日报助手 自动版重跑", "rerun_report", "full", "auto"),
+        ("@AI日报助手 只看大盘", "rerun_report", "market-only", "daily"),
+        ("@AI日报助手 只看股票", "rerun_report", "stocks-only", "daily"),
+        ("@AI日报助手 只看大盘 增强版重跑", "rerun_report", "market-only", "pro"),
+        ("@AI日报助手 帮助", "help", "full", "daily"),
+        ("@AI日报助手 help", "help", "full", "daily"),
+    ]
+    for command_text, action, run_mode, model_profile in cases:
+        parsed = parse_discord_command_text(command_text)
+        assert parsed["action"] == action
+        assert parsed["run_mode"] == run_mode
+        assert parsed["model_profile"] == model_profile
+        assert parsed["command_text"] == command_text
+        assert parsed["normalized_command"]
+
+
+def test_parse_discord_command_text_unknown():
+    parsed = parse_discord_command_text("@AI日报助手 今天天气")
+
+    assert parsed["action"] == "unknown"
+    assert parsed["run_mode"] == "full"
+    assert parsed["model_profile"] == "daily"
 
 class TestDiscordMarketBreadthStructure(unittest.TestCase):
     def test_discord_summary_keeps_breadth_structure_without_markdown_tables(self):
