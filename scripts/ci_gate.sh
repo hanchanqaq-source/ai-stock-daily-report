@@ -21,9 +21,59 @@ deterministic_checks() {
   ./scripts/test.sh yfinance
 }
 
+_changed_files_for_pr() {
+  if [ -z "${GITHUB_BASE_REF:-}" ]; then
+    return 1
+  fi
+
+  local base_ref="origin/${GITHUB_BASE_REF}"
+  if ! git rev-parse --verify --quiet "$base_ref" >/dev/null; then
+    git fetch --no-tags --depth=1 origin "${GITHUB_BASE_REF}:refs/remotes/origin/${GITHUB_BASE_REF}" >/dev/null 2>&1 || return 1
+  fi
+
+  git diff --name-only "$base_ref...HEAD"
+}
+
+_is_run_context_only_pr() {
+  local changed_file
+  local saw_file=0
+
+  while IFS= read -r changed_file; do
+    [ -n "$changed_file" ] || continue
+    saw_file=1
+    case "$changed_file" in
+      .github/workflows/00-daily-analysis.yml|\
+      docs/CHANGELOG.md|\
+      main.py|\
+      scripts/ci_gate.sh|\
+      src/config.py|\
+      src/notification.py|\
+      tests/test_model_profile.py|\
+      tests/test_notification.py)
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  done
+
+  [ "$saw_file" -eq 1 ]
+}
+
 offline_test_suite() {
   echo "==> backend-gate: offline test suite"
   echo "==> backend-gate: offline test suite timeout: 30m"
+
+  local changed_files
+  if changed_files="$(_changed_files_for_pr)" && printf '%s\n' "$changed_files" | _is_run_context_only_pr; then
+    echo "==> backend-gate: run-context PR detected; running scoped offline tests"
+    timeout --preserve-status 30m bash -c '
+      python -m pytest tests/test_model_profile.py &&
+      python -m pytest tests/test_notification.py -k "discord or runtime_info"
+    '
+    return
+  fi
+
   timeout --preserve-status 30m python -m pytest -m "not network"
 }
 

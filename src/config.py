@@ -227,6 +227,94 @@ def resolve_run_mode(value: Optional[str] = None) -> str:
     return resolved_mode
 
 
+
+@dataclass(frozen=True)
+class RunContext:
+    """Resolved runtime context for one analysis run."""
+
+    request_id: str
+    trigger_source: str
+    requested_mode: str
+    resolved_mode: str
+    requested_profile: str
+    resolved_profile: str
+    model_switching_enabled: bool = False
+
+
+def _generate_local_request_id() -> str:
+    from datetime import datetime
+
+    return f"local-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+
+def resolve_request_id() -> str:
+    """Resolve a stable request id without changing artifact/report naming."""
+    explicit_request_id = (os.getenv("REQUEST_ID") or "").strip()
+    if explicit_request_id:
+        return explicit_request_id
+
+    github_run_id = (os.getenv("GITHUB_RUN_ID") or "").strip()
+    github_run_attempt = (os.getenv("GITHUB_RUN_ATTEMPT") or "").strip()
+    if github_run_id and github_run_attempt:
+        return f"gh-{github_run_id}-{github_run_attempt}"
+
+    return _generate_local_request_id()
+
+
+def resolve_trigger_source() -> str:
+    """Resolve the source that triggered this run."""
+    explicit_source = (os.getenv("TRIGGER_SOURCE") or "").strip()
+    if explicit_source:
+        return explicit_source
+
+    event_name = (os.getenv("GITHUB_EVENT_NAME") or "").strip()
+    if event_name == "workflow_dispatch":
+        return "manual_action"
+    if event_name == "schedule":
+        return "scheduled_cron"
+    if event_name == "repository_dispatch":
+        return "repository_dispatch"
+    return "unknown"
+
+
+def resolve_run_context() -> RunContext:
+    """Resolve and log request, trigger, run-mode, and model-profile context."""
+    requested_mode = os.getenv("RUN_MODE", os.getenv("MODE", ""))
+    requested_profile = os.getenv("MODEL_PROFILE", "")
+    resolved_mode, valid_mode = parse_run_mode(requested_mode)
+    resolved_profile, valid_profile = parse_model_profile(requested_profile)
+
+    context = RunContext(
+        request_id=resolve_request_id(),
+        trigger_source=resolve_trigger_source(),
+        requested_mode=requested_mode or RUN_MODE_DEFAULT,
+        resolved_mode=resolved_mode,
+        requested_profile=requested_profile or MODEL_PROFILE_DEFAULT,
+        resolved_profile=resolved_profile,
+    )
+
+    logger.info("========== RUN CONTEXT ==========")
+    logger.info("[RUN] request_id=%s", context.request_id)
+    logger.info("[RUN] trigger_source=%s", context.trigger_source)
+    logger.info("[RUN] requested_mode=%s", context.requested_mode)
+    if not valid_mode:
+        logger.info("[RUN] invalid run mode, fallback to %s", RUN_MODE_DEFAULT)
+    logger.info("[RUN] resolved_mode=%s", context.resolved_mode)
+    logger.info("[MODEL] requested_profile=%s", context.requested_profile)
+    if not valid_profile:
+        logger.info("[MODEL] invalid profile, fallback to %s", MODEL_PROFILE_DEFAULT)
+    logger.info("[MODEL] resolved_profile=%s", context.resolved_profile)
+    logger.info("[MODEL] model switching is not enabled yet")
+    logger.info("=================================")
+    return context
+
+
+def log_run_stage(stage: str, status: str = "started", message: Optional[str] = None) -> None:
+    """Emit a standard run-stage log line."""
+    logger.info("[STAGE] %s %s", stage, status)
+    if message:
+        logger.info("[STAGE] %s message=%s", stage, message)
+
 def _has_ntfy_topic_endpoint(value: Optional[str]) -> bool:
     """Return whether an ntfy URL points at a concrete topic endpoint."""
     raw_url = (value or "").strip()

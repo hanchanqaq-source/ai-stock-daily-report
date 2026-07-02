@@ -86,6 +86,8 @@ jobs:
           LOCAL_CLI_BACKEND_MAX_CONCURRENCY: ${{ vars.LOCAL_CLI_BACKEND_MAX_CONCURRENCY || secrets.LOCAL_CLI_BACKEND_MAX_CONCURRENCY }}
           AGENT_GENERATION_BACKEND: ${{ vars.AGENT_GENERATION_BACKEND || secrets.AGENT_GENERATION_BACKEND }}
           MODEL_PROFILE: ${{ github.event.client_payload.model_profile || github.event.inputs.model_profile || vars.DEFAULT_MODEL_PROFILE || 'daily｜日常版｜默认推荐' }}
+          REQUEST_ID: ${{ github.event.client_payload.request_id || vars.REQUEST_ID || format('gh-{0}-{1}', github.run_id, github.run_attempt) }}
+          TRIGGER_SOURCE: ${{ github.event.client_payload.trigger_source || (github.event_name == 'workflow_dispatch' && 'manual_action') || (github.event_name == 'schedule' && 'scheduled_cron') || (github.event_name == 'repository_dispatch' && 'repository_dispatch') || 'unknown' }}
           # LITELLM_CONFIG
           LITELLM_CONFIG: ${{ vars.LITELLM_CONFIG || secrets.LITELLM_CONFIG }}
           LITELLM_CONFIG_YAML: ${{ vars.LITELLM_CONFIG_YAML || secrets.LITELLM_CONFIG_YAML }}
@@ -456,14 +458,21 @@ jobs:
           PY
           )
           eval "$RESOLVED_VALUES"
-          export MODE MODEL_PROFILE
+          export MODE MODEL_PROFILE RUN_MODE="$MODE"
 
+          echo "========== RUN CONTEXT =========="
+          echo "[RUN] request_id=${REQUEST_ID}"
+          echo "[RUN] trigger_source=${TRIGGER_SOURCE:-unknown}"
+          echo "[RUN] requested_mode=${REQUESTED_MODE:-full}"
+          echo "[RUN] resolved_mode=$MODE"
           echo "[MODEL] requested_profile=${REQUESTED_MODEL_PROFILE:-daily}"
           if [ "$MODEL_PROFILE_VALID" != "1" ]; then
             echo "[MODEL] invalid profile, fallback to daily"
           fi
           echo "[MODEL] resolved_profile=$MODEL_PROFILE"
-          echo "[MODEL] model switching is not enabled yet; this run only logs profile selection."
+          echo "[MODEL] model switching is not enabled yet"
+          echo "================================="
+          echo "[STAGE] init started"
           echo "[RUN] requested_mode=${REQUESTED_MODE:-full}"
           if [ "$RUN_MODE_VALID" != "1" ]; then
             echo "[RUN] invalid run mode, fallback to full"
@@ -545,18 +554,34 @@ jobs:
           fi
 
           # 执行分析
+          CURRENT_STAGE="fetch_data"
+          trap 'status=$?; if [ "$status" -ne 0 ]; then echo "[STAGE] failed"; echo "[ERROR] stage=${CURRENT_STAGE:-unknown}"; echo "[ERROR] message=analysis command exited with status $status"; fi' EXIT
+          echo "[STAGE] fetch_data started"
           if [ "$MODE" = "market-only" ]; then
+            CURRENT_STAGE="analyze_market"
+            echo "[STAGE] analyze_market started"
             python main.py --market-review $FORCE_RUN_ARG
           elif [ "$MODE" = "stocks-only" ]; then
             python main.py --no-market-review $FORCE_RUN_ARG
           else
+            CURRENT_STAGE="analyze_market"
+            echo "[STAGE] analyze_market started"
             python main.py $FORCE_RUN_ARG
           fi
+          CURRENT_STAGE="render_report"
+          echo "[STAGE] render_report started"
+          echo "[STAGE] notify_discord started"
+          CURRENT_STAGE="finished"
+          echo "[STAGE] finished success"
       
       - name: 生成 artifact 显示名
         id: artifact_name
         if: always()
         run: echo "name=AI股票基金每日盯盘报告-$(TZ=Asia/Shanghai date '+%Y-%m-%d-%H%M')" >> "$GITHUB_OUTPUT"
+
+      - name: 标记 artifact 上传阶段
+        if: always()
+        run: echo "[STAGE] upload_artifact started"
 
       - name: 上传分析报告
         uses: actions/upload-artifact@v6

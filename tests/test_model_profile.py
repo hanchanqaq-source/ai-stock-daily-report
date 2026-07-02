@@ -89,3 +89,83 @@ def test_resolve_run_mode_logs_invalid_fallback(caplog):
     assert "[RUN] requested_mode=abc" in caplog.text
     assert "[RUN] invalid run mode, fallback to full" in caplog.text
     assert "[RUN] resolved_mode=full" in caplog.text
+
+
+def test_resolve_run_context_generates_local_request_id(monkeypatch):
+    from src.config import resolve_run_context
+
+    for key in (
+        "REQUEST_ID",
+        "TRIGGER_SOURCE",
+        "GITHUB_RUN_ID",
+        "GITHUB_RUN_ATTEMPT",
+        "GITHUB_EVENT_NAME",
+        "RUN_MODE",
+        "MODE",
+        "MODEL_PROFILE",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+    context = resolve_run_context()
+
+    assert context.request_id.startswith("local-")
+    assert context.trigger_source == "unknown"
+    assert context.resolved_mode == "full"
+    assert context.resolved_profile == "daily"
+
+
+def test_resolve_run_context_maps_workflow_dispatch(monkeypatch):
+    from src.config import resolve_run_context
+
+    monkeypatch.delenv("REQUEST_ID", raising=False)
+    monkeypatch.delenv("TRIGGER_SOURCE", raising=False)
+    monkeypatch.setenv("GITHUB_RUN_ID", "123456789")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "1")
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "workflow_dispatch")
+    monkeypatch.setenv("RUN_MODE", "完整日报")
+    monkeypatch.setenv("MODEL_PROFILE", "日常版")
+
+    context = resolve_run_context()
+
+    assert context.request_id == "gh-123456789-1"
+    assert context.trigger_source == "manual_action"
+    assert context.resolved_mode == "full"
+    assert context.resolved_profile == "daily"
+
+
+def test_resolve_run_context_prefers_repository_dispatch_payload_env(monkeypatch):
+    from src.config import resolve_run_context
+
+    monkeypatch.setenv("REQUEST_ID", "dispatch-abc")
+    monkeypatch.setenv("TRIGGER_SOURCE", "channel_command")
+    monkeypatch.setenv("GITHUB_RUN_ID", "123456789")
+    monkeypatch.setenv("GITHUB_RUN_ATTEMPT", "1")
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "repository_dispatch")
+    monkeypatch.setenv("RUN_MODE", "只看大盘")
+    monkeypatch.setenv("MODEL_PROFILE", "最终版")
+
+    context = resolve_run_context()
+
+    assert context.request_id == "dispatch-abc"
+    assert context.trigger_source == "channel_command"
+    assert context.resolved_mode == "market-only"
+    assert context.resolved_profile == "final"
+
+
+def test_resolve_run_context_falls_back_invalid_values(monkeypatch, caplog):
+    from src.config import resolve_run_context
+
+    monkeypatch.setenv("REQUEST_ID", "req-invalid")
+    monkeypatch.setenv("TRIGGER_SOURCE", "manual_action")
+    monkeypatch.setenv("RUN_MODE", "bad-mode")
+    monkeypatch.setenv("MODEL_PROFILE", "vip")
+
+    with caplog.at_level(logging.INFO, logger="src.config"):
+        context = resolve_run_context()
+
+    assert context.resolved_mode == "full"
+    assert context.resolved_profile == "daily"
+    assert "request_id=req-invalid" in caplog.text
+    assert "trigger_source=manual_action" in caplog.text
+    assert "resolved_mode=full" in caplog.text
+    assert "resolved_profile=daily" in caplog.text
