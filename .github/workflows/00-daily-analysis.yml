@@ -7,6 +7,8 @@ on:
 
   # API 触发
   repository_dispatch:
+    types:
+      - run-stock-report
 
   # 手动触发
   workflow_dispatch:
@@ -86,6 +88,13 @@ jobs:
           LOCAL_CLI_BACKEND_MAX_CONCURRENCY: ${{ vars.LOCAL_CLI_BACKEND_MAX_CONCURRENCY || secrets.LOCAL_CLI_BACKEND_MAX_CONCURRENCY }}
           AGENT_GENERATION_BACKEND: ${{ vars.AGENT_GENERATION_BACKEND || secrets.AGENT_GENERATION_BACKEND }}
           MODEL_PROFILE: ${{ github.event.client_payload.model_profile || github.event.inputs.model_profile || vars.DEFAULT_MODEL_PROFILE || 'daily｜日常版｜默认推荐' }}
+          COMMAND_TEXT: ${{ github.event.client_payload.command_text || '' }}
+          CLIENT_PAYLOAD_RUN_MODE: ${{ github.event.client_payload.run_mode || github.event.client_payload.mode || '' }}
+          INPUT_RUN_MODE: ${{ github.event.inputs.mode || github.event.inputs.run_mode || '' }}
+          DEFAULT_RUN_MODE: ${{ vars.DEFAULT_RUN_MODE || '' }}
+          CLIENT_PAYLOAD_MODEL_PROFILE: ${{ github.event.client_payload.model_profile || '' }}
+          INPUT_MODEL_PROFILE: ${{ github.event.inputs.model_profile || '' }}
+          DEFAULT_MODEL_PROFILE: ${{ vars.DEFAULT_MODEL_PROFILE || '' }}
           REQUEST_ID: ${{ github.event.client_payload.request_id || vars.REQUEST_ID || format('gh-{0}-{1}', github.run_id, github.run_attempt) }}
           TRIGGER_SOURCE: ${{ github.event.client_payload.trigger_source || (github.event_name == 'workflow_dispatch' && 'manual_action') || (github.event_name == 'schedule' && 'scheduled_cron') || (github.event_name == 'repository_dispatch' && 'repository_dispatch') || 'unknown' }}
           # LITELLM_CONFIG
@@ -440,21 +449,35 @@ jobs:
           fi
 
           # 判断运行模式（GitHub Actions choice 会传入完整显示文案，先解析为标准值）
-          REQUESTED_MODE="${{ github.event.client_payload.mode || github.event.client_payload.run_mode || github.event.inputs.mode || 'full｜完整日报｜大盘+股票+推送' }}"
-          REQUESTED_MODEL_PROFILE="${MODEL_PROFILE:-daily｜日常版｜默认推荐}"
-          export REQUESTED_MODE REQUESTED_MODEL_PROFILE
+          export CLIENT_PAYLOAD_RUN_MODE INPUT_RUN_MODE DEFAULT_RUN_MODE
+          export CLIENT_PAYLOAD_MODEL_PROFILE INPUT_MODEL_PROFILE DEFAULT_MODEL_PROFILE COMMAND_TEXT
           RESOLVED_VALUES=$(python - <<'PY'
           import os
-          from src.config import parse_model_profile, parse_run_mode
+          import shlex
+          from src.config import resolve_dispatch_run_parameters
 
-          requested_mode = os.environ.get("REQUESTED_MODE", "")
-          requested_profile = os.environ.get("REQUESTED_MODEL_PROFILE", "")
-          resolved_mode, valid_mode = parse_run_mode(requested_mode)
-          resolved_profile, valid_profile = parse_model_profile(requested_profile)
-          print(f"MODE={resolved_mode}")
-          print(f"MODEL_PROFILE={resolved_profile}")
-          print(f"MODEL_PROFILE_VALID={1 if valid_profile else 0}")
-          print(f"RUN_MODE_VALID={1 if valid_mode else 0}")
+          result = resolve_dispatch_run_parameters(
+              client_payload_run_mode=os.environ.get("CLIENT_PAYLOAD_RUN_MODE"),
+              input_run_mode=os.environ.get("INPUT_RUN_MODE"),
+              default_run_mode=os.environ.get("DEFAULT_RUN_MODE"),
+              client_payload_model_profile=os.environ.get("CLIENT_PAYLOAD_MODEL_PROFILE"),
+              input_model_profile=os.environ.get("INPUT_MODEL_PROFILE"),
+              default_model_profile=os.environ.get("DEFAULT_MODEL_PROFILE"),
+              command_text=os.environ.get("COMMAND_TEXT"),
+          )
+          values = {
+              "REQUESTED_MODE": result.requested_mode,
+              "MODE": result.resolved_mode,
+              "RUN_MODE_VALID": "1" if result.mode_valid else "0",
+              "RUN_MODE_SOURCE": result.mode_source,
+              "REQUESTED_MODEL_PROFILE": result.requested_profile,
+              "MODEL_PROFILE": result.resolved_profile,
+              "MODEL_PROFILE_VALID": "1" if result.profile_valid else "0",
+              "MODEL_PROFILE_SOURCE": result.profile_source,
+              "SAFE_COMMAND_TEXT": result.safe_command_text,
+          }
+          for key, value in values.items():
+              print(f"{key}={shlex.quote(value)}")
           PY
           )
           eval "$RESOLVED_VALUES"
@@ -463,9 +486,13 @@ jobs:
           echo "========== RUN CONTEXT =========="
           echo "[RUN] request_id=${REQUEST_ID}"
           echo "[RUN] trigger_source=${TRIGGER_SOURCE:-unknown}"
+          echo "[RUN] event_name=${GITHUB_EVENT_NAME:-unknown}"
+          echo "[RUN] command_text=${SAFE_COMMAND_TEXT}"
           echo "[RUN] requested_mode=${REQUESTED_MODE:-full}"
+          echo "[RUN] mode_source=$RUN_MODE_SOURCE"
           echo "[RUN] resolved_mode=$MODE"
           echo "[MODEL] requested_profile=${REQUESTED_MODEL_PROFILE:-daily}"
+          echo "[MODEL] profile_source=$MODEL_PROFILE_SOURCE"
           if [ "$MODEL_PROFILE_VALID" != "1" ]; then
             echo "[MODEL] invalid profile, fallback to daily"
           fi
