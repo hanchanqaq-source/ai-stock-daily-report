@@ -42,6 +42,7 @@ sys.modules.update(_build_optional_module_stubs())
 import src.core.market_review as market_review_module
 from src.config import Config
 from src.llm.generation_backend import GenerationError, GenerationErrorCode
+from src.market_analyzer import MarketAnalyzer, MarketIndex, MarketOverview
 from src.services.run_diagnostics import activate_run_diagnostic_context, reset_run_diagnostic_context
 from src.storage import AnalysisHistory, DatabaseManager
 
@@ -541,6 +542,37 @@ class MarketReviewLocalizationTestCase(unittest.TestCase):
         self.assertEqual(persist_history.call_args.kwargs["region"], "cn")
         snapshots = persist_history.call_args.kwargs["market_light_snapshots"]
         self.assertEqual(set(snapshots), {"cn"})
+
+
+    def test_market_structure_observation_block_degrades_without_data(self) -> None:
+        analyzer = MarketAnalyzer(region="cn", config=SimpleNamespace(report_language="zh"))
+        block = analyzer._build_market_structure_observation_block(MarketOverview(date="2026-07-02"))
+
+        self.assertIn("三、盘面结构观察", block)
+        self.assertIn("指数承接：数据不足，暂不判断。", block)
+        self.assertIn("成交额变化：数据不足，暂不判断。", block)
+        self.assertIn("板块持续性：数据不足，暂不判断。", block)
+
+    def test_market_structure_observation_block_uses_existing_market_data(self) -> None:
+        analyzer = MarketAnalyzer(region="cn", config=SimpleNamespace(report_language="zh"))
+        overview = MarketOverview(
+            date="2026-07-02",
+            indices=[MarketIndex(code="000001", name="上证指数", change_pct=0.6)],
+            up_count=3200,
+            down_count=1700,
+            limit_down_count=3,
+            total_amount=8800,
+            top_sectors=[{"name": "AI算力", "change_pct": 3.2}],
+            top_concepts=[{"name": "半导体", "change_pct": 2.8}],
+        )
+
+        block = analyzer._build_market_structure_observation_block(overview)
+
+        self.assertIn("指数承接", block)
+        self.assertIn("成交额变化", block)
+        self.assertIn("板块持续性", block)
+        self.assertIn("缺少昨日对比，暂不判断放缩量", block)
+        self.assertIn("缺少分时数据，承接仅作粗略判断", block)
 
     def test_render_market_review_payload_markdown_does_not_repeat_title(self) -> None:
         markdown = market_review_module._render_market_review_payload_markdown(

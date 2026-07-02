@@ -47,9 +47,10 @@ _ENGLISH_SECTION_PATTERNS = {
 _CHINESE_SECTION_PATTERNS = {
     "market_summary": r"###\s*一、(?:盘面总览|市场总结)",
     "index_commentary": r"###\s*二、(?:指数结构|指数点评|主要指数)",
-    "sector_highlights": r"###\s*三、(?:板块主线|热点解读|板块表现)",
-    "funds_sentiment": r"###\s*四、(?:资金与情绪|资金动向)",
-    "news_catalysts": r"###\s*五、(?:消息催化|后市展望)",
+    "market_structure": r"###\s*三、(?:盘面结构观察|承接、量能与持续性)",
+    "sector_highlights": r"###\s*(?:三|四)、(?:板块主线|热点解读|板块表现)",
+    "funds_sentiment": r"###\s*(?:四|五)、(?:资金与情绪|资金动向)",
+    "news_catalysts": r"###\s*(?:五|六)、(?:消息催化|后市展望)",
 }
 
 
@@ -916,6 +917,14 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 indices_block,
             )
 
+        structure_block = self._build_market_structure_observation_block(overview)
+        if structure_block and structure_block not in review:
+            review = self._insert_after_section(
+                review,
+                patterns["index_commentary"],
+                structure_block,
+            )
+
         if sector_block:
             original_review = review
             review = self._insert_after_section(
@@ -932,6 +941,86 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 review = f"{review.rstrip()}\n\n{fallback_heading}\n{sector_block}\n"
 
         return review
+
+
+    def _build_market_structure_observation_block(self, overview: MarketOverview) -> str:
+        """Build a lightweight fixed observation block for acceptance, volume, and theme persistence."""
+        if self._get_review_language() == "en":
+            return ""
+
+        index_line = self._describe_index_acceptance(overview)
+        turnover_line = self._describe_turnover_change(overview)
+        continuity_line = self._describe_sector_continuity(overview)
+        return "\n".join([
+            "### 三、盘面结构观察",
+            f"- 指数承接：{index_line}",
+            f"- 成交额变化：{turnover_line}",
+            f"- 板块持续性：{continuity_line}",
+        ])
+
+    @staticmethod
+    def _describe_index_acceptance(overview: MarketOverview) -> str:
+        indices = [idx for idx in (overview.indices or []) if idx is not None]
+        breadth_total = overview.up_count + overview.down_count
+        if not indices and breadth_total <= 0:
+            return "数据不足，暂不判断。"
+
+        avg_change = sum(float(idx.change_pct or 0.0) for idx in indices) / len(indices) if indices else 0.0
+        up_ratio = overview.up_count / breadth_total if breadth_total else None
+        limit_down = int(overview.limit_down_count or 0)
+        data_note = "缺少分时数据，承接仅作粗略判断。"
+
+        if avg_change <= -1.0 and (up_ratio is None or up_ratio < 0.35 or limit_down >= 20):
+            verdict = "承接偏弱"
+            detail = "主要指数明显走弱，市场宽度未见有效修复。"
+        elif avg_change >= 0.3 and (up_ratio is None or up_ratio >= 0.55) and limit_down <= 10:
+            verdict = "承接较强"
+            detail = "指数表现偏强，上涨家数占优且跌停压力有限。"
+        else:
+            verdict = "承接一般"
+            detail = "指数和市场宽度信号分化，仍需等待后续确认。"
+        return f"{verdict}。{detail}{data_note}"
+
+    @staticmethod
+    def _describe_turnover_change(overview: MarketOverview) -> str:
+        today = float(overview.total_amount or 0.0)
+        previous = float(getattr(overview, "previous_total_amount", 0.0) or 0.0)
+        if today <= 0:
+            return "数据不足，暂不判断。"
+
+        if previous <= 0:
+            return f"今日成交额约 {today:.0f} 亿元；缺少昨日对比，暂不判断放缩量。"
+
+        avg_change = 0.0
+        if overview.indices:
+            avg_change = sum(float(idx.change_pct or 0.0) for idx in overview.indices) / len(overview.indices)
+        if today > previous * 1.05:
+            volume_label = "放量"
+        elif today < previous * 0.95:
+            volume_label = "缩量"
+        else:
+            return f"量能变化不明显。今日成交额约 {today:.0f} 亿元，较上一交易日变化不足 5%。"
+        direction = "上涨" if avg_change >= 0 else "下跌"
+        mood = "资金活跃度提升" if volume_label == "放量" else "观望情绪加重"
+        return f"{volume_label}{direction}。今日成交额约 {today:.0f} 亿元，较上一交易日{volume_label}，显示{mood}。"
+
+    @staticmethod
+    def _describe_sector_continuity(overview: MarketOverview) -> str:
+        leaders = [str(item.get("name") or "").strip() for item in (overview.top_sectors or [])[:5] if isinstance(item, dict)]
+        concepts = [str(item.get("name") or "").strip() for item in (overview.top_concepts or [])[:5] if isinstance(item, dict)]
+        names = [name for name in leaders + concepts if name]
+        if not names:
+            return "数据不足，暂不判断。"
+
+        theme_keywords = ("AI", "算力", "芯片", "半导体", "机器人", "新能源", "光伏", "电池", "医药", "消费", "金融", "地产", "科技")
+        matched = sum(1 for name in names for keyword in theme_keywords if keyword.lower() in name.lower())
+        if len(names) <= 2:
+            return "持续性一般。仅有少量 Top 数据，领涨方向可参考但不宜过度推断。"
+        if matched >= max(2, len(names) // 2):
+            return "持续性较强。领涨方向有一定主题集中度，但仍需观察扩散和成交额配合。"
+        if overview.bottom_sectors and overview.bottom_concepts:
+            return "热点轮动较快。领涨与领跌方向较分散，板块持续性仍待确认。"
+        return "持续性一般。领涨方向有一定集中度，但扩散力度有限。"
 
     @staticmethod
     def _insert_after_section(text: str, heading_pattern: str, block: str) -> str:
@@ -1354,19 +1443,22 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             return "\n\n".join(sections)
 
         if self.profile.has_market_stats and self.profile.has_sector_rankings:
-            return """### 三、板块主线
+            return """### 三、盘面结构观察
+（固定输出指数承接、成交额变化和板块持续性；数据不足时明确写“数据不足，暂不判断”，不要编造分时或昨日成交额。）
+
+### 四、板块主线
 （区分行业板块与概念题材，分析领涨/领跌背后的逻辑、持续性和是否形成主线）
 
-### 四、资金与情绪
+### 五、资金与情绪
 （解读成交额、涨跌停结构、市场宽度和风险偏好）
 
-### 五、消息催化
+### 六、消息催化
 （结合近三日新闻，提炼真正影响明日交易的催化或扰动）
 
-### 六、明日交易计划
+### 七、明日交易计划
 （给出进攻/均衡/防守结论、仓位区间、关注方向、回避方向和一个触发失效条件）
 
-### 七、风险提示
+### 八、风险提示
 （列出需要关注的风险点；最后补充“建议仅供参考，不构成投资建议”。）"""
 
         numerals = ["一", "二", "三", "四", "五", "六", "七", "八"]
@@ -1737,9 +1829,10 @@ Market conditions can change quickly. The data above is for reference only and d
                 else "- 当前以主要指数与可用新闻线索评估整体风险状态。"
             )
         )
+        structure_block = self._build_market_structure_observation_block(overview)
         sector_section = (
             f"""
-### 三、板块主线
+### 四、板块主线
 {sector_block or "- 暂无板块涨跌榜数据。"}
 """
             if self.profile.has_sector_rankings
@@ -1747,7 +1840,7 @@ Market conditions can change quickly. The data above is for reference only and d
         )
         funds_section = (
             """
-### 四、资金与情绪
+### 五、资金与情绪
 - 结合成交额和涨跌家数看，当前更适合等待确认，避免仅凭单一热点追高。
 """
             if self.profile.has_market_stats
@@ -1762,15 +1855,17 @@ Market conditions can change quickly. The data above is for reference only and d
 
 ### 二、指数结构
 {indices_block or indices_text or "暂无指数数据。"}
+
+{structure_block}
 {sector_section}
 {funds_section}
 
-### 五、消息催化
+### 六、消息催化
 - 暂无可用新闻时，应降低对题材持续性的确定性判断。
 
 {self._get_strategy_markdown_block(template_language)}
 
-### 七、风险提示
+### 八、风险提示
 - 市场有风险，投资需谨慎。以上数据仅供参考，不构成投资建议。
 
 ---
