@@ -14,12 +14,12 @@ on:
       mode:
         description: '运行模式'
         required: true
-        default: 'full'
+        default: 'full｜完整日报｜大盘+股票+推送'
         type: choice
         options:
-          - full          # 完整分析（股票+大盘）
-          - market-only   # 仅大盘复盘
-          - stocks-only   # 仅股票分析
+          - full｜完整日报｜大盘+股票+推送
+          - market-only｜只看大盘｜仅市场复盘
+          - stocks-only｜只看股票｜仅股票/持仓
       force_run:
         description: '强制运行（跳过交易日检查）'
         required: false
@@ -28,14 +28,14 @@ on:
       model_profile:
         description: '模型档位'
         required: false
-        default: 'daily'
+        default: 'daily｜日常版｜默认推荐'
         type: choice
         options:
-          - free
-          - daily
-          - pro
-          - auto
-          - final
+          - free｜免费版｜低成本测试
+          - daily｜日常版｜默认推荐
+          - pro｜增强版｜重大行情
+          - auto｜自动版｜智能选择
+          - final｜最终版｜最高质量
 
 # 并发控制：同一时间只运行一个分析任务
 concurrency:
@@ -85,7 +85,7 @@ jobs:
           GENERATION_BACKEND_MAX_CONCURRENCY: ${{ vars.GENERATION_BACKEND_MAX_CONCURRENCY || secrets.GENERATION_BACKEND_MAX_CONCURRENCY }}
           LOCAL_CLI_BACKEND_MAX_CONCURRENCY: ${{ vars.LOCAL_CLI_BACKEND_MAX_CONCURRENCY || secrets.LOCAL_CLI_BACKEND_MAX_CONCURRENCY }}
           AGENT_GENERATION_BACKEND: ${{ vars.AGENT_GENERATION_BACKEND || secrets.AGENT_GENERATION_BACKEND }}
-          MODEL_PROFILE: ${{ github.event.client_payload.model_profile || github.event.inputs.model_profile || vars.DEFAULT_MODEL_PROFILE || 'daily' }}
+          MODEL_PROFILE: ${{ github.event.client_payload.model_profile || github.event.inputs.model_profile || vars.DEFAULT_MODEL_PROFILE || 'daily｜日常版｜默认推荐' }}
           # LITELLM_CONFIG
           LITELLM_CONFIG: ${{ vars.LITELLM_CONFIG || secrets.LITELLM_CONFIG }}
           LITELLM_CONFIG_YAML: ${{ vars.LITELLM_CONFIG_YAML || secrets.LITELLM_CONFIG_YAML }}
@@ -437,8 +437,38 @@ jobs:
             echo "✅ LITELLM 配置文件已写入: $LITELLM_CONFIG"
           fi
 
-          # 判断运行模式
-          MODE="${{ github.event.inputs.mode || 'full' }}"
+          # 判断运行模式（GitHub Actions choice 会传入完整显示文案，先解析为标准值）
+          REQUESTED_MODE="${{ github.event.client_payload.mode || github.event.client_payload.run_mode || github.event.inputs.mode || 'full｜完整日报｜大盘+股票+推送' }}"
+          REQUESTED_MODEL_PROFILE="${MODEL_PROFILE:-daily｜日常版｜默认推荐}"
+          export REQUESTED_MODE REQUESTED_MODEL_PROFILE
+          RESOLVED_VALUES=$(python - <<'PY'
+import os
+from src.config import parse_model_profile, parse_run_mode
+
+requested_mode = os.environ.get("REQUESTED_MODE", "")
+requested_profile = os.environ.get("REQUESTED_MODEL_PROFILE", "")
+resolved_mode, valid_mode = parse_run_mode(requested_mode)
+resolved_profile, valid_profile = parse_model_profile(requested_profile)
+print(f"MODE={resolved_mode}")
+print(f"MODEL_PROFILE={resolved_profile}")
+print(f"MODEL_PROFILE_VALID={1 if valid_profile else 0}")
+print(f"RUN_MODE_VALID={1 if valid_mode else 0}")
+PY
+)
+          eval "$RESOLVED_VALUES"
+          export MODE MODEL_PROFILE
+
+          echo "[MODEL] requested_profile=${REQUESTED_MODEL_PROFILE:-daily}"
+          if [ "$MODEL_PROFILE_VALID" != "1" ]; then
+            echo "[MODEL] invalid profile, fallback to daily"
+          fi
+          echo "[MODEL] resolved_profile=$MODEL_PROFILE"
+          echo "[MODEL] model switching is not enabled yet; this run only logs profile selection."
+          echo "[RUN] requested_mode=${REQUESTED_MODE:-full}"
+          if [ "$RUN_MODE_VALID" != "1" ]; then
+            echo "[RUN] invalid run mode, fallback to full"
+          fi
+          echo "[RUN] resolved_mode=$MODE"
           
           echo "=========================================="
           echo "🚀 A股自选股智能分析系统"

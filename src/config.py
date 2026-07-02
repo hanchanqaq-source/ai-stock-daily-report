@@ -110,6 +110,79 @@ ANSPIRE_LLM_MODEL_DEFAULT = "Doubao-Seed-2.0-lite"
 
 MODEL_PROFILE_DEFAULT = "daily"
 SUPPORTED_MODEL_PROFILES = frozenset({"free", "daily", "pro", "auto", "final"})
+MODEL_PROFILE_ALIASES = {
+    "免费版": "free",
+    "白嫖版": "free",
+    "省钱版": "free",
+    "低成本版": "free",
+    "日常版": "daily",
+    "普通版": "daily",
+    "默认版": "daily",
+    "增强版": "pro",
+    "高级版": "pro",
+    "深度版": "pro",
+    "自动版": "auto",
+    "智能版": "auto",
+    "最终版": "final",
+    "完整版": "final",
+    "全量版": "final",
+    "全部调用": "final",
+}
+
+RUN_MODE_DEFAULT = "full"
+SUPPORTED_RUN_MODES = frozenset({"full", "market-only", "stocks-only"})
+RUN_MODE_ALIASES = {
+    "完整日报": "full",
+    "完整": "full",
+    "满载": "full",
+    "全量": "full",
+    "只看大盘": "market-only",
+    "仅市场": "market-only",
+    "市场复盘": "market-only",
+    "大盘复盘": "market-only",
+    "只看股票": "stocks-only",
+    "仅股票": "stocks-only",
+    "股票持仓": "stocks-only",
+    "持仓复盘": "stocks-only",
+}
+
+
+def _split_choice_label(value: str) -> str:
+    """Return the standard-value segment from a GitHub Actions choice label."""
+    candidate = value.strip()
+    for separator in ("｜", "|"):
+        if separator in candidate:
+            candidate = candidate.split(separator, 1)[0].strip()
+            break
+    return candidate
+
+
+def _resolve_labeled_choice(
+    value: Optional[str],
+    *,
+    supported_values: frozenset[str],
+    aliases: Dict[str, str],
+    default: str,
+) -> Tuple[str, bool]:
+    """Resolve a plain value, labeled choice, or Chinese alias to a standard value."""
+    raw_value = value or ""
+    candidate = _split_choice_label(raw_value)
+    normalized_candidate = candidate.lower()
+    if normalized_candidate in supported_values:
+        return normalized_candidate, True
+    if candidate in aliases:
+        return aliases[candidate], True
+    return default, not candidate
+
+
+def parse_model_profile(value: Optional[str]) -> Tuple[str, bool]:
+    """Parse a model profile label or alias into a standard profile value."""
+    return _resolve_labeled_choice(
+        value,
+        supported_values=SUPPORTED_MODEL_PROFILES,
+        aliases=MODEL_PROFILE_ALIASES,
+        default=MODEL_PROFILE_DEFAULT,
+    )
 
 
 def resolve_model_profile() -> str:
@@ -118,16 +191,11 @@ def resolve_model_profile() -> str:
     This intentionally does not switch models or read provider API keys.
     """
     requested_profile = os.getenv("MODEL_PROFILE", "")
-    normalized_profile = requested_profile.strip().lower()
+    resolved_profile, is_valid = parse_model_profile(requested_profile)
 
     logger.info("[MODEL] requested_profile=%s", requested_profile or MODEL_PROFILE_DEFAULT)
-    if not normalized_profile:
-        resolved_profile = MODEL_PROFILE_DEFAULT
-    elif normalized_profile in SUPPORTED_MODEL_PROFILES:
-        resolved_profile = normalized_profile
-    else:
+    if not is_valid:
         logger.info("[MODEL] invalid profile, fallback to %s", MODEL_PROFILE_DEFAULT)
-        resolved_profile = MODEL_PROFILE_DEFAULT
 
     logger.info("[MODEL] resolved_profile=%s", resolved_profile)
     logger.info(
@@ -135,6 +203,28 @@ def resolve_model_profile() -> str:
         "this run only logs profile selection."
     )
     return resolved_profile
+
+
+def parse_run_mode(value: Optional[str]) -> Tuple[str, bool]:
+    """Parse a run mode label or alias into a standard workflow mode value."""
+    return _resolve_labeled_choice(
+        value,
+        supported_values=SUPPORTED_RUN_MODES,
+        aliases=RUN_MODE_ALIASES,
+        default=RUN_MODE_DEFAULT,
+    )
+
+
+def resolve_run_mode(value: Optional[str] = None) -> str:
+    """Resolve a run mode and log the raw requested value with the standard result."""
+    requested_mode = os.getenv("RUN_MODE", os.getenv("MODE", "")) if value is None else value
+    resolved_mode, is_valid = parse_run_mode(requested_mode)
+
+    logger.info("[RUN] requested_mode=%s", requested_mode or RUN_MODE_DEFAULT)
+    if not is_valid:
+        logger.info("[RUN] invalid run mode, fallback to %s", RUN_MODE_DEFAULT)
+    logger.info("[RUN] resolved_mode=%s", resolved_mode)
+    return resolved_mode
 
 
 def _has_ntfy_topic_endpoint(value: Optional[str]) -> bool:
