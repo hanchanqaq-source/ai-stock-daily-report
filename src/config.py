@@ -108,6 +108,34 @@ TICKFLOW_KLINE_ADJUST_VALUES = {"none", "forward", "backward", "forward_additive
 ANSPIRE_LLM_BASE_URL_DEFAULT = "https://open-gateway.anspire.cn/v6"
 ANSPIRE_LLM_MODEL_DEFAULT = "Doubao-Seed-2.0-lite"
 
+MODEL_PROFILE_DEFAULT = "daily"
+SUPPORTED_MODEL_PROFILES = frozenset({"free", "daily", "pro", "auto", "final"})
+
+
+def resolve_model_profile() -> str:
+    """Resolve the requested model profile for logging-only runs.
+
+    This intentionally does not switch models or read provider API keys.
+    """
+    requested_profile = os.getenv("MODEL_PROFILE", "")
+    normalized_profile = requested_profile.strip().lower()
+
+    logger.info("[MODEL] requested_profile=%s", requested_profile or MODEL_PROFILE_DEFAULT)
+    if not normalized_profile:
+        resolved_profile = MODEL_PROFILE_DEFAULT
+    elif normalized_profile in SUPPORTED_MODEL_PROFILES:
+        resolved_profile = normalized_profile
+    else:
+        logger.info("[MODEL] invalid profile, fallback to %s", MODEL_PROFILE_DEFAULT)
+        resolved_profile = MODEL_PROFILE_DEFAULT
+
+    logger.info("[MODEL] resolved_profile=%s", resolved_profile)
+    logger.info(
+        "[MODEL] model switching is not enabled yet; "
+        "this run only logs profile selection."
+    )
+    return resolved_profile
+
 
 def _has_ntfy_topic_endpoint(value: Optional[str]) -> bool:
     """Return whether an ntfy URL points at a concrete topic endpoint."""
@@ -736,6 +764,7 @@ class Config:
     alphasift_install_spec: str = DEFAULT_ALPHASIFT_INSTALL_SPEC
 
     # === AI 分析配置 ===
+    model_profile: str = MODEL_PROFILE_DEFAULT
     generation_backend: str = LITELLM_BACKEND_ID
     generation_fallback_backend: str = LITELLM_BACKEND_ID
     generation_backend_timeout_seconds: int = DEFAULT_LOCAL_CLI_TIMEOUT_SECONDS

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] AI 股票基金每日盯盘报告支持 `model_profile` 参数识别与启动日志展示，当前仅记录档位选择，不切换模型。
 - [改进] AI 股票基金每日盯盘报告新增“盘面结构观察”固定模块，并在 Discord 摘要中展示指数承接、成交额变化和板块持续性简版。
 - [改进] 将默认搜索源优先级调整为 Anspire、SearXNG、SerpAPI，并支持 SerpAPI fallback_only 与单次运行调用上限配置。
 

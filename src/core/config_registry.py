@@ -14,6 +14,8 @@ from src.config import (
     AGENT_CONTEXT_COMPRESSION_PROFILES,
     AGENT_MAX_STEPS_DEFAULT,
     DEFAULT_ALPHASIFT_INSTALL_SPEC,
+    MODEL_PROFILE_DEFAULT,
+    SUPPORTED_MODEL_PROFILES,
 )
 from src.notification_noise import NOTIFICATION_SEVERITIES
 from src.notification_routing import ROUTABLE_NOTIFICATION_CHANNELS
@@ -3439,6 +3441,33 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             },
         ],
         "warning_codes": ["force_run_override"],
+    },
+    "MODEL_PROFILE": {
+        "title": "Model Profile",
+        "description": "Runtime model-profile label for logs only. At this stage it records the selected profile but does not switch models, call DeepSeek, or read DeepSeek API keys.",
+        "category": "system",
+        "data_type": "string",
+        "ui_control": "select",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": MODEL_PROFILE_DEFAULT,
+        "options": sorted(SUPPORTED_MODEL_PROFILES),
+        "validation": {"enum": sorted(SUPPORTED_MODEL_PROFILES)},
+        "display_order": 13,
+        "help_key": "settings.system.MODEL_PROFILE",
+        "examples": [
+            "MODEL_PROFILE=daily",
+            "MODEL_PROFILE=free",
+            "MODEL_PROFILE=final",
+        ],
+        "docs": [
+            {
+                "label": "完整指南：其他配置",
+                "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#其他配置",
+            },
+        ],
+        "warning_codes": [],
     },
     "MARKET_REVIEW_ENABLED": {
         "title": "Market Review Enabled",
