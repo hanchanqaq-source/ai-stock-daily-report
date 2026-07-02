@@ -82,6 +82,13 @@ WEB_SETTINGS_HIDDEN_FROM_UI = {
     "PROXY_PORT",
 }
 
+_DOC_FULL_GUIDE_SEARCH = [
+    {
+        "label": "完整指南：搜索服务配置",
+        "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#搜索服务配置",
+    },
+]
+
 _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
     "STOCK_LIST": {
         "title": "Stock List",
@@ -1055,6 +1062,77 @@ _FIELD_DEFINITIONS: Dict[str, Dict[str, Any]] = {
         "options": [],
         "validation": {"multi_value": True, "delimiter": ","},
         "display_order": 40,
+    },
+    "SEARCH_PROVIDER_PRIORITY": {
+        "title": "Search Provider Priority",
+        "description": "Comma-separated search provider order. SerpAPI is last by default to reduce monthly quota usage.",
+        "category": "data_source",
+        "data_type": "string",
+        "ui_control": "text",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": "anspire,searxng,serpapi",
+        "options": [],
+        "validation": {"multi_value": True, "delimiter": ","},
+        "display_order": 41,
+        "help_key": "settings.data_source.search_api_keys",
+        "examples": ["SEARCH_PROVIDER_PRIORITY=anspire,searxng,serpapi"],
+        "docs": _DOC_FULL_GUIDE_SEARCH,
+    },
+    "SERPAPI_MODE": {
+        "title": "SerpAPI Mode",
+        "description": "SerpAPI call mode. fallback_only only calls SerpAPI when earlier providers are unavailable or return too few usable news results.",
+        "category": "data_source",
+        "data_type": "string",
+        "ui_control": "select",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": "fallback_only",
+        "options": [
+            {"label": "Fallback only", "value": "fallback_only"},
+            {"label": "Always", "value": "always"},
+        ],
+        "validation": {"enum": ["fallback_only", "always"]},
+        "display_order": 42,
+        "help_key": "settings.data_source.search_api_keys",
+        "examples": ["SERPAPI_MODE=fallback_only"],
+        "docs": _DOC_FULL_GUIDE_SEARCH,
+    },
+    "SERPAPI_MAX_CALLS_PER_RUN": {
+        "title": "SerpAPI Max Calls Per Run",
+        "description": "Maximum number of SerpAPI calls allowed during one process run.",
+        "category": "data_source",
+        "data_type": "integer",
+        "ui_control": "number",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": "3",
+        "options": [],
+        "validation": {"min": 0},
+        "display_order": 43,
+        "help_key": "settings.data_source.search_api_keys",
+        "examples": ["SERPAPI_MAX_CALLS_PER_RUN=3"],
+        "docs": _DOC_FULL_GUIDE_SEARCH,
+    },
+    "SERPAPI_MIN_NEWS_RESULTS": {
+        "title": "SerpAPI Minimum News Results",
+        "description": "Minimum usable news results from earlier providers required to skip SerpAPI in fallback_only mode.",
+        "category": "data_source",
+        "data_type": "integer",
+        "ui_control": "number",
+        "is_sensitive": False,
+        "is_required": False,
+        "is_editable": True,
+        "default_value": "2",
+        "options": [],
+        "validation": {"min": 0},
+        "display_order": 44,
+        "help_key": "settings.data_source.search_api_keys",
+        "examples": ["SERPAPI_MIN_NEWS_RESULTS=2"],
+        "docs": _DOC_FULL_GUIDE_SEARCH,
     },
     "BRAVE_API_KEYS": {
         "title": "Brave API Keys",
@@ -4331,12 +4409,6 @@ _DOC_FULL_GUIDE_ENV = [
     },
 ]
 
-_DOC_FULL_GUIDE_SEARCH = [
-    {
-        "label": "完整指南：搜索服务配置",
-        "href": "https://github.com/ZhuLinsen/daily_stock_analysis/blob/main/docs/full-guide.md#搜索服务配置",
-    },
-]
 
 _DOC_FULL_GUIDE_DATA_SOURCE = [
     {

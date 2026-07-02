@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] 将默认搜索源优先级调整为 Anspire、SearXNG、SerpAPI，并支持 SerpAPI fallback_only 与单次运行调用上限配置。
+
 - [改进] 日报工作流、对外报告总标题、artifact 名称和默认本地报告文件名统一为 AI 股票基金每日盯盘报告 / ai-investment-daily-report。
 - [修复] Discord 长报告推送按 2000 字符上限分片逐段发送，遇到 429 限流会按 `retry_after`/`Retry-After` 有限重试，避免中途失败后只收到前半段报告。
 - [改进] #1777 台股三大法人 fetcher（`TwInstitutionalFetcher`）增加缓存防击穿：并发同 (市场, 日期) 调用合并为单次上游请求，保护 TWSE T86 ~3 req/5s 限流额度；不同 key 仍并行；新增并发单次抓取、不同 key 各抓一次、HTTP 错误 fail-open 回归测试。

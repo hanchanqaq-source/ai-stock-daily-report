@@ -819,7 +819,11 @@ class Config:
     brave_api_keys: List[str] = field(default_factory=list)  # Brave Search API Keys
     serpapi_keys: List[str] = field(default_factory=list)  # SerpAPI Keys
     searxng_base_urls: List[str] = field(default_factory=list)  # SearXNG instance URLs (self-hosted, no quota)
-    searxng_public_instances_enabled: bool = True  # Auto-discover public SearXNG instances when base URLs are absent
+    searxng_public_instances_enabled: bool = False  # Auto-discover public SearXNG instances when base URLs are absent
+    search_provider_priority: str = "anspire,searxng,serpapi"
+    serpapi_mode: str = "fallback_only"
+    serpapi_max_calls_per_run: int = 3
+    serpapi_min_news_results: int = 2
 
     # === Social Sentiment (US stocks only, api.adanos.org) ===
     social_sentiment_api_key: Optional[str] = None
@@ -1535,8 +1539,15 @@ class Config:
             )
         searxng_public_instances_enabled = parse_env_bool(
             os.getenv('SEARXNG_PUBLIC_INSTANCES_ENABLED'),
-            default=True,
+            default=False,
         )
+        search_provider_priority = os.getenv('SEARCH_PROVIDER_PRIORITY', 'anspire,searxng,serpapi').strip() or 'anspire,searxng,serpapi'
+        serpapi_mode = os.getenv('SERPAPI_MODE', 'fallback_only').strip().lower() or 'fallback_only'
+        if serpapi_mode not in {'fallback_only', 'always'}:
+            logger.warning("SERPAPI_MODE '%s' 无效，已回退为 fallback_only", serpapi_mode)
+            serpapi_mode = 'fallback_only'
+        serpapi_max_calls_per_run = parse_env_int(os.getenv('SERPAPI_MAX_CALLS_PER_RUN'), 3, field_name='SERPAPI_MAX_CALLS_PER_RUN', minimum=0)
+        serpapi_min_news_results = parse_env_int(os.getenv('SERPAPI_MIN_NEWS_RESULTS'), 2, field_name='SERPAPI_MIN_NEWS_RESULTS', minimum=0)
 
         # 企微消息类型与最大字节数逻辑
         wechat_msg_type = os.getenv('WECHAT_MSG_TYPE', 'markdown')
@@ -1695,6 +1706,10 @@ class Config:
             serpapi_keys=serpapi_keys,
             searxng_base_urls=searxng_base_urls,
             searxng_public_instances_enabled=searxng_public_instances_enabled,
+            search_provider_priority=search_provider_priority,
+            serpapi_mode=serpapi_mode,
+            serpapi_max_calls_per_run=serpapi_max_calls_per_run,
+            serpapi_min_news_results=serpapi_min_news_results,
             social_sentiment_api_key=os.getenv('SOCIAL_SENTIMENT_API_KEY') or None,
             social_sentiment_api_url=os.getenv('SOCIAL_SENTIMENT_API_URL', 'https://api.adanos.org').rstrip('/'),
             news_max_age_days=parse_env_int(os.getenv('NEWS_MAX_AGE_DAYS'), 3, field_name='NEWS_MAX_AGE_DAYS', minimum=1),
