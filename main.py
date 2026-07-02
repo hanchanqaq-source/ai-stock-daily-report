@@ -66,7 +66,7 @@ import uuid
 from datetime import date, datetime, timezone, timedelta
 
 from src.webui_frontend import prepare_webui_frontend_assets
-from src.config import get_config, Config
+from src.config import get_config, Config, resolve_model_profile
 from src.logging_config import setup_logging
 from src.services.stock_code_utils import resolve_index_stock_code_for_analysis
 
@@ -1262,6 +1262,10 @@ def main() -> int:
     logger.info("A股自选股智能分析系统 启动")
     logger.info(f"运行时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info("=" * 60)
+
+    config.model_profile = resolve_model_profile()
+    logger.info("运行模式信息: model_profile=%s", config.model_profile)
+    logger.info("运行模式信息: model_switching_enabled=false")
 
     # 验证配置
     warnings = config.validate()
