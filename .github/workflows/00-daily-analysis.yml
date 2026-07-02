@@ -14,12 +14,12 @@ on:
       mode:
         description: '运行模式'
         required: true
-        default: 'full｜完整日报｜大盘+股票+推送'
+        default: "full｜完整日报｜大盘+股票+推送"
         type: choice
         options:
-          - full｜完整日报｜大盘+股票+推送
-          - market-only｜只看大盘｜仅市场复盘
-          - stocks-only｜只看股票｜仅股票/持仓
+          - "full｜完整日报｜大盘+股票+推送"
+          - "market-only｜只看大盘｜仅市场复盘"
+          - "stocks-only｜只看股票｜仅股票/持仓"
       force_run:
         description: '强制运行（跳过交易日检查）'
         required: false
@@ -28,14 +28,14 @@ on:
       model_profile:
         description: '模型档位'
         required: false
-        default: 'daily｜日常版｜默认推荐'
+        default: "daily｜日常版｜默认推荐"
         type: choice
         options:
-          - free｜免费版｜低成本测试
-          - daily｜日常版｜默认推荐
-          - pro｜增强版｜重大行情
-          - auto｜自动版｜智能选择
-          - final｜最终版｜最高质量
+          - "free｜免费版｜低成本测试"
+          - "daily｜日常版｜默认推荐"
+          - "pro｜增强版｜重大行情"
+          - "auto｜自动版｜智能选择"
+          - "final｜最终版｜最高质量"
 
 # 并发控制：同一时间只运行一个分析任务
 concurrency:
@@ -442,19 +442,19 @@ jobs:
           REQUESTED_MODEL_PROFILE="${MODEL_PROFILE:-daily｜日常版｜默认推荐}"
           export REQUESTED_MODE REQUESTED_MODEL_PROFILE
           RESOLVED_VALUES=$(python - <<'PY'
-import os
-from src.config import parse_model_profile, parse_run_mode
+          import os
+          from src.config import parse_model_profile, parse_run_mode
 
-requested_mode = os.environ.get("REQUESTED_MODE", "")
-requested_profile = os.environ.get("REQUESTED_MODEL_PROFILE", "")
-resolved_mode, valid_mode = parse_run_mode(requested_mode)
-resolved_profile, valid_profile = parse_model_profile(requested_profile)
-print(f"MODE={resolved_mode}")
-print(f"MODEL_PROFILE={resolved_profile}")
-print(f"MODEL_PROFILE_VALID={1 if valid_profile else 0}")
-print(f"RUN_MODE_VALID={1 if valid_mode else 0}")
-PY
-)
+          requested_mode = os.environ.get("REQUESTED_MODE", "")
+          requested_profile = os.environ.get("REQUESTED_MODEL_PROFILE", "")
+          resolved_mode, valid_mode = parse_run_mode(requested_mode)
+          resolved_profile, valid_profile = parse_model_profile(requested_profile)
+          print(f"MODE={resolved_mode}")
+          print(f"MODEL_PROFILE={resolved_profile}")
+          print(f"MODEL_PROFILE_VALID={1 if valid_profile else 0}")
+          print(f"RUN_MODE_VALID={1 if valid_mode else 0}")
+          PY
+          )
           eval "$RESOLVED_VALUES"
           export MODE MODEL_PROFILE
 
