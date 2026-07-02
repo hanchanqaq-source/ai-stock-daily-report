@@ -1940,6 +1940,41 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
         self.assertTrue(ok)
         mock_post.assert_called_once()
 
+
+    @mock.patch("src.notification.get_config")
+    @mock.patch("requests.post")
+    def test_send_to_discord_converts_markdown_tables_to_mobile_lists(
+        self, mock_post: mock.MagicMock, mock_get_config: mock.MagicMock
+    ):
+        cfg = _make_config(discord_webhook_url="https://discord.example/webhook")
+        mock_get_config.return_value = cfg
+        mock_post.return_value = _make_response(204)
+
+        service = NotificationService()
+        ok = service.send(
+            "# 大盘复盘\n\n"
+            "#### 概念板块领涨 Top 5\n"
+            "| 排名 | 概念板块 | 涨跌幅 |\n"
+            "|------|----------|--------|\n"
+            "| 1 | 2026中报预增 | +3.71% |\n"
+            "| 2 | 昨日打板 | +3.36% |\n\n"
+            "#### 概念板块领跌 Top 5\n"
+            "| 排名 | 概念板块 | 涨跌幅 |\n"
+            "|------|----------|--------|\n"
+            "| 1 | 高带宽内存 | -7.08% |\n",
+            route_type="report",
+        )
+
+        self.assertTrue(ok)
+        sent_content = mock_post.call_args.kwargs["json"]["content"]
+        self.assertIn("📈 概念板块领涨 Top 5", sent_content)
+        self.assertIn("1. 2026中报预增：+3.71%", sent_content)
+        self.assertIn("📉 概念板块领跌 Top 5", sent_content)
+        self.assertIn("1. 高带宽内存：-7.08%", sent_content)
+        self.assertIn("完整报告请查看 artifact 附件。", sent_content)
+        self.assertNotIn("|------|", sent_content)
+        self.assertNotIn("| 排名 |", sent_content)
+
     @mock.patch("src.notification.get_config")
     @mock.patch("requests.post")
     def test_send_to_serverchan3_via_notification_service(

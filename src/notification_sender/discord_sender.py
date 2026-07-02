@@ -91,6 +91,7 @@ class DiscordSender:
         logger.warning("Discord 配置不完整，跳过推送")
         return False
 
+
     def _split_discord_content(self, content: str) -> list[str]:
         """按 Discord content 上限拆分消息。"""
         try:
