@@ -2705,7 +2705,9 @@ class TestMarketAnalyzerBypassFix:
         assert "### 一、盘面总览" in result
         assert "今日美股市场整体呈现**小幅下跌**态势" in result
         assert "### 6. Strategy Framework" not in result
-        assert "### 六、策略框架" in result
+        assert "### 六、消息催化" in result
+        assert "### 七、策略框架" in result
+        assert "### 八、风险提示" in result
         assert "### 1. Market Summary" not in result
         assert "US Market Recap" not in result
 
