@@ -588,6 +588,71 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
         self.assertIn("成交额变化", summary)
         self.assertIn("板块持续性", summary)
 
+
+    def test_discord_full_report_keeps_required_sections_and_mobile_top5(self) -> None:
+        content = """# 📈 大盘复盘
+2026-07-02 大盘复盘
+
+一句话结论：市场震荡修复。
+
+### 一、盘面总览
+指数分化但承接尚可，权重指数维持窄幅震荡，成长方向出现修复。量能虽然没有全面放大，但较前一交易日更活跃，说明短线资金仍愿意围绕强势方向做轮动。
+
+### 三、盘面结构观察
+- 指数承接：沪深主要指数低开后回稳。
+- 成交额变化：成交额较昨日温和放大。
+- 板块持续性：机器人与算力方向延续活跃。
+
+### 四、指数结构
+上证指数守住短期均线，创业板指弹性更强，中证 1000 与科创方向同步改善。指数之间仍有分化，后续需要观察量能是否继续配合以及权重板块是否拖累反弹节奏。
+
+### 行业板块领涨 Top5
+| 排名 | 板块 | 涨跌幅 |
+| --- | --- | --- |
+| 1 | 半导体 | +3.2% |
+| 2 | 机器人 | +2.8% |
+
+### 行业板块领跌 Top5
+| 排名 | 板块 | 涨跌幅 |
+| --- | --- | --- |
+| 1 | 银行 | -1.1% |
+
+### 概念板块领涨 Top5
+| 排名 | 概念 | 涨跌幅 |
+| --- | --- | --- |
+| 1 | 算力租赁 | +4.1% |
+
+### 概念板块领跌 Top5
+| 排名 | 概念 | 涨跌幅 |
+| --- | --- | --- |
+| 1 | 高股息 | -1.5% |
+
+### 六、资金与情绪
+北向与两融情绪边际改善，涨停家数回升但连板高度仍有限，说明风险偏好处于修复初期。短线资金更偏好有政策或业绩线索的方向，追高胜率仍取决于次日承接。
+
+### 七、消息催化
+AI 产业政策与业绩预告形成催化，半导体设备、算力基础设施和机器人方向受到资金关注。若后续消息持续兑现，相关板块仍有轮动机会。
+
+### 八、策略框架
+控制仓位，围绕强趋势板块低吸，避免在连续加速后追涨。指数未放量突破前，以结构性机会为主，优先选择成交活跃、趋势未破坏、回踩有承接的品种。
+
+### 九、风险提示
+警惕量能回落与外部事件扰动。如果指数冲高后成交额不能继续放大，强势板块可能出现分化；同时需要防范高位题材退潮、业绩不及预期和海外市场波动带来的回撤。
+"""
+
+        summary = format_discord_report_summary(content, max_chars=600)
+
+        for expected in ("盘面结构观察", "资金与情绪", "消息催化", "策略框架", "风险提示"):
+            self.assertIn(expected, summary)
+        self.assertIn("完整报告请查看 artifact 附件。", summary)
+        self.assertNotIn("| 排名 |", summary)
+        self.assertNotIn("| --- |", summary)
+        self.assertIn("📈 行业板块领涨 Top5", summary)
+        self.assertIn("1. 半导体：+3.2%", summary)
+        self.assertIn("📉 行业板块领跌 Top5", summary)
+        self.assertIn("1. 银行：-1.1%", summary)
+        self.assertGreater(len(summary), 600)
+
     @mock.patch("src.notification.get_config")
     def test_generate_aggregate_report_routes_by_report_type(self, mock_get_config: mock.MagicMock):
         mock_get_config.return_value = _make_config()
