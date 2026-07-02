@@ -588,6 +588,71 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
         self.assertIn("成交额变化", summary)
         self.assertIn("板块持续性", summary)
 
+
+    def test_discord_full_report_keeps_required_sections_and_mobile_top5(self) -> None:
+        content = """# 📈 大盘复盘
+2026-07-02 大盘复盘
+
+一句话结论：市场震荡修复。
+
+### 一、盘面总览
+指数分化但承接尚可。
+
+### 三、盘面结构观察
+- 指数承接：沪深主要指数低开后回稳。
+- 成交额变化：成交额较昨日温和放大。
+- 板块持续性：机器人与算力方向延续活跃。
+
+### 四、指数结构
+上证指数守住短期均线，创业板指弹性更强。
+
+### 行业板块领涨 Top5
+| 排名 | 板块 | 涨跌幅 |
+| --- | --- | --- |
+| 1 | 半导体 | +3.2% |
+| 2 | 机器人 | +2.8% |
+
+### 行业板块领跌 Top5
+| 排名 | 板块 | 涨跌幅 |
+| --- | --- | --- |
+| 1 | 银行 | -1.1% |
+
+### 概念板块领涨 Top5
+| 排名 | 概念 | 涨跌幅 |
+| --- | --- | --- |
+| 1 | 算力租赁 | +4.1% |
+
+### 概念板块领跌 Top5
+| 排名 | 概念 | 涨跌幅 |
+| --- | --- | --- |
+| 1 | 高股息 | -1.5% |
+
+### 六、资金与情绪
+北向与两融情绪边际改善。
+
+### 七、消息催化
+AI 产业政策与业绩预告形成催化。
+
+### 八、策略框架
+控制仓位，围绕强趋势板块低吸。
+
+### 九、风险提示
+警惕量能回落与外部事件扰动。
+"""
+
+        summary = format_discord_report_summary(content, max_chars=600)
+
+        for expected in ("盘面结构观察", "资金与情绪", "消息催化", "策略框架", "风险提示"):
+            self.assertIn(expected, summary)
+        self.assertIn("完整报告请查看 artifact 附件。", summary)
+        self.assertNotIn("| 排名 |", summary)
+        self.assertNotIn("| --- |", summary)
+        self.assertIn("📈 行业板块领涨 Top5", summary)
+        self.assertIn("1. 半导体：+3.2%", summary)
+        self.assertIn("📉 行业板块领跌 Top5", summary)
+        self.assertIn("1. 银行：-1.1%", summary)
+        self.assertGreater(len(summary), 600)
+
     @mock.patch("src.notification.get_config")
     def test_generate_aggregate_report_routes_by_report_type(self, mock_get_config: mock.MagicMock):
         mock_get_config.return_value = _make_config()

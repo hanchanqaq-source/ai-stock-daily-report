@@ -143,11 +143,14 @@ class TestDiscordSender(unittest.TestCase):
         cfg = _config(discord_webhook_url="https://discord.com/webhook/1", discord_max_words=2000)
         sender = DiscordSender(cfg)
 
-        result = sender.send_to_discord("A" * 6000)
+        result = sender.send_to_discord("A" * 6000 + "END_MARKER")
 
         self.assertTrue(result)
         self.assertGreater(mock_post.call_count, 1)
         self.assertEqual(mock_sleep.call_count, mock_post.call_count - 1)
+        sent_content = "".join(call.kwargs["json"]["content"] for call in mock_post.call_args_list)
+        self.assertIn("END_MARKER", sent_content)
+        self.assertIn("📄 第 1/", sent_content)
         payload_lengths = [len(call.kwargs["json"]["content"]) for call in mock_post.call_args_list]
         self.assertTrue(all(length <= 2000 for length in payload_lengths))
 

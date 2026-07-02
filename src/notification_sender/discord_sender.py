@@ -93,23 +93,21 @@ class DiscordSender:
 
 
     def _split_discord_content(self, content: str) -> list[str]:
-        """按 Discord content 上限拆分消息。"""
+        """按 Discord content 上限拆分消息，并在多段消息开头标注段号。"""
+        marker_reserve = len("📄 第 9999/9999 段\n")
+        chunk_limit = max(MIN_MAX_WORDS, self._discord_max_words - marker_reserve)
         try:
-            chunks = chunk_content_by_max_words(content, self._discord_max_words)
-            if len(chunks) > 1:
-                chunks = chunk_content_by_max_words(
-                    content,
-                    self._discord_max_words,
-                    add_page_marker=True,
-                )
-            return chunks
+            chunks = chunk_content_by_max_words(content, chunk_limit)
         except ValueError as e:
             logger.error("分割 Discord 消息失败: %s", e)
-            return chunk_content_by_max_words(
-                content,
-                DISCORD_MAX_CONTENT_LENGTH,
-                add_page_marker=True,
-            )
+            fallback_limit = max(MIN_MAX_WORDS, DISCORD_MAX_CONTENT_LENGTH - marker_reserve)
+            chunks = chunk_content_by_max_words(content, fallback_limit)
+
+        if len(chunks) <= 1:
+            return chunks
+
+        total_chunks = len(chunks)
+        return [f"📄 第 {i + 1}/{total_chunks} 段\n{chunk}" for i, chunk in enumerate(chunks)]
 
     def _send_discord_chunks(
         self,

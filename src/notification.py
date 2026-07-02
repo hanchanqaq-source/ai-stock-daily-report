@@ -83,12 +83,19 @@ DISCORD_ARTIFACT_HINT = "完整报告请查看 artifact 附件。"
 
 
 def format_discord_report_summary(content: str, *, max_chars: int = 2000) -> str:
-    """Build a Discord-only report summary without Markdown table rows."""
+    """Build a Discord-friendly full report body without Markdown table rows.
+
+    ``max_chars`` is kept for backward compatibility with existing callers, but
+    Discord length handling happens in ``DiscordSender`` so the report is split
+    into multiple messages instead of being shortened here.
+    """
     text = str(content or "").strip()
     if not text:
         return ""
     converted = _convert_markdown_tables_to_discord_lists(text)
-    return _compact_discord_report_summary(converted, max_chars=max_chars) or converted
+    if DISCORD_ARTIFACT_HINT in converted:
+        return converted
+    return f"{converted}\n\n{DISCORD_ARTIFACT_HINT}"
 
 
 def _convert_markdown_tables_to_discord_lists(content: str) -> str:
