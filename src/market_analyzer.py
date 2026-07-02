@@ -1972,7 +1972,7 @@ Market conditions can change quickly. The data above is for reference only and d
 ### 六、消息催化
 - 暂无可用新闻时，应降低对题材持续性的确定性判断。
 
-{self._get_strategy_markdown_block(template_language)}
+{self._get_strategy_markdown_block(template_language).replace("### 六、策略框架", "### 七、策略框架")}
 
 ### 八、风险提示
 - 市场有风险，投资需谨慎。以上数据仅供参考，不构成投资建议。

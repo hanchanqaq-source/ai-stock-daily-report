@@ -566,7 +566,7 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
     """报告生成与选路相关测试。"""
 
 
-    def test_discord_summary_includes_market_structure_block(self) -> None:
+    def test_discord_summary_does_not_duplicate_market_structure_block(self) -> None:
         content = """# 🎯 大盘复盘
 
 ### 一、盘面总览
@@ -583,7 +583,8 @@ class TestNotificationServiceReportGeneration(unittest.TestCase):
 
         summary = format_discord_report_summary(content)
 
-        self.assertIn("📌 盘面结构", summary)
+        self.assertNotIn("📌 盘面结构", summary)
+        self.assertIn("### 三、盘面结构观察", summary)
         self.assertIn("指数承接", summary)
         self.assertIn("成交额变化", summary)
         self.assertIn("板块持续性", summary)

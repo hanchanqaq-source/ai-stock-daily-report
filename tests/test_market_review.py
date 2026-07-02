@@ -105,6 +105,49 @@ class MarketReviewLocalizationTestCase(unittest.TestCase):
         self.assertIn("煤炭：下跌 1 家，领跌股 煤炭A -7.21%", report)
         self.assertLess(report.index("### 📌 涨跌结构"), report.index("### 二、指数结构"))
 
+
+    def test_breadth_structure_keeps_stock_top5_when_sector_data_missing(self) -> None:
+        analyzer = MarketAnalyzer(config=SimpleNamespace(report_language="zh", market_review_region="cn"))
+        overview = MarketOverview(date="2026-07-02")
+        overview.up_count = 2
+        overview.down_count = 2
+        overview.breadth_structure = {
+            "up_count": 2,
+            "down_count": 2,
+            "flat_count": 0,
+            "up_sectors": [],
+            "down_sectors": [],
+            "top_gainers": [
+                {"name": "上涨A", "change_pct": 10.01, "sector": ""},
+                {"name": "上涨B", "change_pct": 8.32},
+            ],
+            "top_losers": [
+                {"name": "下跌A", "change_pct": -9.88, "sector": ""},
+                {"name": "下跌B", "change_pct": -7.21},
+            ],
+        }
+
+        block = analyzer._build_breadth_structure_block(overview)
+
+        self.assertIn("• 主要集中板块：\n  数据暂缺", block)
+        self.assertIn("1. 🔴 上涨A：+10.01%，所属板块：数据暂缺", block)
+        self.assertIn("2. 🔴 上涨B：+8.32%，所属板块：数据暂缺", block)
+        self.assertIn("1. 🟢 下跌A：-9.88%，所属板块：数据暂缺", block)
+        self.assertIn("2. 🟢 下跌B：-7.21%，所属板块：数据暂缺", block)
+        self.assertNotIn("|", block)
+
+    def test_template_review_uses_continuous_chinese_section_numbers(self) -> None:
+        analyzer = MarketAnalyzer(config=SimpleNamespace(report_language="zh", market_review_region="cn"))
+        overview = MarketOverview(date="2026-07-02", up_count=1, down_count=1)
+
+        report = analyzer._generate_template_review(overview, [])
+
+        self.assertIn("### 六、消息催化", report)
+        self.assertIn("### 七、策略框架", report)
+        self.assertIn("### 八、风险提示", report)
+        self.assertEqual(report.count("### 六、"), 1)
+        self.assertNotIn("### 六、策略框架", report)
+
     def test_run_market_review_uses_english_notification_title(self) -> None:
         notifier = self._make_notifier()
         market_analyzer = MagicMock()
