@@ -642,6 +642,46 @@ class MarketReviewLocalizationTestCase(unittest.TestCase):
         self.assertIn("缺少昨日对比，暂不判断放缩量", block)
         self.assertIn("缺少分时数据，承接仅作粗略判断", block)
 
+
+    def test_recent_market_comparison_block_uses_previous_snapshot_data(self) -> None:
+        analyzer = MarketAnalyzer(region="cn", config=SimpleNamespace(report_language="zh"))
+        overview = MarketOverview(
+            date="2026-07-02",
+            indices=[MarketIndex(code="000001", name="上证指数", change_pct=-4.12)],
+            up_count=2219,
+            down_count=3161,
+            limit_up_count=157,
+            limit_down_count=44,
+            total_amount=34733,
+            previous_market_light={
+                "trade_date": "2026-07-01",
+                "up_ratio": 0.523,
+                "total_amount": 29800,
+                "limit_spread": 65,
+                "score": 56,
+                "index_avg_change_pct": 0.85,
+            },
+        )
+
+        block = analyzer._build_recent_market_comparison_block(overview)
+
+        self.assertIn("### 📊 近 5 日盘面对比", block)
+        self.assertIn("- 今日：41.2%", block)
+        self.assertIn("- 昨日：52.3%", block)
+        self.assertIn("- 变化：-11.1 个百分点", block)
+        self.assertIn("- 判断：市场宽度明显转弱", block)
+        self.assertIn("- 今日：34733 亿", block)
+        self.assertIn("- 变化：+4933 亿，+16.6%", block)
+        self.assertIn("- 判断：成交额明显放大，分歧加剧", block)
+        self.assertIn("- 判断：指数承接明显转弱", block)
+        self.assertLess(block.index("- 今日：41.2%"), block.index("规则："))
+
+    def test_recent_market_comparison_block_handles_missing_history(self) -> None:
+        analyzer = MarketAnalyzer(region="cn", config=SimpleNamespace(report_language="zh"))
+        block = analyzer._build_recent_market_comparison_block(MarketOverview(date="2026-07-02"))
+
+        self.assertIn("历史样本不足，已开始记录，后续日报将自动形成趋势对比。", block)
+
     def test_render_market_review_payload_markdown_does_not_repeat_title(self) -> None:
         markdown = market_review_module._render_market_review_payload_markdown(
             {
