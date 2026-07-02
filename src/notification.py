@@ -1694,7 +1694,7 @@ class NotificationService(
         lines.extend([
             "---",
             f"*{labels['not_investment_advice']}*",
-            f"*{labels['details_report_hint']} reports/report_{report_date.replace('-', '')}.md*"
+            f"*{labels['details_report_hint']} reports/ai-investment-daily-report-{report_date}.md*"
         ])
 
         content = "\n".join(lines)
@@ -2692,8 +2692,8 @@ class NotificationService(
         from pathlib import Path
 
         if filename is None:
-            date_str = datetime.now().strftime('%Y%m%d')
-            filename = f"report_{date_str}.md"
+            date_str = datetime.now().strftime('%Y-%m-%d')
+            filename = f"ai-investment-daily-report-{date_str}.md"
 
         # 确保 reports 目录存在（使用项目根目录下的 reports）
         reports_dir = Path(__file__).parent.parent / 'reports'

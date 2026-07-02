@@ -310,7 +310,7 @@ _REPORT_LABELS: Dict[str, Dict[str, str]] = {
         "generated_at_label": "报告生成时间",
         "report_time_label": "生成时间",
         "no_results": "无分析结果",
-        "report_title": "股票分析报告",
+        "report_title": "AI股票基金每日盯盘报告",
         "avg_score_label": "均分",
         "action_points_heading": "操作点位",
         "position_advice_heading": "持仓建议",

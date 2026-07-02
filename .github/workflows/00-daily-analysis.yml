@@ -1,4 +1,4 @@
-name: 每日股票分析
+name: AI股票基金每日盯盘报告
 
 on:
   # 定时触发 - 每天北京时间 18:00 (UTC 10:00)
@@ -507,7 +507,7 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: analysis-reports-${{ github.run_number }}
+          name: ai-investment-daily-report
           path: |
             reports/
             logs/
