@@ -6,6 +6,7 @@ Discord 发送提醒服务
 1. 通过 webhook 或 Discord bot API 发送 Discord 消息
 """
 import logging
+import re
 import time
 from typing import Optional
 
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 DISCORD_MAX_CONTENT_LENGTH = 2000
 DISCORD_MAX_RETRIES = 3
 DISCORD_CHUNK_SLEEP_SECONDS = 1
+DISCORD_ARTIFACT_HINT = "完整报告请查看 artifact 附件。"
 
 
 class DiscordSender:
@@ -67,6 +69,9 @@ class DiscordSender:
         Returns:
             是否发送成功
         """
+        # Discord 手机端不适合阅读 Markdown 表格；发送前转换为更紧凑的摘要正文。
+        content = self._format_discord_mobile_content(content)
+
         # 分割内容，避免单条消息超过 Discord 限制
         chunks = self._split_discord_content(content)
 
@@ -90,6 +95,122 @@ class DiscordSender:
 
         logger.warning("Discord 配置不完整，跳过推送")
         return False
+
+
+    def _format_discord_mobile_content(self, content: str) -> str:
+        """Render a Discord-friendly summary without Markdown tables."""
+        text = str(content or "").strip()
+        if not text:
+            return ""
+
+        converted = self._convert_markdown_tables_to_numbered_lists(text)
+        compact = self._compact_discord_summary(converted)
+        return compact or converted
+
+    def _convert_markdown_tables_to_numbered_lists(self, content: str) -> str:
+        lines = content.splitlines()
+        output: list[str] = []
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if self._is_markdown_table_header(line) and i + 1 < len(lines) and self._is_markdown_table_separator(lines[i + 1]):
+                title = self._pop_nearest_heading(output)
+                rows: list[list[str]] = []
+                i += 2
+                while i < len(lines) and self._is_markdown_table_row(lines[i]):
+                    rows.append(self._split_markdown_table_row(lines[i]))
+                    i += 1
+                rendered = self._render_discord_numbered_list(title, rows)
+                if rendered:
+                    if output and output[-1].strip():
+                        output.append("")
+                    output.extend(rendered)
+                continue
+            output.append(line)
+            i += 1
+        return "\n".join(output).strip()
+
+    @staticmethod
+    def _is_markdown_table_row(line: str) -> bool:
+        stripped = line.strip()
+        return stripped.startswith("|") and stripped.endswith("|")
+
+    @classmethod
+    def _is_markdown_table_header(cls, line: str) -> bool:
+        cells = cls._split_markdown_table_row(line)
+        if len(cells) < 2:
+            return False
+        normalized = {cell.strip().lower() for cell in cells}
+        return bool({"排名", "rank"} & normalized) or any(cell in normalized for cell in {"涨跌幅", "change"})
+
+    @classmethod
+    def _is_markdown_table_separator(cls, line: str) -> bool:
+        cells = cls._split_markdown_table_row(line)
+        if len(cells) < 2:
+            return False
+        return all(re.fullmatch(r":?-{3,}:?", cell.strip()) for cell in cells)
+
+    @staticmethod
+    def _split_markdown_table_row(line: str) -> list[str]:
+        stripped = line.strip()
+        if not stripped.startswith("|") or not stripped.endswith("|"):
+            return []
+        return [cell.strip() for cell in stripped.strip("|").split("|")]
+
+    @staticmethod
+    def _pop_nearest_heading(output: list[str]) -> str:
+        index = len(output) - 1
+        while index >= 0 and not output[index].strip():
+            index -= 1
+        if index >= 0 and output[index].lstrip().startswith("#"):
+            heading = re.sub(r"^#+\s*", "", output.pop(index)).strip()
+            while output and not output[-1].strip():
+                output.pop()
+            return heading
+        return "重点榜单"
+
+    @staticmethod
+    def _render_discord_numbered_list(title: str, rows: list[list[str]]) -> list[str]:
+        items: list[str] = []
+        for fallback_rank, cells in enumerate(rows, 1):
+            if len(cells) < 2:
+                continue
+            rank = cells[0] or str(fallback_rank)
+            name = cells[1]
+            change = cells[2] if len(cells) >= 3 else ""
+            suffix = f"：{change}" if change else ""
+            items.append(f"{rank}. {name}{suffix}")
+        if not items:
+            return []
+        icon = "📉" if any(keyword in title for keyword in ("领跌", "Lagging", "lagging")) else "📈"
+        return [f"{icon} {title}", *items]
+
+    def _compact_discord_summary(self, content: str) -> str:
+        """Keep Discord content focused on summary/list highlights instead of the full report."""
+        lines = [line.rstrip() for line in content.splitlines()]
+        kept: list[str] = []
+        list_headings = ("📈 ", "📉 ")
+        for line in lines:
+            stripped = line.strip()
+            if not stripped:
+                if kept and kept[-1]:
+                    kept.append("")
+                continue
+            if stripped.startswith("#") and len([x for x in kept if x.strip()]) < 3:
+                kept.append(stripped)
+                continue
+            if stripped.startswith(list_headings) or re.match(r"^\d+\.\s+", stripped):
+                kept.append(stripped)
+                continue
+            if len([x for x in kept if x.strip() and not x.startswith("#")]) < 8:
+                kept.append(stripped)
+
+        compact = "\n".join(kept).strip()
+        if compact and len(compact) > self._discord_max_words - len(DISCORD_ARTIFACT_HINT) - 8:
+            compact = compact[: self._discord_max_words - len(DISCORD_ARTIFACT_HINT) - 9].rstrip() + "…"
+        if compact and DISCORD_ARTIFACT_HINT not in compact:
+            compact = f"{compact}\n\n{DISCORD_ARTIFACT_HINT}"
+        return compact
 
     def _split_discord_content(self, content: str) -> list[str]:
         """按 Discord content 上限拆分消息。"""
