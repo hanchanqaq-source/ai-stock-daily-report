@@ -2263,7 +2263,11 @@ class SearchService:
         serpapi_keys: Optional[List[str]] = None,
         minimax_keys: Optional[List[str]] = None,
         searxng_base_urls: Optional[List[str]] = None,
-        searxng_public_instances_enabled: bool = True,
+        searxng_public_instances_enabled: bool = False,
+        search_provider_priority: str = "anspire,searxng,serpapi",
+        serpapi_mode: str = "fallback_only",
+        serpapi_max_calls_per_run: int = 3,
+        serpapi_min_news_results: int = 2,
         news_max_age_days: int = 3,
         news_strategy_profile: str = "short",
     ):
@@ -2300,49 +2304,63 @@ class SearchService:
             NEWS_STRATEGY_WINDOWS["short"],
         )
 
-        # 初始化搜索引擎（按优先级排序）
-        # 1. Bocha 优先（中文搜索优化，AI摘要）
+        self.search_provider_priority = self._normalize_search_provider_priority(search_provider_priority)
+        self.serpapi_mode = (serpapi_mode or "fallback_only").strip().lower()
+        if self.serpapi_mode not in {"fallback_only", "always"}:
+            logger.warning("SERPAPI_MODE '%s' 无效，已回退为 fallback_only", serpapi_mode)
+            self.serpapi_mode = "fallback_only"
+        self.serpapi_max_calls_per_run = max(0, int(serpapi_max_calls_per_run))
+        self.serpapi_min_news_results = max(0, int(serpapi_min_news_results))
+        self._serpapi_calls_this_run = 0
+
+        provider_registry: Dict[str, BaseSearchProvider] = {}
         if bocha_keys:
-            self._providers.append(BochaSearchProvider(bocha_keys))
-            logger.info(f"已配置 Bocha 搜索，共 {len(bocha_keys)} 个 API Key")
-
-        # 2. Tavily（免费额度更多，每月 1000 次）
+            provider_registry["bocha"] = BochaSearchProvider(bocha_keys)
+            logger.info("已配置 Bocha 搜索，共 %s 个 API Key", len(bocha_keys))
         if tavily_keys:
-            self._providers.append(TavilySearchProvider(tavily_keys))
-            logger.info(f"已配置 Tavily 搜索，共 {len(tavily_keys)} 个 API Key")
-
-        # 3. Brave Search（隐私优先，全球覆盖）
+            provider_registry["tavily"] = TavilySearchProvider(tavily_keys)
+            logger.info("已配置 Tavily 搜索，共 %s 个 API Key", len(tavily_keys))
         if brave_keys:
-            self._providers.append(BraveSearchProvider(brave_keys))
-            logger.info(f"已配置 Brave 搜索，共 {len(brave_keys)} 个 API Key")
-
-        # 4. SerpAPI 作为备选（每月 100 次）
+            provider_registry["brave"] = BraveSearchProvider(brave_keys)
+            logger.info("已配置 Brave 搜索，共 %s 个 API Key", len(brave_keys))
         if serpapi_keys:
-            self._providers.append(SerpAPISearchProvider(serpapi_keys))
-            logger.info(f"已配置 SerpAPI 搜索，共 {len(serpapi_keys)} 个 API Key")
-
-        # 5. MiniMax（Coding Plan Web Search，结构化结果）
+            provider_registry["serpapi"] = SerpAPISearchProvider(serpapi_keys)
+            logger.info("已配置 SerpAPI 搜索，共 %s 个 API Key", len(serpapi_keys))
         if minimax_keys:
-            self._providers.append(MiniMaxSearchProvider(minimax_keys))
-            logger.info(f"已配置 MiniMax 搜索，共 {len(minimax_keys)} 个 API Key")
+            provider_registry["minimax"] = MiniMaxSearchProvider(minimax_keys)
+            logger.info("已配置 MiniMax 搜索，共 %s 个 API Key", len(minimax_keys))
 
-        # 6. SearXNG（自建实例优先；未配置时可自动发现公共实例）
         searxng_provider = SearXNGSearchProvider(
             searxng_base_urls,
             use_public_instances=bool(searxng_public_instances_enabled and not searxng_base_urls),
         )
         if searxng_provider.is_available:
-            self._providers.append(searxng_provider)
+            provider_registry["searxng"] = searxng_provider
             if searxng_base_urls:
                 logger.info("已配置 SearXNG 搜索，共 %s 个自建实例", len(searxng_base_urls))
             else:
                 logger.info("已启用 SearXNG 公共实例自动发现模式")
+        elif not searxng_base_urls:
+            logger.info("未配置 SEARXNG_BASE_URLS，已跳过 SearXNG 搜索")
 
-        # 7. Anspire Search（实时智能搜索优化）
         if anspire_keys:
-            self._providers.insert(0, AnspireSearchProvider(anspire_keys))
-            logger.info(f"已配置 Anspire Search 搜索，共 {len(anspire_keys)} 个 API Key")
-            
+            provider_registry["anspire"] = AnspireSearchProvider(anspire_keys)
+            logger.info("已配置 Anspire Search 搜索，共 %s 个 API Key", len(anspire_keys))
+
+        ordered_names = [
+            name for name in self.search_provider_priority
+            if name in provider_registry
+        ]
+        ordered_names.extend(name for name in provider_registry if name not in ordered_names)
+        self._providers.extend(provider_registry[name] for name in ordered_names)
+        logger.info(
+            "搜索源优先级: %s；SerpAPI mode=%s, max_calls_per_run=%s, min_news_results=%s",
+            ",".join(provider.name for provider in self._providers) or "None",
+            self.serpapi_mode,
+            self.serpapi_max_calls_per_run,
+            self.serpapi_min_news_results,
+        )
+
         if not self._providers:
             logger.warning("未配置任何搜索能力，新闻搜索功能将不可用")
 
@@ -2360,6 +2378,19 @@ class SearchService:
             self.news_window_days,
         )
     
+
+    @staticmethod
+    def _normalize_search_provider_priority(priority: Optional[str]) -> List[str]:
+        default = ["anspire", "searxng", "serpapi"]
+        aliases = {"serpapi": "serpapi", "serp_api": "serpapi", "searxng": "searxng", "searx": "searxng"}
+        normalized: List[str] = []
+        for item in (priority or "").split(','):
+            name = item.strip().lower().replace('-', '_')
+            name = aliases.get(name, name)
+            if name and name not in normalized:
+                normalized.append(name)
+        return normalized or default
+
     @staticmethod
     def _is_foreign_stock(stock_code: str) -> bool:
         """判断是否为港股或美股"""
@@ -3691,6 +3722,33 @@ class SearchService:
                 if not provider.is_available:
                     continue
 
+                if isinstance(provider, SerpAPISearchProvider):
+                    best_count = len(best_ranked_response.results or []) if best_ranked_response else 0
+                    if self.serpapi_mode == "fallback_only" and best_count >= self.serpapi_min_news_results:
+                        logger.info(
+                            "SerpAPI 未调用：fallback_only 模式下前置搜索源已返回 %s 条有效新闻（阈值 %s）；本次已调用 %s/%s 次",
+                            best_count,
+                            self.serpapi_min_news_results,
+                            self._serpapi_calls_this_run,
+                            self.serpapi_max_calls_per_run,
+                        )
+                        continue
+                    if self._serpapi_calls_this_run >= self.serpapi_max_calls_per_run:
+                        logger.info(
+                            "SerpAPI 未调用：已达到本次运行调用上限 %s 次",
+                            self.serpapi_max_calls_per_run,
+                        )
+                        continue
+                    self._serpapi_calls_this_run += 1
+                    logger.info(
+                        "SerpAPI 调用：第 %s/%s 次（mode=%s，前置有效新闻=%s，阈值=%s）",
+                        self._serpapi_calls_this_run,
+                        self.serpapi_max_calls_per_run,
+                        self.serpapi_mode,
+                        best_count,
+                        self.serpapi_min_news_results,
+                    )
+
                 search_kwargs: Dict[str, Any] = {}
                 if isinstance(provider, TavilySearchProvider):
                     search_kwargs["topic"] = "news"
@@ -4454,6 +4512,10 @@ def get_search_service() -> SearchService:
                     minimax_keys=config.minimax_api_keys,
                     searxng_base_urls=config.searxng_base_urls,
                     searxng_public_instances_enabled=config.searxng_public_instances_enabled,
+                    search_provider_priority=getattr(config, "search_provider_priority", "anspire,searxng,serpapi"),
+                    serpapi_mode=getattr(config, "serpapi_mode", "fallback_only"),
+                    serpapi_max_calls_per_run=getattr(config, "serpapi_max_calls_per_run", 3),
+                    serpapi_min_news_results=getattr(config, "serpapi_min_news_results", 2),
                     news_max_age_days=config.news_max_age_days,
                     news_strategy_profile=getattr(config, "news_strategy_profile", "short"),
                 )

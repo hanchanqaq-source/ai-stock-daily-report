@@ -15,7 +15,7 @@ if "newspaper" not in sys.modules:
     mock_np.Config = MagicMock()
     sys.modules["newspaper"] = mock_np
 
-from src.search_service import SerpAPISearchProvider
+from src.search_service import AnspireSearchProvider, SearXNGSearchProvider, SearchService, SerpAPISearchProvider
 
 
 class _FakeGoogleSearch:
@@ -38,6 +38,33 @@ def _fake_serpapi_module() -> ModuleType:
     module = ModuleType("serpapi")
     module.GoogleSearch = _FakeGoogleSearch
     return module
+
+
+class TestSearchServiceSerpAPIControls(unittest.TestCase):
+    def test_default_priority_places_serpapi_after_anspire_and_configured_searxng(self) -> None:
+        service = SearchService(
+            anspire_keys=["anspire_key"],
+            serpapi_keys=["serpapi_key"],
+            searxng_base_urls=["https://searx.example.com"],
+            searxng_public_instances_enabled=False,
+        )
+
+        self.assertIsInstance(service._providers[0], AnspireSearchProvider)
+        self.assertIsInstance(service._providers[1], SearXNGSearchProvider)
+        self.assertIsInstance(service._providers[2], SerpAPISearchProvider)
+        self.assertEqual(service.serpapi_mode, "fallback_only")
+        self.assertEqual(service.serpapi_max_calls_per_run, 3)
+        self.assertEqual(service.serpapi_min_news_results, 2)
+
+    def test_empty_searxng_urls_skip_provider_by_default(self) -> None:
+        service = SearchService(
+            anspire_keys=[],
+            serpapi_keys=["serpapi_key"],
+            searxng_base_urls=[],
+        )
+
+        self.assertFalse(any(isinstance(p, SearXNGSearchProvider) for p in service._providers))
+        self.assertEqual([p.name for p in service._providers], ["SerpAPI"])
 
 
 class TestSerpAPISearchProvider(unittest.TestCase):
