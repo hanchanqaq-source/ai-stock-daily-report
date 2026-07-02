@@ -66,7 +66,7 @@ import uuid
 from datetime import date, datetime, timezone, timedelta
 
 from src.webui_frontend import prepare_webui_frontend_assets
-from src.config import get_config, Config, resolve_model_profile
+from src.config import get_config, Config, log_run_stage, resolve_run_context
 from src.logging_config import setup_logging
 from src.services.stock_code_utils import resolve_index_stock_code_for_analysis
 
@@ -765,6 +765,7 @@ def run_full_analysis(
             )
 
         # 1. 运行个股分析
+        log_run_stage("fetch_data")
         results = pipeline.run(
             stock_codes=stock_codes,
             dry_run=args.dry_run,
@@ -794,6 +795,7 @@ def run_full_analysis(
 
         # 2. 运行大盘复盘（如果启用且不是仅个股模式）
         if should_run_market_review:
+            log_run_stage("analyze_market")
             schedule_mode = bool(
                 getattr(args, 'schedule', False)
                 or getattr(config, 'schedule_enabled', False)
@@ -887,6 +889,7 @@ def run_full_analysis(
                 market_report = market_context_full_report or market_context_summary
 
         # Issue #190: 合并推送（个股+大盘复盘）
+        log_run_stage("render_report")
         if merge_notification and (results or market_report) and not args.no_notify:
             parts = []
             if market_report:
@@ -1263,9 +1266,15 @@ def main() -> int:
     logger.info(f"运行时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     logger.info("=" * 60)
 
-    config.model_profile = resolve_model_profile()
+    run_context = resolve_run_context()
+    config.model_profile = run_context.resolved_profile
+    config.run_context = run_context
+    logger.info("运行模式信息: request_id=%s", run_context.request_id)
+    logger.info("运行模式信息: trigger_source=%s", run_context.trigger_source)
+    logger.info("运行模式信息: run_mode=%s", run_context.resolved_mode)
     logger.info("运行模式信息: model_profile=%s", config.model_profile)
     logger.info("运行模式信息: model_switching_enabled=false")
+    log_run_stage("init")
 
     # 验证配置
     warnings = config.validate()
@@ -1396,6 +1405,7 @@ def main() -> int:
                 force=getattr(args, 'backtest_force', False),
                 eval_window_days=getattr(args, 'backtest_days', None),
             )
+            log_run_stage("finished", "success")
             logger.info(
                 f"回测完成: processed={stats.get('processed')} saved={stats.get('saved')} "
                 f"completed={stats.get('completed')} insufficient={stats.get('insufficient')} errors={stats.get('errors')}"
@@ -1404,6 +1414,7 @@ def main() -> int:
 
         # 模式1: 仅大盘复盘
         if args.market_review:
+            log_run_stage("analyze_market")
             from src.core.market_review import run_market_review
             from src.core.market_review_runtime import build_market_review_runtime
 
@@ -1435,6 +1446,7 @@ def main() -> int:
                 override_region=effective_region,
                 trigger_source="cli",
             )
+            log_run_stage("finished", "success")
             return 0
 
         # 模式2: 定时任务模式
@@ -1507,10 +1519,12 @@ def main() -> int:
 
         # 模式3: 正常单次运行
         if config.run_immediately:
+            log_run_stage("fetch_data")
             _run_analysis_with_runtime_scheduler_lock(config, args, stock_codes)
         else:
             logger.info("配置为不立即运行分析 (RUN_IMMEDIATELY=false)")
 
+        log_run_stage("finished", "success")
         logger.info("\n程序执行完成")
 
         # 如果启用了服务且是非定时任务模式，保持程序运行
@@ -1530,6 +1544,9 @@ def main() -> int:
         return 130
 
     except Exception as e:
+        log_run_stage("failed", "")
+        logger.error("[ERROR] stage=failed")
+        logger.error("[ERROR] message=%s", e)
         logger.exception(f"程序执行失败: {e}")
         return 1
 

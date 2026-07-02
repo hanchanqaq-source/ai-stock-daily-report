@@ -17,6 +17,7 @@ A股自选股智能分析系统 - 通知层
 from __future__ import annotations
 
 import logging
+import os
 import re
 import time
 from dataclasses import dataclass, field
@@ -80,6 +81,27 @@ logger = logging.getLogger(__name__)
 
 
 DISCORD_ARTIFACT_HINT = "完整报告请查看 artifact 附件。"
+
+
+def append_runtime_info_footer(content: str, status: str = "success") -> str:
+    """Append a compact, non-sensitive runtime footer when context is available."""
+    request_id = (os.getenv("REQUEST_ID") or "").strip()
+    trigger_source = (os.getenv("TRIGGER_SOURCE") or "").strip()
+    run_mode = (os.getenv("MODE") or os.getenv("RUN_MODE") or "").strip()
+    model_profile = (os.getenv("MODEL_PROFILE") or "").strip()
+    if not any((request_id, trigger_source, run_mode, model_profile)):
+        return content
+
+    footer = (
+        "---\n"
+        "运行信息：\n"
+        f"- 请求编号：{request_id or 'unknown'}\n"
+        f"- 触发来源：{trigger_source or 'unknown'}\n"
+        f"- 运行模式：{run_mode or 'full'}\n"
+        f"- 模型档位：{model_profile or 'daily'}\n"
+        f"- 生成状态：{status}"
+    )
+    return f"{content.rstrip()}\n\n{footer}"
 
 
 def format_discord_report_summary(content: str, *, max_chars: int = 2000) -> str:
@@ -2587,10 +2609,11 @@ class NotificationService(
                 return self._send_custom_webhook_image(image_bytes, fallback_content=content)
             return self.send_to_custom(content)
         if channel == NotificationChannel.DISCORD:
+            content_with_runtime = append_runtime_info_footer(content)
             discord_content = (
-                format_discord_report_summary(content, max_chars=self._discord_max_words)
+                format_discord_report_summary(content_with_runtime, max_chars=self._discord_max_words)
                 if format_discord_report
-                else content
+                else content_with_runtime
             )
             return self.send_to_discord(discord_content)
         if channel == NotificationChannel.SLACK:
