@@ -496,10 +496,23 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                     len(indices),
                 )
                 if self.region == "cn":
+                    expected_names = {"上证指数", "深证成指", "创业板指", "科创50", "沪深300"}
+                    fetched_names = {idx.name for idx in indices}
+                    missing = sorted(expected_names - fetched_names)
+                    if missing:
+                        logger.info(
+                            "[DATA_FETCH] provider=akshare target=a_share_indices status=partial missing=%s",
+                            ",".join(missing),
+                        )
+                    else:
+                        logger.info("[DATA_FETCH] provider=akshare target=a_share_indices status=success")
+                if self.region == "cn":
                     indices.extend(self._get_overseas_indices_for_global_structure())
 
         except Exception as e:
             logger.error("[大盘] %s action=get_main_indices status=failed error=%s", self._log_context(), e)
+            if self.region == "cn":
+                logger.info("[DATA_FETCH] provider=akshare target=a_share_indices status=failed reason=%s", type(e).__name__)
 
         return indices
 
@@ -578,18 +591,27 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                     overview.limit_down_count,
                     overview.total_amount,
                 )
+                logger.info("[DATA_FETCH] provider=akshare target=a_share_breadth status=%s", "success" if overview.up_count or overview.down_count or overview.flat_count else "failed reason=empty")
+                logger.info("[DATA_FETCH] provider=akshare target=a_share_turnover status=%s", "success" if overview.total_amount else "failed reason=empty")
+                logger.info("[DATA_FETCH] provider=akshare target=a_share_limit status=%s", "success" if overview.limit_up_count or overview.limit_down_count else "failed reason=empty")
             else:
                 logger.warning("[大盘] %s action=get_market_stats status=empty", self._log_context())
+                logger.info("[DATA_FETCH] provider=akshare target=a_share_breadth status=failed reason=empty")
+                logger.info("[DATA_FETCH] provider=akshare target=a_share_turnover status=failed reason=empty")
+                logger.info("[DATA_FETCH] provider=akshare target=a_share_limit status=failed reason=empty")
 
         except Exception as e:
             logger.error("[大盘] %s action=get_market_stats status=failed error=%s", self._log_context(), e)
+            logger.info("[DATA_FETCH] provider=akshare target=a_share_breadth status=failed reason=%s", type(e).__name__)
+            logger.info("[DATA_FETCH] provider=akshare target=a_share_turnover status=failed reason=%s", type(e).__name__)
+            logger.info("[DATA_FETCH] provider=akshare target=a_share_limit status=failed reason=%s", type(e).__name__)
 
     def _get_sector_rankings(self, overview: MarketOverview):
         """获取板块涨跌榜"""
         try:
             logger.info("[大盘] %s action=get_sector_rankings status=start", self._log_context())
 
-            top_sectors, bottom_sectors = self.data_manager.get_sector_rankings(5)
+            top_sectors, bottom_sectors = self.data_manager.get_sector_rankings(10)
 
             if top_sectors or bottom_sectors:
                 overview.top_sectors = top_sectors
@@ -601,11 +623,15 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                     [s['name'] for s in overview.top_sectors],
                     [s['name'] for s in overview.bottom_sectors],
                 )
+                rank_status = "success" if overview.top_sectors and overview.bottom_sectors else "partial"
+                logger.info("[DATA_FETCH] provider=akshare target=industry_rank status=%s", rank_status)
             else:
                 logger.warning("[大盘] %s action=get_sector_rankings status=empty", self._log_context())
+                logger.info("[DATA_FETCH] provider=akshare target=industry_rank status=failed reason=empty")
 
         except Exception as e:
             logger.error("[大盘] %s action=get_sector_rankings status=failed error=%s", self._log_context(), e)
+            logger.info("[DATA_FETCH] provider=akshare target=industry_rank status=failed reason=%s", type(e).__name__)
 
 
     def _get_breadth_structure(self, overview: MarketOverview):
@@ -900,13 +926,21 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             payload["market_light"] = light
 
         if has_breadth_data:
+            participation = int(overview.up_count or 0) + int(overview.down_count or 0)
+            rise_ratio = (overview.up_count / participation) if participation else None
+            limit_diff = int(overview.limit_up_count or 0) - int(overview.limit_down_count or 0)
             payload["breadth"] = {
                 "up_count": overview.up_count,
                 "down_count": overview.down_count,
                 "flat_count": overview.flat_count,
+                "rising_count": overview.up_count,
+                "falling_count": overview.down_count,
+                "rise_ratio": rise_ratio,
                 "limit_up_count": overview.limit_up_count,
                 "limit_down_count": overview.limit_down_count,
+                "limit_diff": limit_diff,
                 "total_amount": overview.total_amount,
+                "turnover": overview.total_amount,
                 "turnover_unit": self._get_turnover_unit_label(),
             }
 
@@ -1364,6 +1398,13 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
         limit_spread = overview.limit_up_count - overview.limit_down_count
         lines = [
             f"- **盘面信号**：{score}/100（{label}，{light['label']}）",
+            f"- **上涨占比**：{up_ratio:.1%}" if participation else "- **上涨占比**：暂缺",
+            f"- **上涨/下跌**：{overview.up_count} 家 / {overview.down_count} 家" if participation else "- **上涨/下跌**：暂缺",
+            f"- **两市成交额**：{overview.total_amount:.0f} 亿" if overview.total_amount else "- **两市成交额**：暂缺",
+            f"- **涨停/跌停**：{overview.limit_up_count} 家 / {overview.limit_down_count} 家"
+            if (overview.limit_up_count or overview.limit_down_count)
+            else "- **涨停/跌停**：暂缺",
+            f"- **涨跌停差**：{limit_spread:+d}" if (overview.limit_up_count or overview.limit_down_count) else "- **涨跌停差**：暂缺",
             f"- **信号依据**：{'；'.join(light['reasons'])}",
             f"- **操作建议**：{light['guidance']}",
             "",
@@ -1596,19 +1637,19 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 f"| {'Rank' if language == 'en' else '排名'} | {name_label} | {'Change' if language == 'en' else '涨跌幅'} |",
                 "|------|------|--------|",
             ])
-            for rank, item in enumerate(rows[:5], 1):
+            for rank, item in enumerate(rows[:10], 1):
                 lines.append(
                     f"| {rank} | {item.get('name', '-')} | {self._format_signed_pct(item.get('change_pct'))} |"
                 )
 
         if language == "en":
-            append_ranking("#### Leading Industry Sectors", "Sector", overview.top_sectors)
-            append_ranking("#### Lagging Industry Sectors", "Sector", overview.bottom_sectors)
+            append_ranking("#### Leading Industry Sectors Top 10", "Sector", overview.top_sectors)
+            append_ranking("#### Lagging Industry Sectors Top 10", "Sector", overview.bottom_sectors)
             append_ranking("#### Leading Concept Themes", "Concept", overview.top_concepts)
             append_ranking("#### Lagging Concept Themes", "Concept", overview.bottom_concepts)
         else:
-            append_ranking("#### 行业板块领涨 Top 5", "行业板块", overview.top_sectors)
-            append_ranking("#### 行业板块领跌 Top 5", "行业板块", overview.bottom_sectors)
+            append_ranking("#### 行业板块领涨 Top 10", "行业板块", overview.top_sectors)
+            append_ranking("#### 行业板块领跌 Top 10", "行业板块", overview.bottom_sectors)
             append_ranking("#### 概念板块领涨 Top 5", "概念板块", overview.top_concepts)
             append_ranking("#### 概念板块领跌 Top 5", "概念板块", overview.bottom_concepts)
         return "\n".join(lines)

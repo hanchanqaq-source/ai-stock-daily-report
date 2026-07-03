@@ -324,17 +324,19 @@ def _discord_conclusion_lines(content: str) -> List[str]:
 
 
 def _discord_core_signal_lines(content: str) -> List[str]:
-    score = _first_regex(content, [r"盘面信号[:：]\s*([^\n]+)", r"市场信号[:：]\s*([^\n]+)"])
-    up_ratio = _first_regex(content, [r"上涨占比[:：]?\s*([+-]?[\d.]+%)"])
-    limit_diff = _first_regex(content, [r"涨跌停差[:：]?\s*([+-]?\d+)"])
-    turnover = _first_regex(content, [r"两市成交额[:：]\s*([^\n]+)"])
-    activity = _first_regex(content, [r"活跃度[:：]\s*([^\n]+)"])
+    score = _first_regex(content, [r"盘面信号(?:\*\*)?[:：]\s*([^\n]+)", r"市场信号(?:\*\*)?[:：]\s*([^\n]+)"])
+    up_ratio = _first_regex(content, [r"上涨占比(?:\*\*)?[:：]?\s*([+-]?[\d.]+%)", r"上涨占比(?:\\([^)]*\\))?\\s*([+-]?[\d.]+%)"])
+    up_down = _first_regex(content, [r"上涨/下跌(?:\*\*)?[:：]\s*([^\n]+)", r"上涨/下跌/平盘\s*\|\s*([^|]+)"])
+    limit_diff = _first_regex(content, [r"涨跌停差(?:\*\*)?[:：]?\s*([+-]?\d+)", r"涨跌停差\s*([+-]?\d+)"])
+    turnover = _first_regex(content, [r"两市成交额(?:\*\*)?[:：]\s*([^\n]+)", r"两市成交额\s*\|\s*([^|]+)"])
+    coverage = _first_regex(content, [r"数据覆盖率[:：]\s*(\d+%)"])
     return [
-        f"• 盘面信号：{_value_or_missing(score)}",
         f"• 上涨占比：{_value_or_missing(up_ratio)}",
-        f"• 涨跌停差：{_value_or_missing(limit_diff)}",
+        f"• 上涨/下跌：{_value_or_missing(up_down)}",
         f"• 两市成交额：{_value_or_missing(turnover)}",
-        f"• 活跃度：{_value_or_missing(activity)}",
+        f"• 涨跌停差：{_value_or_missing(limit_diff)}",
+        f"• 盘面信号：{_value_or_missing(score)}",
+        f"• 数据覆盖率：{_value_or_missing(coverage)}",
     ]
 
 
