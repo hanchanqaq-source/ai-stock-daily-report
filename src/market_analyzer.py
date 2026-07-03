@@ -1404,7 +1404,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             f"- **涨停/跌停**：{overview.limit_up_count} 家 / {overview.limit_down_count} 家"
             if (overview.limit_up_count or overview.limit_down_count)
             else "- **涨停/跌停**：暂缺",
-            f"- **涨跌停差**：{limit_spread:+d}" if (overview.limit_up_count or overview.limit_down_count) else "- **涨跌停差**：暂缺",
+            f"- 涨跌停差：{limit_spread:+d}" if (overview.limit_up_count or overview.limit_down_count) else "- 涨跌停差：暂缺",
             f"- **信号依据**：{'；'.join(light['reasons'])}",
             f"- **操作建议**：{light['guidance']}",
             "",
@@ -1637,19 +1637,19 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 f"| {'Rank' if language == 'en' else '排名'} | {name_label} | {'Change' if language == 'en' else '涨跌幅'} |",
                 "|------|------|--------|",
             ])
-            for rank, item in enumerate(rows[:10], 1):
+            for rank, item in enumerate(rows[:5], 1):
                 lines.append(
                     f"| {rank} | {item.get('name', '-')} | {self._format_signed_pct(item.get('change_pct'))} |"
                 )
 
         if language == "en":
-            append_ranking("#### Leading Industry Sectors Top 10", "Sector", overview.top_sectors)
-            append_ranking("#### Lagging Industry Sectors Top 10", "Sector", overview.bottom_sectors)
+            append_ranking("#### Leading Industry Sectors", "Sector", overview.top_sectors)
+            append_ranking("#### Lagging Industry Sectors", "Sector", overview.bottom_sectors)
             append_ranking("#### Leading Concept Themes", "Concept", overview.top_concepts)
             append_ranking("#### Lagging Concept Themes", "Concept", overview.bottom_concepts)
         else:
-            append_ranking("#### 行业板块领涨 Top 10", "行业板块", overview.top_sectors)
-            append_ranking("#### 行业板块领跌 Top 10", "行业板块", overview.bottom_sectors)
+            append_ranking("#### 行业板块领涨 Top 5", "行业板块", overview.top_sectors)
+            append_ranking("#### 行业板块领跌 Top 5", "行业板块", overview.bottom_sectors)
             append_ranking("#### 概念板块领涨 Top 5", "概念板块", overview.top_concepts)
             append_ranking("#### 概念板块领跌 Top 5", "概念板块", overview.bottom_concepts)
         return "\n".join(lines)
