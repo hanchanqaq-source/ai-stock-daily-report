@@ -30,6 +30,7 @@ _FIELD_LABELS = {
     "rise_ratio": "上涨占比",
     "rising_count": "上涨家数",
     "falling_count": "下跌家数",
+    "flat_count": "平盘家数",
     "turnover": "成交额",
     "limit_up_count": "涨停数量",
     "limit_down_count": "跌停数量",
@@ -137,14 +138,15 @@ def _assess_mapping(payload: Mapping[str, Any]) -> DataQualityResult:
         "rise_ratio": ("rise_ratio", "up_ratio", "上涨占比"),
         "rising_count": ("rising_count", "up_count", "上涨家数"),
         "falling_count": ("falling_count", "down_count", "下跌家数"),
+        "flat_count": ("flat_count", "平盘家数"),
         "turnover": ("turnover", "amount", "成交额"),
         "limit_up_count": ("limit_up_count", "limit_up", "涨停"),
         "limit_down_count": ("limit_down_count", "limit_down", "跌停"),
         "limit_diff": ("limit_diff", "limit_up_down_diff", "涨跌停差"),
-        "leading_industries": ("leading_industries", "industry_top", "top_industries"),
-        "lagging_industries": ("lagging_industries", "industry_bottom", "bottom_industries"),
-        "leading_concepts": ("leading_concepts", "concept_top", "top_concepts"),
-        "lagging_concepts": ("lagging_concepts", "concept_bottom", "bottom_concepts"),
+        "leading_industries": ("leading_industries", "industry_top", "industry_top3", "top_industries", "top_sectors", "sectors.top"),
+        "lagging_industries": ("lagging_industries", "industry_bottom", "industry_bottom3", "bottom_industries", "bottom_sectors", "sectors.bottom"),
+        "leading_concepts": ("leading_concepts", "concept_top", "top_concepts", "concepts.top"),
+        "lagging_concepts": ("lagging_concepts", "concept_bottom", "bottom_concepts", "concepts.bottom"),
         "history_yesterday": ("history_yesterday", "yesterday_snapshot"),
         "history_5d": ("history_5d", "last_5_days", "recent_5d"),
     }
@@ -291,3 +293,16 @@ def _log_result(result: DataQualityResult) -> None:
     logger.info("[DATA_QUALITY] missing=%s", ",".join(result.missing_fields[:20]) or "none")
     logger.info("[DATA_QUALITY] latest_data_date=%s", result.latest_data_date or "unknown")
     logger.info("[DATA_QUALITY] data_mode=%s", result.data_mode)
+    for field in ("rise_ratio", "turnover", "limit_diff", "a_share_indices"):
+        if field in result.partial_fields:
+            status = "partial"
+        elif field in result.available_fields:
+            status = "ok"
+        else:
+            status = "missing"
+        logger.info("[DATA_QUALITY] field=%s status=%s", field, status)
+    industry_hits = sum(
+        1 for field in ("leading_industries", "lagging_industries") if field in result.available_fields
+    )
+    industry_status = "ok" if industry_hits == 2 else "partial" if industry_hits == 1 else "missing"
+    logger.info("[DATA_QUALITY] field=industry_top status=%s", industry_status)

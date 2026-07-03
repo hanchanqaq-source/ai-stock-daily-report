@@ -104,3 +104,53 @@ def test_data_quality_logs_do_not_emit_webhook_url(caplog):
     logs = "\n".join(record.getMessage() for record in caplog.records)
     assert "discord.com/api/webhooks" not in logs
     assert "secret-token" not in logs
+
+
+def test_core_a_share_mapping_aliases_are_recognized():
+    quality = assess_data_quality({
+        "date": "2026-07-03",
+        "breadth": {
+            "rise_ratio": 0.58,
+            "rising_count": 3100,
+            "falling_count": 1900,
+            "flat_count": 120,
+            "turnover": 10888,
+            "limit_up_count": 72,
+            "limit_down_count": 18,
+            "limit_diff": 54,
+        },
+        "indices": [{"name": "上证指数"}, {"name": "深证成指"}, {"name": "创业板指"}],
+        "sectors": {
+            "top": [{"name": "半导体", "change_pct": 3.2}],
+            "bottom": [{"name": "煤炭", "change_pct": -1.1}],
+        },
+    })
+
+    for field in ("rise_ratio", "rising_count", "falling_count", "flat_count", "turnover", "limit_diff"):
+        assert field in quality["available_fields"]
+    assert "a_share_indices" in quality["available_fields"]
+    assert "leading_industries" in quality["available_fields"]
+    assert "lagging_industries" in quality["available_fields"]
+
+
+def test_discord_summary_extracts_core_signal_table_values():
+    content = """
+# 📈 AI股票基金每日盯盘报告
+报告日期：2026-07-03
+数据日期：2026-07-03
+数据状态：实时
+今日结论：结构化数据可用，市场偏强。
+- **盘面信号**：68/100（偏暖，可进攻）
+- **上涨占比**：62.0%
+- **上涨/下跌**：3100 家 / 1900 家
+- **两市成交额**：10888 亿
+- **涨跌停差**：+54
+"""
+
+    summary = format_discord_report_summary(content)
+
+    assert "• 上涨占比：62.0%" in summary
+    assert "• 上涨/下跌：3100 家 / 1900 家" in summary
+    assert "• 两市成交额：10888 亿" in summary
+    assert "• 涨跌停差：+54" in summary
+    assert "• 盘面信号：68/100" in summary

@@ -1043,3 +1043,46 @@ class MarketReviewLocalizationTestCase(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_a_share_core_stats_block_displays_real_fields():
+    from src.market_analyzer import MarketAnalyzer, MarketOverview
+
+    analyzer = MarketAnalyzer(region="cn")
+    overview = MarketOverview(
+        date="2026-07-03",
+        up_count=3100,
+        down_count=1900,
+        flat_count=120,
+        limit_up_count=72,
+        limit_down_count=18,
+        total_amount=10888,
+    )
+
+    block = analyzer._build_stats_block(overview)
+
+    assert "上涨占比" in block
+    assert "上涨/下跌" in block
+    assert "3100 家 / 1900 家" in block
+    assert "两市成交额" in block
+    assert "10888 亿" in block
+    assert "涨跌停差" in block
+    assert "+54" in block
+
+
+def test_a_share_partial_indices_and_industry_block_render_available_rows():
+    from src.market_analyzer import MarketAnalyzer, MarketIndex, MarketOverview
+
+    analyzer = MarketAnalyzer(region="cn")
+    overview = MarketOverview(
+        date="2026-07-03",
+        indices=[MarketIndex(code="sh000001", name="上证指数", current=3000, change_pct=0.5)],
+        top_sectors=[{"name": "半导体", "change_pct": 3.2}],
+        bottom_sectors=[{"name": "煤炭", "change_pct": -1.1}],
+    )
+
+    assert "上证指数" in analyzer._build_indices_block(overview)
+    sector_block = analyzer._build_sector_block(overview)
+    assert "行业板块领涨" in sector_block
+    assert "半导体" in sector_block
+    assert "数据暂缺" not in sector_block
