@@ -107,6 +107,7 @@ class MarketOverview:
     top_concepts: List[Dict] = field(default_factory=list)    # 涨幅前5概念
     bottom_concepts: List[Dict] = field(default_factory=list) # 跌幅前5概念
     breadth_structure: Dict[str, Any] = field(default_factory=dict)  # 涨跌结构明细摘要
+    previous_market_light: Optional[Dict[str, Any]] = None  # 上一交易日 Market Light 快照
 
 
 @dataclass
@@ -995,6 +996,14 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 stats_block,
             )
 
+        trend_block = self._build_recent_market_comparison_block(overview)
+        if trend_block and trend_block not in review:
+            review = self._insert_after_section(
+                review,
+                patterns["market_summary"],
+                trend_block,
+            )
+
         if indices_block:
             review = self._insert_after_section(
                 review,
@@ -1034,6 +1043,201 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
         return review
 
+
+
+    def _build_recent_market_comparison_block(self, overview: MarketOverview) -> str:
+        """Build real today/yesterday market comparisons before textual rules."""
+        if self._get_review_language() == "en":
+            return ""
+
+        previous = getattr(overview, "previous_market_light", None)
+        if not isinstance(previous, dict):
+            return "\n".join([
+                "### 📊 近 5 日盘面对比",
+                "",
+                "历史样本不足，已开始记录，后续日报将自动形成趋势对比。",
+            ])
+
+        light = self.build_market_light_snapshot(overview) if self._supports_market_light() else None
+        participation = overview.up_count + overview.down_count
+        today_up_ratio = overview.up_count / participation * 100 if participation else None
+        today_turnover = float(overview.total_amount or 0.0) or None
+        today_limit_spread = int(overview.limit_up_count or 0) - int(overview.limit_down_count or 0)
+        today_score = int(light["score"]) if isinstance(light, dict) and light.get("score") is not None else None
+        index_changes = [idx.change_pct for idx in overview.indices if idx.change_pct is not None]
+        today_index_avg = sum(index_changes) / len(index_changes) if index_changes else None
+
+        def number(value: Any) -> Optional[float]:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return None
+
+        def section(
+            title: str,
+            today: Optional[float],
+            yesterday: Optional[float],
+            unit: str,
+            verdict: str,
+            *,
+            pct_change: bool = False,
+            signed_integer: bool = False,
+        ) -> List[str]:
+            lines = [f"#### {title}"]
+            if today is None or yesterday is None or (pct_change and yesterday == 0):
+                today_text = (
+                    "数据暂缺" if today is None else format_value(today, unit, signed_integer)
+                )
+                lines.extend([
+                    f"- 今日：{today_text}",
+                    "- 昨日：数据暂缺",
+                    "- 变化：昨日数据暂缺，暂不计算变化",
+                    "- 判断：数据暂缺",
+                ])
+                return lines
+            diff = today - yesterday
+            lines.append(f"- 今日：{format_value(today, unit, signed_integer)}")
+            lines.append(f"- 昨日：{format_value(yesterday, unit, signed_integer)}")
+            if pct_change:
+                lines.append(f"- 变化：{diff:+.0f}亿，{diff / yesterday * 100:+.1f}%")
+            elif unit == "%":
+                lines.append(f"- 变化：{diff:+.1f}个百分点")
+            elif unit == "百分点":
+                lines.append(f"- 变化：{diff:+.2f}个百分点")
+            elif unit == "分":
+                lines.append(f"- 变化：{diff:+.0f}分")
+            else:
+                lines.append(f"- 变化：{diff:+.0f}")
+            lines.append(f"- 判断：{verdict}")
+            return lines
+
+        def format_value(value: float, unit: str, signed_integer: bool = False) -> str:
+            if unit == "%":
+                return f"{value:.1f}%"
+            if unit == "亿":
+                return f"{value:.0f}亿"
+            if unit == "分":
+                return f"{value:.0f}/100"
+            if signed_integer:
+                return f"{value:+.0f}"
+            if unit == "百分点":
+                return f"{value:+.2f}%"
+            return f"{value:.0f}"
+
+        def breadth_verdict(diff: Optional[float]) -> str:
+            if diff is None:
+                return "数据暂缺"
+            if diff > 5:
+                return "市场宽度明显改善"
+            if diff < -5:
+                return "市场宽度明显转弱"
+            return "市场宽度变化不大"
+
+        def turnover_verdict(today: Optional[float], yesterday: Optional[float]) -> str:
+            if today is None or not yesterday:
+                return "数据暂缺"
+            pct = (today - yesterday) / yesterday * 100
+            if pct >= 10:
+                return "成交额明显放大，分歧加剧"
+            if pct <= -10:
+                return "成交额明显萎缩，观望升温"
+            return "成交额变化不大"
+
+        def limit_verdict(diff: Optional[float]) -> str:
+            if diff is None:
+                return "数据暂缺"
+            if diff >= 20:
+                return "短线情绪局部活跃"
+            if diff <= -20:
+                return "短线情绪明显降温"
+            return "短线情绪变化不大"
+
+        def score_verdict(diff: Optional[float]) -> str:
+            if diff is None:
+                return "数据暂缺"
+            if diff >= 10:
+                return "盘面由弱转强"
+            if diff <= -10:
+                return "盘面由中性转弱"
+            return "盘面信号变化不大"
+
+        def index_verdict(diff: Optional[float]) -> str:
+            if diff is None:
+                return "数据暂缺"
+            if diff >= 1:
+                return "指数承接明显改善"
+            if diff <= -1:
+                return "指数承接明显转弱"
+            return "指数承接变化不大"
+
+        prev_up_ratio = number(previous.get("up_ratio"))
+        if prev_up_ratio is not None:
+            prev_up_ratio *= 100
+        prev_turnover = number(previous.get("total_amount"))
+        prev_limit_spread = number(previous.get("limit_spread"))
+        prev_score = number(previous.get("score"))
+        prev_index_avg = number(previous.get("index_avg_change_pct"))
+
+        breadth_diff = (
+            None
+            if today_up_ratio is None or prev_up_ratio is None
+            else today_up_ratio - prev_up_ratio
+        )
+        limit_diff = None if prev_limit_spread is None else today_limit_spread - prev_limit_spread
+        score_diff = None if today_score is None or prev_score is None else today_score - prev_score
+        index_diff = (
+            None
+            if today_index_avg is None or prev_index_avg is None
+            else today_index_avg - prev_index_avg
+        )
+
+        lines = ["### 📊 近 5 日盘面对比", ""]
+        lines += section(
+            "1. 上涨占比",
+            today_up_ratio,
+            prev_up_ratio,
+            "%",
+            breadth_verdict(breadth_diff),
+        )
+        lines += [
+            "",
+            "规则：",
+            "- 今日上涨占比 > 昨日上涨占比 + 5 个百分点：市场宽度改善",
+            "- 今日上涨占比 < 昨日上涨占比 - 5 个百分点：市场宽度转弱",
+            "- 否则：市场宽度变化不大",
+            "",
+        ]
+        lines += section(
+            "2. 成交额",
+            today_turnover,
+            prev_turnover,
+            "亿",
+            turnover_verdict(today_turnover, prev_turnover),
+            pct_change=True,
+        ) + [""]
+        lines += section(
+            "3. 涨跌停差",
+            float(today_limit_spread),
+            prev_limit_spread,
+            "",
+            limit_verdict(limit_diff),
+            signed_integer=True,
+        ) + [""]
+        lines += section(
+            "4. 盘面信号",
+            float(today_score) if today_score is not None else None,
+            prev_score,
+            "分",
+            score_verdict(score_diff),
+        ) + [""]
+        lines += section(
+            "5. 主要指数承接",
+            today_index_avg,
+            prev_index_avg,
+            "百分点",
+            index_verdict(index_diff),
+        )
+        return "\n".join(lines)
 
     def _build_market_structure_observation_block(self, overview: MarketOverview) -> str:
         """Build a lightweight fixed observation block for acceptance, volume, and theme persistence."""
@@ -1276,6 +1480,10 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             }
             reasons = self._build_market_light_reasons_zh(overview, score)
 
+        participation = overview.up_count + overview.down_count
+        up_ratio = overview.up_count / participation if participation else None
+        index_changes = [idx.change_pct for idx in overview.indices if idx.change_pct is not None]
+        index_avg_change_pct = sum(index_changes) / len(index_changes) if index_changes else None
         snapshot = MarketLightSnapshot(
             region=self.region,
             trade_date=overview.date,
@@ -1287,6 +1495,10 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             guidance=guidance_map[status],
             dimensions=scores["dimensions"],
             data_quality=str(scores["data_quality"]),
+            up_ratio=up_ratio,
+            total_amount=float(overview.total_amount or 0.0) or None,
+            limit_spread=int(overview.limit_up_count or 0) - int(overview.limit_down_count or 0),
+            index_avg_change_pct=index_avg_change_pct,
         )
         return snapshot.model_dump()
 
@@ -2042,6 +2254,17 @@ Market conditions can change quickly. The data above is for reference only and d
 
         # 1. 获取市场概览
         overview = self.get_market_overview()
+
+        if self._supports_market_light():
+            try:
+                from src.services.market_light_service import load_previous_snapshot
+
+                overview.previous_market_light = load_previous_snapshot(
+                    self.region,
+                    before_trade_date=overview.date,
+                )
+            except Exception as exc:
+                logger.warning("加载上一交易日盘面快照失败: region=%s error=%s", self.region, exc)
 
         # 2. 搜索市场新闻
         news = self.search_market_news()

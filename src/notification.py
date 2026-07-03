@@ -254,6 +254,10 @@ def _build_discord_compact_daily_summary(content: str, *, max_chars: int) -> str
     lines.extend(_discord_conclusion_lines(body))
     lines.extend(["", "## 1. 核心信号"])
     lines.extend(_discord_core_signal_lines(body))
+    change_lines = _discord_recent_change_lines(body)
+    if change_lines:
+        lines.extend(["", "📊 近几日变化"])
+        lines.extend(change_lines)
     lines.extend(["", "## 2. 全球指数速览"])
     lines.extend(_discord_global_brief_lines(body))
     lines.extend(["", "## 3. 涨跌结构"])
@@ -319,6 +323,47 @@ def _discord_core_signal_lines(content: str) -> List[str]:
         f"• 活跃度：{_value_or_missing(activity)}",
     ]
 
+
+
+def _discord_recent_change_lines(content: str) -> List[str]:
+    """Extract real today/yesterday comparison lines for mobile Discord summaries."""
+    match = re.search(r"^###\s*📊\s*(?:近 5 日盘面对比|近几日盘面对比)\s*$", content, flags=re.MULTILINE)
+    if not match:
+        return []
+    next_top = re.search(r"^###\s+", content[match.end():], flags=re.MULTILINE)
+    block = content[match.end(): match.end() + next_top.start()] if next_top else content[match.end():]
+    if "历史样本不足" in block:
+        return ["历史样本不足，已开始记录，后续日报将自动形成趋势对比。"]
+
+    def item_lines(title: str, aliases: Tuple[str, ...]) -> List[str]:
+        item_block = ""
+        for alias in aliases:
+            item_block = _section_after(block, alias)
+            if item_block:
+                break
+        if not item_block:
+            return [f"• {title}", "  数据暂缺"]
+        values = {}
+        for key in ("今日", "昨日", "变化", "判断"):
+            match = re.search(rf"{key}[:：]\s*([^\n]+)", item_block)
+            values[key] = re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
+        if not any(values.values()):
+            return [f"• {title}", "  数据暂缺"]
+        lines = [f"• {title}"]
+        for key in ("今日", "昨日", "变化", "判断"):
+            lines.append(f"  {key}：{values[key] or '数据暂缺'}")
+        return lines
+
+    lines: List[str] = []
+    for title, aliases in (
+        ("上涨占比", ("1. 上涨占比", "上涨占比")),
+        ("成交额", ("2. 成交额", "成交额")),
+        ("涨跌停差", ("3. 涨跌停差", "涨跌停差")),
+    ):
+        if lines:
+            lines.append("")
+        lines.extend(item_lines(title, aliases))
+    return lines
 
 def _discord_global_brief_lines(content: str) -> List[str]:
     markets = [

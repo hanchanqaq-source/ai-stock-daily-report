@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [ci] backend-gate 对大盘复盘/Discord 摘要类 PR 使用相关快速离线测试，完整离线测试入口保留为默认兜底。
+- [改进] 大盘复盘“近 5 日盘面对比”和 Discord 摘要新增今日/昨日/变化/判断的真实数据对比，历史不足或单项缺失时明确提示。
 - [改进] Discord 日报主消息改为手机友好的双层摘要，保留完整 Markdown 报告和 artifact 附件提示。
 - [新功能] Discord 指令新增 P4-B 独立 Bot listener，可在白名单频道监听 `@AI日报助手` 命令并调用现有 command executor；不会随日报 workflow 默认启动。
 - [改进] Discord 指令新增 P4-A 执行层预留，可将重跑指令转换为 GitHub `repository_dispatch` dry-run/提交请求，并对重推指令返回 Bot 接入前的计划回执。

@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -42,3 +42,7 @@ class MarketLightSnapshot(BaseModel):
     guidance: str
     dimensions: MarketLightDimensions
     data_quality: MarketLightDataQuality
+    up_ratio: Optional[float] = None
+    total_amount: Optional[float] = None
+    limit_spread: Optional[int] = None
+    index_avg_change_pct: Optional[float] = None

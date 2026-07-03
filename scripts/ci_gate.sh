@@ -60,6 +60,45 @@ _is_run_context_only_pr() {
   [ "$saw_file" -eq 1 ]
 }
 
+_is_market_review_summary_pr() {
+  local changed_file
+  local saw_file=0
+
+  while IFS= read -r changed_file; do
+    [ -n "$changed_file" ] || continue
+    saw_file=1
+    case "$changed_file" in
+      docs/CHANGELOG.md|\
+      scripts/ci_gate.sh|\
+      src/market_analyzer.py|\
+      src/market_history.py|\
+      src/notification.py|\
+      src/report_language.py|\
+      src/report_renderer.py|\
+      src/schemas/market_light.py|\
+      tests/test_market_history.py|\
+      tests/test_market_review.py|\
+      tests/test_notification.py)
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  done
+
+  [ "$saw_file" -eq 1 ]
+}
+
+_run_market_review_summary_tests() {
+  if [ -f tests/test_market_history.py ]; then
+    python -m pytest tests/test_market_history.py -q
+  else
+    echo "==> backend-gate: tests/test_market_history.py not present; skipping market history file test"
+  fi
+  python -m pytest tests/test_market_review.py -k "recent_market_comparison" -q
+  python -m pytest tests/test_notification.py -k "discord or summary or recent_change" -q
+}
+
 offline_test_suite() {
   echo "==> backend-gate: offline test suite"
   echo "==> backend-gate: offline test suite timeout: 30m"
@@ -70,6 +109,14 @@ offline_test_suite() {
     timeout --preserve-status 30m bash -c '
       python -m pytest tests/test_model_profile.py &&
       python -m pytest tests/test_notification.py -k "discord or runtime_info"
+    '
+    return
+  fi
+
+  if changed_files="$(_changed_files_for_pr)" && printf '%s\n' "$changed_files" | _is_market_review_summary_pr; then
+    echo "==> backend-gate: market-review summary PR detected; running scoped offline tests"
+    timeout --preserve-status 30m bash -c '
+      ./scripts/ci_gate.sh __market-review-summary-tests
     '
     return
   fi
@@ -102,6 +149,9 @@ case "$phase" in
     ;;
   offline-tests)
     offline_test_suite
+    ;;
+  __market-review-summary-tests)
+    _run_market_review_summary_tests
     ;;
   *)
     echo "Usage: $0 [all|syntax|flake8|deterministic|offline-tests]" >&2
