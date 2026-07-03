@@ -154,3 +154,39 @@ def test_discord_summary_extracts_core_signal_table_values():
     assert "• 两市成交额：10888 亿" in summary
     assert "• 涨跌停差：+54" in summary
     assert "• 盘面信号：68/100" in summary
+
+
+def test_global_indices_partial_when_one_market_missing():
+    quality = assess_data_quality({
+        "indices": [
+            {"name": "上证指数"},
+            {"name": "恒生指数"},
+            {"name": "纳斯达克综合指数"},
+            {"name": "标普500"},
+            {"name": "道琼斯工业指数"},
+            {"name": "日经225"},
+        ],
+        "latest_data_date": "2026-07-03",
+    })
+
+    assert "global_indices" in quality["available_fields"]
+    assert "global_indices" in quality["partial_fields"]
+
+
+def test_global_indices_ok_when_all_markets_present():
+    quality = assess_data_quality({
+        "indices": [
+            {"name": "上证指数"},
+            {"name": "深证成指"},
+            {"name": "恒生指数"},
+            {"name": "恒生科技指数"},
+            {"name": "纳斯达克综合指数"},
+            {"name": "标普500"},
+            {"name": "道琼斯工业指数"},
+            {"name": "日经225"},
+            {"name": "KOSPI"},
+        ],
+    })
+
+    assert "global_indices" in quality["available_fields"]
+    assert "global_indices" not in quality["partial_fields"]

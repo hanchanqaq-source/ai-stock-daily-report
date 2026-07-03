@@ -40,6 +40,7 @@ _FIELD_LABELS = {
     "us_indices": "美股指数",
     "jp_indices": "日股指数",
     "kr_indices": "韩股指数",
+    "global_indices": "全球指数",
     "leading_industries": "领涨行业",
     "lagging_industries": "领跌行业",
     "leading_concepts": "领涨概念",
@@ -51,7 +52,7 @@ _FIELD_LABELS = {
 _REQUIRED_FIELDS = tuple(_FIELD_LABELS.keys())
 _INDEX_GROUP_KEYWORDS = {
     "a_share_indices": ("上证", "深证", "创业", "科创", "沪深", "中证"),
-    "hk_indices": ("恒生", "国企", "红筹"),
+    "hk_indices": ("恒生", "科技", "国企", "红筹"),
     "us_indices": ("纳斯达克", "标普", "道琼", "S&P", "NASDAQ", "DOW"),
     "jp_indices": ("日经", "TOPIX", "东证", "Nikkei"),
     "kr_indices": ("韩国", "KOSPI", "KOSDAQ"),
@@ -159,8 +160,9 @@ def _assess_mapping(payload: Mapping[str, Any]) -> DataQualityResult:
         hits = sum(1 for keyword in keywords if keyword.lower() in text_blob.lower())
         if hits:
             available.add(field)
-            if hits < 2 and field in {"a_share_indices", "us_indices"}:
+            if hits < 2 and field in {"a_share_indices", "hk_indices", "us_indices"}:
                 partial.add(field)
+    _apply_global_indices_status(available, partial)
 
     latest = str(_first_value(flat, ("latest_data_date", "data_date", "trading_date", "report_date")) or "")
     data_mode = _normalize_data_mode(_first_value(flat, ("data_mode", "mode")))
@@ -197,12 +199,23 @@ def _assess_text(content: str) -> DataQualityResult:
         hits = sum(1 for keyword in keywords if keyword.lower() in text.lower())
         if hits:
             available.add(field)
-            if hits < 2 and field in {"a_share_indices", "us_indices"}:
+            if hits < 2 and field in {"a_share_indices", "hk_indices", "us_indices"}:
                 partial.add(field)
+    _apply_global_indices_status(available, partial)
     latest = _first_regex_value(text, [r"(?:数据日期|行情日期)[:：]\s*([0-9]{4}-[0-9]{2}-[0-9]{2})", r"报告日期[:：]\s*([0-9]{4}-[0-9]{2}-[0-9]{2})"])
     data_mode = _normalize_data_mode(_first_regex_value(text, [r"(?:数据状态|数据模式)[:：]\s*([^\n]+)"]))
     return _build_result(available, partial, latest, data_mode)
 
+
+
+def _apply_global_indices_status(available: Set[str], partial: Set[str]) -> None:
+    groups = {"a_share_indices", "hk_indices", "us_indices", "jp_indices", "kr_indices"}
+    hits = groups & available
+    if not hits:
+        return
+    available.add("global_indices")
+    if hits != groups or bool(groups & partial):
+        partial.add("global_indices")
 
 def _build_result(available: Set[str], partial: Set[str], latest: str, data_mode: str) -> DataQualityResult:
     missing = [field for field in _REQUIRED_FIELDS if field not in available]
@@ -293,7 +306,7 @@ def _log_result(result: DataQualityResult) -> None:
     logger.info("[DATA_QUALITY] missing=%s", ",".join(result.missing_fields[:20]) or "none")
     logger.info("[DATA_QUALITY] latest_data_date=%s", result.latest_data_date or "unknown")
     logger.info("[DATA_QUALITY] data_mode=%s", result.data_mode)
-    for field in ("rise_ratio", "turnover", "limit_diff", "a_share_indices"):
+    for field in ("rise_ratio", "turnover", "limit_diff", "a_share_indices", "hk_indices", "us_indices", "jp_indices", "kr_indices", "global_indices"):
         if field in result.partial_fields:
             status = "partial"
         elif field in result.available_fields:
