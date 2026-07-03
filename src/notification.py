@@ -345,7 +345,8 @@ def _discord_recent_change_lines(content: str) -> List[str]:
             return [f"• {title}", "  数据暂缺"]
         values = {}
         for key in ("今日", "昨日", "变化", "判断"):
-            values[key] = _first_regex(item_block, [rf"{key}[:：]\s*([^\n]+)"])
+            match = re.search(rf"{key}[:：]\s*([^\n]+)", item_block)
+            values[key] = re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
         if not any(values.values()):
             return [f"• {title}", "  数据暂缺"]
         lines = [f"• {title}"]
