@@ -22,6 +22,14 @@ on:
           - "full｜完整日报｜大盘+股票+推送"
           - "market-only｜只看大盘｜仅市场复盘"
           - "stocks-only｜只看股票｜仅股票/持仓"
+      report_type:
+        description: '报告类型'
+        required: false
+        default: 'daily｜每日盯盘'
+        type: choice
+        options:
+          - 'daily｜每日盯盘'
+          - 'weekly｜每周复盘'
       force_run:
         description: '强制运行（跳过交易日检查）'
         required: false
@@ -588,6 +596,12 @@ jobs:
           echo ""
           
           # 构建命令行参数
+          REPORT_TYPE_RAW="${{ github.event.inputs.report_type || 'daily' }}"
+          REPORT_TYPE="${REPORT_TYPE_RAW%%｜*}"
+          if [ "$REPORT_TYPE" != "weekly" ]; then
+            REPORT_TYPE="daily"
+          fi
+          echo "[REPORT] type=$REPORT_TYPE"
           FORCE_RUN_ARG=""
           if [ "${{ github.event.inputs.force_run }}" = "true" ]; then
             FORCE_RUN_ARG="--force-run"
@@ -598,7 +612,11 @@ jobs:
           CURRENT_STAGE="fetch_data"
           trap 'status=$?; if [ "$status" -ne 0 ]; then echo "[STAGE] failed"; echo "[ERROR] stage=${CURRENT_STAGE:-unknown}"; echo "[ERROR] message=analysis command exited with status $status"; fi' EXIT
           echo "[STAGE] fetch_data started"
-          if [ "$MODE" = "market-only" ]; then
+          if [ "$REPORT_TYPE" = "weekly" ]; then
+            CURRENT_STAGE="render_report"
+            echo "[STAGE] weekly_report started"
+            python main.py --report-type weekly $FORCE_RUN_ARG
+          elif [ "$MODE" = "market-only" ]; then
             CURRENT_STAGE="analyze_market"
             echo "[STAGE] analyze_market started"
             python main.py --market-review $FORCE_RUN_ARG
@@ -618,7 +636,14 @@ jobs:
       - name: 生成 artifact 显示名
         id: artifact_name
         if: always()
-        run: echo "name=AI股票基金每日盯盘报告-$(TZ=Asia/Shanghai date '+%Y-%m-%d-%H%M')" >> "$GITHUB_OUTPUT"
+        run: |
+          REPORT_TYPE_RAW="${{ github.event.inputs.report_type || 'daily' }}"
+          REPORT_TYPE="${REPORT_TYPE_RAW%%｜*}"
+          if [ "$REPORT_TYPE" = "weekly" ]; then
+            echo "name=AI股票基金每周复盘报告-$(TZ=Asia/Shanghai date '+%Y-W%V-%H%M')" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=AI股票基金每日盯盘报告-$(TZ=Asia/Shanghai date '+%Y-%m-%d-%H%M')" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: 标记 artifact 上传阶段
         if: always()
