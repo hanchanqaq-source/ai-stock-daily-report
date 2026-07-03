@@ -335,6 +335,13 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        '--report-type',
+        choices=('daily', 'weekly'),
+        default=os.getenv('REPORT_TYPE', 'daily'),
+        help='报告类型：daily=每日盯盘，weekly=每周复盘'
+    )
+
+    parser.add_argument(
         '--no-market-review',
         action='store_true',
         help='跳过大盘复盘分析'
@@ -1412,7 +1419,23 @@ def main() -> int:
             )
             return 0
 
-        # 模式1: 仅大盘复盘
+        # 模式1: 每周复盘
+        if getattr(args, 'report_type', 'daily') == 'weekly':
+            logger.info('[REPORT] type=weekly')
+            logger.info('模式: 每周复盘')
+            from src.notification import NotificationService
+            from src.weekly_report import run_weekly_report
+
+            run_weekly_report(
+                notifier=NotificationService(config),
+                send_notification=not args.no_notify,
+            )
+            log_run_stage('finished', 'success')
+            return 0
+
+        logger.info('[REPORT] type=daily')
+
+        # 模式2: 仅大盘复盘
         if args.market_review:
             log_run_stage("analyze_market")
             from src.core.market_review import run_market_review
@@ -1449,7 +1472,7 @@ def main() -> int:
             log_run_stage("finished", "success")
             return 0
 
-        # 模式2: 定时任务模式
+        # 模式3: 定时任务模式
         if args.schedule or config.schedule_enabled:
             if start_serve:
                 logger.info("模式: Web/API runtime scheduler")
@@ -1517,7 +1540,7 @@ def main() -> int:
             run_with_schedule(**schedule_kwargs)
             return 0
 
-        # 模式3: 正常单次运行
+        # 模式4: 正常单次运行
         if config.run_immediately:
             log_run_stage("fetch_data")
             _run_analysis_with_runtime_scheduler_lock(config, args, stock_codes)

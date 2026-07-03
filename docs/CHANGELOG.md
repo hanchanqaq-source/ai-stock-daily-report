@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 AI 股票基金每周复盘报告，可读取本周市场快照生成周度趋势 artifact，并支持 Discord 精简摘要与 GitHub Actions 手动/定时触发。
 - [ci] backend-gate 对大盘复盘/Discord 摘要类 PR 使用相关快速离线测试，完整离线测试入口保留为默认兜底。
 - [改进] 大盘复盘“近 5 日盘面对比”和 Discord 摘要新增今日/昨日/变化/判断的真实数据对比，历史不足或单项缺失时明确提示。
 - [改进] Discord 日报主消息改为手机友好的双层摘要，保留完整 Markdown 报告和 artifact 附件提示。

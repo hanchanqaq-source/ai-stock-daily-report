@@ -1,0 +1,45 @@
+name: AI股票基金每周复盘报告
+
+on:
+  schedule:
+    - cron: '30 7 * * 5' # 每周五 UTC 07:30 = 北京时间 15:30
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: '强制运行（预留，保持与日报入口一致）'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: weekly-report-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+      - name: 生成每周复盘报告
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          REPORT_TYPE: weekly
+        run: |
+          echo "[REPORT] type=weekly"
+          python main.py --report-type weekly
+      - name: 上传周报 artifact
+        uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: AI股票基金每周复盘报告-${{ github.run_id }}
+          path: |
+            reports/AI股票基金每周复盘报告_*.md
+            logs/
+          retention-days: 30
