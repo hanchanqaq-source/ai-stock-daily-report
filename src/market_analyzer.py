@@ -1099,11 +1099,13 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             lines.append(f"- 今日：{format_value(today, unit, signed_integer)}")
             lines.append(f"- 昨日：{format_value(yesterday, unit, signed_integer)}")
             if pct_change:
-                lines.append(f"- 变化：{diff:+.0f} 亿，{diff / yesterday * 100:+.1f}%")
+                lines.append(f"- 变化：{diff:+.0f}亿，{diff / yesterday * 100:+.1f}%")
+            elif unit == "%":
+                lines.append(f"- 变化：{diff:+.1f}个百分点")
             elif unit == "百分点":
-                lines.append(f"- 变化：{diff:+.1f} 个百分点")
+                lines.append(f"- 变化：{diff:+.2f}个百分点")
             elif unit == "分":
-                lines.append(f"- 变化：{diff:+.0f} 分")
+                lines.append(f"- 变化：{diff:+.0f}分")
             else:
                 lines.append(f"- 变化：{diff:+.0f}")
             lines.append(f"- 判断：{verdict}")
@@ -1113,7 +1115,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             if unit == "%":
                 return f"{value:.1f}%"
             if unit == "亿":
-                return f"{value:.0f} 亿"
+                return f"{value:.0f}亿"
             if unit == "分":
                 return f"{value:.0f}/100"
             if signed_integer:
