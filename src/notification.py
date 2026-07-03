@@ -58,6 +58,7 @@ from src.utils.data_processing import (
     signal_attribution_weight_items,
     normalize_model_used,
 )
+from src.data_quality import assess_data_quality, format_data_quality_block
 from src.notification_sender import (
     AstrbotSender,
     CustomWebhookSender,
@@ -252,6 +253,9 @@ def _build_discord_compact_daily_summary(content: str, *, max_chars: int) -> str
     body, runtime = _split_runtime_info(content)
     lines: List[str] = ["# 📈 AI股票基金每日盯盘报告", ""]
     lines.extend(_discord_conclusion_lines(body))
+    quality_lines = _discord_data_quality_lines(body)
+    if quality_lines:
+        lines.extend(["", *quality_lines])
     lines.extend(["", "## 1. 核心信号"])
     lines.extend(_discord_core_signal_lines(body))
     change_lines = _discord_recent_change_lines(body)
@@ -296,6 +300,16 @@ def _default_runtime_lines() -> List[str]:
         f"- 模型档位：{(os.getenv('MODEL_PROFILE') or 'daily').strip() or 'daily'}",
         "- 生成状态：success",
     ]
+
+
+def _discord_data_quality_lines(content: str) -> List[str]:
+    """Return compact data-quality diagnostics for Discord without blocking delivery."""
+    try:
+        quality = assess_data_quality(content)
+        return format_data_quality_block(quality).splitlines()
+    except Exception as exc:  # pragma: no cover - defensive notification fallback
+        logger.warning("Discord data quality summary failed: %s", exc)
+        return ["数据质量检查暂不可用。"]
 
 
 def _discord_conclusion_lines(content: str) -> List[str]:
