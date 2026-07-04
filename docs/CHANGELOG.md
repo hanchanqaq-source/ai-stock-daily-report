@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增多用户报告分发框架 public 安全版 dry-run，基于 example 配置生成结构化 delivery plan 与 Markdown demo，当前不读取 webhook、不发送 Discord。
+
 - [新功能] 新增 public 安全版个人股票 / 基金影响雷达 demo，基于 example 配置匹配公共市场信号并输出结构化结果与 Markdown 示例报告。
 
 - [新功能] 新增多用户配置系统公开安全版 example、读取校验函数与基础敏感信息扫描说明。
