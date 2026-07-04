@@ -17,6 +17,7 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from src.data_fallback import data_mode_label
+from src.history_store import save_market_history
 import uuid
 
 from src.config import get_config
@@ -316,6 +317,13 @@ def run_market_review(
                 market_review_payload,
                 review_report=review_report,
             )
+            _save_market_history_snapshot_safely(
+                market_review_payload,
+                config=runtime_config,
+                trigger_source=trigger_source,
+                query_id=history_query_id,
+            )
+
             if save_report_file:
                 # 保存报告到文件
                 date_str = datetime.now().strftime('%Y%m%d')
@@ -449,6 +457,28 @@ def run_market_review(
         )
     
     return None
+
+
+def _save_market_history_snapshot_safely(
+    market_review_payload: Dict[str, Any],
+    *,
+    config: Any,
+    trigger_source: str,
+    query_id: str,
+) -> None:
+    """Persist public market history without blocking report delivery."""
+    run_context = getattr(config, "run_context", None)
+    run_info = {
+        "request_id": getattr(run_context, "request_id", None) or query_id,
+        "trigger_source": getattr(run_context, "trigger_source", None) or trigger_source,
+        "run_mode": getattr(run_context, "resolved_mode", None) or trigger_source,
+        "model_profile": getattr(config, "model_profile", None),
+    }
+    try:
+        save_market_history(market_review_payload, run_info=run_info)
+    except Exception as exc:  # pragma: no cover - save_market_history is already defensive
+        logger.warning("[HISTORY_STORE] snapshot_saved=false reason=%s", exc)
+        logger.warning("[HISTORY_STORE] csv_updated=false reason=%s", exc)
 
 
 def _coerce_market_review_payload(
