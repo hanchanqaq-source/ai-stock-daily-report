@@ -47,7 +47,7 @@
 - `archived`：已归档。
 - `deleted`：真正删除，后续谨慎使用。
 
-`holding` / `watching` 视为 active；`cleared` / `archived` / `deleted` 默认不算主页面 active。当前阶段只定义和校验状态，不实现真实删除或清仓操作流程。
+`holding` / `watching` 视为 active；`cleared` / `archived` / `deleted` 默认不算主页面 active。资产状态管理见 `docs/asset_status_manager.md`，所有清仓、归档、删除操作必须先预览再确认。当前阶段不实现物理删除。
 
 ## 5. 市场字段
 
