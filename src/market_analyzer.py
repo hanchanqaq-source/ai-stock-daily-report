@@ -37,6 +37,7 @@ from src.report_sections import (
     NO_DATA_MESSAGE,
     render_data_quality_section,
     render_one_line_summary,
+    render_risk_radar_section,
     render_watchlist_section,
     sanitize_observation_text,
 )
@@ -878,9 +879,22 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
 
             trend_result = analyze_multi_window_trends([5, 20])
             trend_text = render_trend_summary_text(trend_result)
-            if not trend_text.strip():
-                return self._wrap_daily_report(report, None)
-            return self._wrap_daily_report(f"{report.rstrip()}\n\n{trend_text}", None)
+            risk_text = ""
+            try:
+                from src.risk_radar import build_risk_radar
+                from src.sector_persistence import analyze_multi_window_persistence
+
+                radar = build_risk_radar(
+                    trend=trend_result,
+                    persistence=analyze_multi_window_persistence([5, 20]),
+                    history_count=(trend_result.get("5", {}) or {}).get("data_points"),
+                )
+                risk_text = render_risk_radar_section(radar, title="## 风险雷达")
+                logger.info("[RISK_RADAR] markdown_rendered=true")
+            except Exception as exc:  # pragma: no cover - defensive report-path guard
+                logger.warning("[RISK_RADAR] skipped_reason=%s", exc)
+            combined = "\n\n".join(x for x in [report.rstrip(), trend_text.strip(), risk_text.strip()] if x)
+            return self._wrap_daily_report(combined, None)
         except Exception as exc:  # pragma: no cover - defensive report-path guard
             logger.warning("[TREND_ANALYZER] skipped_reason=%s", exc)
             return self._wrap_daily_report(report, None)

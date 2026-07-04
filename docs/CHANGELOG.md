@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增公开市场风险雷达结构化结果，并接入日报 / 周报 Markdown 与周报 Discord 极简摘要。
 - [改进] 统一日报与周报的一句话总结、市场温度、趋势观察、板块持续性、数据质量和观察重点栏目文案。
 
 - [改进] 增强公开市场周报，接入历史 CSV/快照、近 5 日 / 20 日趋势、板块 / 概念持续性、数据质量说明与结构化周报结果。
