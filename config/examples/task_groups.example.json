@@ -1,0 +1,15 @@
+{
+  "config_version": 1,
+  "task_groups": [
+    {
+      "task_group_id": "demo_ai_hardware",
+      "name": "示例 AI 硬件观察组",
+      "type": "industry_tracking",
+      "enabled": true,
+      "focus_tags": ["AI硬件", "PCB", "半导体"],
+      "watchlist_id": "demo_ai_hardware_watchlist",
+      "report_types": ["daily", "weekly"],
+      "output_mode": "public_summary_only"
+    }
+  ]
+}

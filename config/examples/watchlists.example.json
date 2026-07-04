@@ -1,0 +1,32 @@
+{
+  "config_version": 1,
+  "watchlists": [
+    {
+      "watchlist_id": "demo_ai_hardware_watchlist",
+      "name": "示例 AI 硬件关注列表",
+      "items": [
+        {
+          "type": "stock",
+          "name": "示例股票A",
+          "code": "000000",
+          "market": "CN",
+          "tags": ["PCB", "AI硬件"]
+        },
+        {
+          "type": "fund",
+          "name": "示例基金A",
+          "code": "000000",
+          "market": "CN",
+          "tags": ["半导体"]
+        },
+        {
+          "type": "company",
+          "name": "示例企业A",
+          "code": null,
+          "market": "CN",
+          "tags": ["企业观察"]
+        }
+      ]
+    }
+  ]
+}
