@@ -1,0 +1,24 @@
+{
+  "config_version": 1,
+  "description": "Example-only asset enrichment records. These records are fixtures for tests and demos, not real public market data.",
+  "records": [
+    {
+      "code": "000000",
+      "type": "fund",
+      "name": "示例基金A",
+      "market": "CN",
+      "tags": ["示例标签", "AI硬件"],
+      "source_type": "manual_user_input",
+      "confidence": "medium"
+    },
+    {
+      "code": "000001",
+      "type": "stock",
+      "name": "示例股票A",
+      "market": "CN",
+      "tags": ["示例标签", "PCB"],
+      "source_type": "manual_user_input",
+      "confidence": "medium"
+    }
+  ]
+}
