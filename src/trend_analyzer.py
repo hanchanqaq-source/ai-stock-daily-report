@@ -56,8 +56,9 @@ def classify_persistence_state(item_history: Mapping[str, Any]) -> Dict[str, str
         return {"state": "数据不足", "confidence": "数据不足", "bucket": "insufficient", "reason": "历史样本少于 3 条或名称缺失，暂不判断。"}
     if leading_count and lagging_count and recent_lagging and _first_index(days, leading_dates) < _first_index(days, lagging_dates):
         return {"state": "冲高回落", "confidence": "中", "bucket": "pullback_risks", "reason": f"前期进入领涨榜，最近转入领跌榜，需观察热度回落风险。"}
-    if lagging_count >= max(2, data_points // 2) and lagging_streak >= 1 and leading_count <= 1:
-        return {"state": "持续走弱", "confidence": "高" if lagging_count >= 3 else "中", "bucket": "persistent_laggers", "reason": f"近 {window_days} 日 {lagging_count} 次进入领跌榜，最近仍偏弱。"}
+    recent_lagging_stage = _last_index(days, lagging_dates) >= max(0, data_points - 3)
+    if lagging_count >= max(2, data_points // 2) and recent_lagging_stage and leading_count <= 1:
+        return {"state": "持续走弱", "confidence": "高" if lagging_count >= 3 else "中", "bucket": "persistent_laggers", "reason": f"近 {window_days} 日 {lagging_count} 次进入领跌榜，最近阶段仍偏弱。"}
     if leading_count >= max(2, data_points // 2) and leading_streak >= 2 and lagging_count <= 1:
         return {"state": "持续走强", "confidence": "高" if leading_count >= 3 else "中", "bucket": "persistent_leaders", "reason": f"近 {window_days} 日 {leading_count} 次进入领涨榜，最近连续 {leading_streak} 日保持强势。"}
     if only_latest_leader:
@@ -451,6 +452,10 @@ def _tail_streak(dates: List[str], hit_dates: set[str]) -> int:
 
 def _first_index(dates: List[str], selected: List[str]) -> int:
     return min((dates.index(d) for d in selected if d in dates), default=10**6)
+
+
+def _last_index(dates: List[str], selected: List[str]) -> int:
+    return max((dates.index(d) for d in selected if d in dates), default=-1)
 
 
 def _combine_persistence_names(item: Mapping[str, Any]) -> Dict[str, str]:
