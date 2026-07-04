@@ -3,7 +3,7 @@
 本文档记录项目级产品规则、数据分层规则、安全规则和后续优化路线。后续 Codex / AI 开发在涉及账户、资产、报告、数据保存、本地工作台或清理能力前，必须先参考本文档，并保持“公共市场日报 + 本地数据主权 + 不做复杂实名用户系统”的产品边界。
 
 资产自动补全框架见 `docs/asset_enrichment.md`，所有补全结果必须保留来源、状态和置信度。
-统一资产模型见 `docs/asset_model.md`，后续账户分组、个人雷达、网页工作台均应复用该模型。资产状态管理见 `docs/asset_status_manager.md`，所有清仓、归档、删除操作必须先预览再确认。持有 vs 收藏对比分析见 `docs/holding_watch_compare.md`。代码自动识别框架见 `docs/code_identifier.md`，所有识别结果必须遵守信息来源可查证规则。
+统一资产模型见 `docs/asset_model.md`，后续账户分组、个人雷达、网页工作台均应复用该模型。资产状态管理见 `docs/asset_status_manager.md`，所有清仓、归档、删除操作必须先预览再确认。持有 vs 收藏对比分析见 `docs/holding_watch_compare.md`。账户动态页面模型见 `docs/account_page_model.md`。代码自动识别框架见 `docs/code_identifier.md`，所有识别结果必须遵守信息来源可查证规则。
 
 ## 1. 项目定位
 

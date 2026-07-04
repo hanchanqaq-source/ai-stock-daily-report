@@ -2,7 +2,7 @@
 
 > 项目级产品规则见 `docs/product_rules.md`。
 
-统一资产模型见 `docs/asset_model.md`，后续账户分组、个人雷达、网页工作台均应复用该模型。资产状态管理见 `docs/asset_status_manager.md`，所有清仓、归档、删除操作必须先预览再确认。持有 vs 收藏对比分析见 `docs/holding_watch_compare.md`。
+统一资产模型见 `docs/asset_model.md`，后续账户分组、个人雷达、网页工作台均应复用该模型。资产状态管理见 `docs/asset_status_manager.md`，所有清仓、归档、删除操作必须先预览再确认。持有 vs 收藏对比分析见 `docs/holding_watch_compare.md`。账户动态页面模型见 `docs/account_page_model.md`。
 
 ## 1. 设计目标
 
