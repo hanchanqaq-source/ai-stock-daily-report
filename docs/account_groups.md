@@ -2,6 +2,8 @@
 
 > 项目级产品规则见 `docs/product_rules.md`。
 
+统一资产模型见 `docs/asset_model.md`，后续账户分组、个人雷达、网页工作台均应复用该模型。
+
 ## 1. 设计目标
 
 账户不是实名用户，只是观察分组 / 投资组合。P5-D 阶段把“多用户”的公开仓库形态收敛为轻量 account group：每个账户分组代表一组关注资产，例如基金组、股票组、基金股票混合组、企业观察组或主题观察组。
@@ -40,7 +42,7 @@
 - `type`：资产类型。
 - `code`：代码；example 可使用 `000000`。
 - `name`：示例名称，避免伪装成真实识别结果。
-- `market`：`CN` / `HK` / `US` / `unknown`。
+- `market`：`CN` / `HK` / `US` / `JP` / `KR` / `GLOBAL` / `unknown`。
 - `tags`：手工标签列表。
 - `status`：资产状态。
 - `weight_level`：1 到 5 的粗略关注程度 / 权重等级。
@@ -50,10 +52,12 @@
 
 - `fund`：基金。
 - `stock`：股票。
+- `etf`：ETF。
 - `company`：企业。
 - `industry`：行业。
 - `theme`：主题。
 - `index`：指数。
+- `unknown`：暂未确认。
 
 ## 5. 资产状态
 
@@ -63,8 +67,9 @@
 - `watching`：收藏 / 观察。
 - `cleared`：已清仓。
 - `archived`：已归档。
+- `deleted`：真正删除，后续谨慎使用。
 
-资产必须支持状态管理。`holding` / `watching` 可显示在主页面相关模块；`cleared` 可后续进入历史页；`archived` 默认不显示在主页面。
+资产必须支持状态管理。`holding` / `watching` 可显示在主页面相关模块；`cleared` 可后续进入历史页；`archived` / `deleted` 默认不显示在主页面。
 
 ## 6. 动态页面规则
 
@@ -76,7 +81,7 @@
 - 没有活跃资产：显示 `empty_state`，页面文案可表达为“请添加资产”。
 - 后续有 `company`：可以显示 `overview`、`companies`。
 
-`cleared` / `archived` 默认不算当前主页面活跃资产；只有 `holding` / `watching` 参与主页面判断。
+`cleared` / `archived` / `deleted` 默认不算当前主页面活跃资产；只有 `holding` / `watching` 参与主页面判断。
 
 ## 7. 金额处理原则
 

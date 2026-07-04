@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-E 统一资产模型模块、资产校验 / 标准化 / 摘要 / public safe view，并让账户分组复用统一 asset 枚举与安全检查。
 - [文档] 新增 AI 股票基金日报系统产品规则总纲，记录账户 / 分组、统一资产、DATA-R1、GLOBAL-R2、危险操作确认和后续优先级路线。
 
 - [新功能] 新增 P5-D 账户 / 分组模型 example 配置、统一 assets 结构、读取校验、动态页面判断、结构化摘要与 public-safe 文档说明。

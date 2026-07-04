@@ -9,50 +9,29 @@ codes, enrich names, persist private holdings, or read real user config.
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
 from typing import Any
 
+from src.asset_model import (
+    ACTIVE_ASSET_STATUSES,
+    AssetModelError,
+    build_asset_summary,
+    get_allowed_asset_statuses,
+    get_allowed_asset_types,
+    group_assets_by_type,
+    scan_asset_for_sensitive_values,
+    validate_asset as validate_unified_asset,
+)
 from src.user_config import EXAMPLE_CONFIG_DIR, RISK_PROFILES, UserConfigError
 
 EXAMPLE_ACCOUNT_GROUPS_PATH = EXAMPLE_CONFIG_DIR / "account_groups.example.json"
 EMPTY_ACCOUNT_GROUP_CONFIG = {"config_version": 1, "account_groups": []}
 
-ASSET_TYPES = {"fund", "stock", "company", "industry", "theme", "index"}
-ACTIVE_ASSET_STATUSES = {"holding", "watching"}
-ASSET_STATUSES = {"holding", "watching", "cleared", "archived"}
-MARKETS = {"CN", "HK", "US", "unknown"}
-SOURCE_STATUSES = {"manual_user_input", "verified", "unknown", "pending_confirmation", "conflict"}
+ASSET_TYPES = set(get_allowed_asset_types())
+ASSET_STATUSES = set(get_allowed_asset_statuses())
 SUMMARY_ASSET_TYPES = ("fund", "stock", "company", "industry", "theme", "index")
 SUMMARY_STATUSES = ("holding", "watching", "cleared", "archived")
 
-SENSITIVE_KEY_NAMES = {
-    "email",
-    "phone",
-    "id_card",
-    "身份证",
-    "手机号",
-    "amount",
-    "cost_price",
-    "account_value",
-    "balance",
-    "profit",
-    "holding_amount",
-    "position_amount",
-    "webhook_url",
-    "webhook",
-    "token",
-    "api_key",
-    "apikey",
-}
-SENSITIVE_VALUE_PATTERNS = [
-    ("webhook URL", re.compile(r"https?://[^\s\"']*webhook[^\s\"']*", re.IGNORECASE)),
-    ("Token", re.compile(r"\b(?:token|secret)[=:][A-Za-z0-9_\-]{16,}\b", re.IGNORECASE)),
-    ("API Key", re.compile(r"\bapi[_-]?key[=:][A-Za-z0-9_\-]{16,}\b", re.IGNORECASE)),
-    ("email", re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")),
-    ("phone", re.compile(r"(?<!\d)(?:\+?86[- ]?)?1[3-9]\d{9}(?!\d)")),
-    ("id_card", re.compile(r"(?<!\d)\d{6}(?:19|20)\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{3}[0-9Xx](?!\d)")),
-]
 
 
 class AccountGroupConfigError(UserConfigError):
@@ -132,28 +111,10 @@ def validate_account_group(group: dict[str, Any]) -> None:
 
 
 def validate_asset(asset: dict[str, Any]) -> None:
-    if not isinstance(asset, dict):
-        raise AccountGroupConfigError("Each asset must be an object.")
-    asset_id = asset.get("asset_id")
-    if not isinstance(asset_id, str) or not asset_id:
-        raise AccountGroupConfigError("Each asset requires a non-empty asset_id.")
-    if asset.get("type") not in ASSET_TYPES:
-        raise AccountGroupConfigError(f"Invalid type for asset_id {asset_id}.")
-    if not isinstance(asset.get("code"), str) or not asset.get("code"):
-        raise AccountGroupConfigError(f"code is required for asset_id {asset_id}.")
-    if not isinstance(asset.get("name"), str) or not asset.get("name"):
-        raise AccountGroupConfigError(f"name is required for asset_id {asset_id}.")
-    if asset.get("market") not in MARKETS:
-        raise AccountGroupConfigError(f"Invalid market for asset_id {asset_id}.")
-    if not isinstance(asset.get("tags", []), list) or not all(isinstance(tag, str) for tag in asset.get("tags", [])):
-        raise AccountGroupConfigError(f"tags must be a list of strings for asset_id {asset_id}.")
-    if asset.get("status") not in ASSET_STATUSES:
-        raise AccountGroupConfigError(f"Invalid status for asset_id {asset_id}.")
-    weight_level = asset.get("weight_level")
-    if not isinstance(weight_level, int) or not 1 <= weight_level <= 5:
-        raise AccountGroupConfigError(f"weight_level must be an integer from 1 to 5 for asset_id {asset_id}.")
-    if asset.get("source_status") not in SOURCE_STATUSES:
-        raise AccountGroupConfigError(f"Invalid source_status for asset_id {asset_id}.")
+    try:
+        validate_unified_asset(asset)
+    except AssetModelError as exc:
+        raise AccountGroupConfigError(str(exc)) from exc
 
 
 def get_enabled_account_groups(config: dict[str, Any]) -> list[dict[str, Any]]:
@@ -182,10 +143,8 @@ def get_assets_by_status(group: dict[str, Any], status: str) -> list[dict[str, A
 
 def split_assets_by_type(group: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
     validate_account_group(group)
-    buckets = {asset_type: [] for asset_type in SUMMARY_ASSET_TYPES}
-    for asset in group.get("assets", []):
-        buckets[asset["type"]].append(asset)
-    return buckets
+    unified_buckets = group_assets_by_type(group.get("assets", []))
+    return {asset_type: unified_buckets[asset_type] for asset_type in SUMMARY_ASSET_TYPES}
 
 
 def _active_assets(group: dict[str, Any]) -> list[dict[str, Any]]:
@@ -211,21 +170,19 @@ def get_visible_sections_for_account(group: dict[str, Any]) -> list[str]:
 def build_account_group_summary(group: dict[str, Any]) -> dict[str, Any]:
     validate_account_group(group)
     assets = list(group.get("assets", []))
-    counts: dict[str, int] = {"total": len(assets)}
-    for asset_type in SUMMARY_ASSET_TYPES:
-        counts[asset_type] = sum(1 for asset in assets if asset.get("type") == asset_type)
-    for status in SUMMARY_STATUSES:
-        counts[status] = sum(1 for asset in assets if asset.get("status") == status)
-    active_types = {asset.get("type") for asset in _active_assets(group)}
+    asset_summary = build_asset_summary(assets)
+    counts: dict[str, int] = {"total": asset_summary["total"]}
+    counts.update({asset_type: asset_summary["by_type"][asset_type] for asset_type in SUMMARY_ASSET_TYPES})
+    counts.update({status: asset_summary["by_status"][status] for status in SUMMARY_STATUSES})
     return {
         "account_id": group.get("account_id"),
         "account_name": group.get("account_name"),
         "enabled": group.get("enabled"),
         "asset_counts": counts,
         "visible_sections": get_visible_sections_for_account(group),
-        "has_funds": "fund" in active_types,
-        "has_stocks": "stock" in active_types,
-        "has_active_assets": bool(active_types),
+        "has_funds": asset_summary["has_funds"],
+        "has_stocks": asset_summary["has_stocks"],
+        "has_active_assets": asset_summary["active_count"] > 0,
         "warnings": scan_account_group_for_sensitive_values(group),
     }
 
@@ -233,23 +190,4 @@ def build_account_group_summary(group: dict[str, Any]) -> dict[str, Any]:
 def scan_account_group_for_sensitive_values(config: Any) -> list[str]:
     """Return redacted sensitive-field findings without treating weight_level as money."""
 
-    findings: list[str] = []
-
-    def walk(value: Any, path: str) -> None:
-        if isinstance(value, dict):
-            for key, child in value.items():
-                child_path = f"{path}.{key}" if path else str(key)
-                normalized_key = str(key).lower()
-                if normalized_key in SENSITIVE_KEY_NAMES:
-                    findings.append(f"sensitive field at {child_path}")
-                walk(child, child_path)
-        elif isinstance(value, list):
-            for index, child in enumerate(value):
-                walk(child, f"{path}[{index}]")
-        elif isinstance(value, str):
-            for label, pattern in SENSITIVE_VALUE_PATTERNS:
-                if pattern.search(value):
-                    findings.append(f"{label} at {path}")
-
-    walk(config, "")
-    return findings
+    return scan_asset_for_sensitive_values(config)
