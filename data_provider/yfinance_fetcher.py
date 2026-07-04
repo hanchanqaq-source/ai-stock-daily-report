@@ -308,8 +308,8 @@ class YfinanceFetcher(BaseFetcher):
             行情字典，失败时返回 None
         """
         ticker = yf.Ticker(yf_code)
-        # 取近两日数据以计算涨跌幅
-        hist = ticker.history(period='2d')
+        # 取最近可用交易日数据以处理不同时区与非交易日；不把最近交易日伪装成实时。
+        hist = ticker.history(period='7d')
         if hist.empty:
             return None
         today_row = hist.iloc[-1]
@@ -322,6 +322,8 @@ class YfinanceFetcher(BaseFetcher):
         low = float(today_row['Low'])
         # 振幅 = (最高 - 最低) / 昨收 * 100
         amplitude = ((high - low) / prev_close * 100) if prev_close else 0
+        data_date = today_row.name.strftime('%Y-%m-%d') if hasattr(today_row.name, 'strftime') else str(today_row.name)[:10]
+        data_status = '实时' if data_date == datetime.now().strftime('%Y-%m-%d') else '最近交易日'
         return {
             'code': return_code,
             'name': name,
@@ -335,7 +337,9 @@ class YfinanceFetcher(BaseFetcher):
             'volume': float(today_row['Volume']),
             'amount': 0.0,  # Yahoo Finance 不提供准确成交额
             'amplitude': amplitude,
-            'data_date': today_row.name.strftime('%Y-%m-%d') if hasattr(today_row.name, 'strftime') else str(today_row.name)[:10],
+            'data_date': data_date,
+            'data_source': 'yfinance',
+            'data_status': data_status,
         }
 
     def get_main_indices(self, region: str = "cn") -> Optional[List[Dict[str, Any]]]:
@@ -391,7 +395,7 @@ class YfinanceFetcher(BaseFetcher):
     def _get_us_main_indices(self, yf) -> Optional[List[Dict[str, Any]]]:
         """获取美股主要指数行情（道琼斯、纳斯达克、标普500），复用 _fetch_yf_ticker_data"""
         # 大盘复盘所需核心美股指数
-        us_indices = ['DJI', 'IXIC', 'SPX']
+        us_indices = ['IXIC', 'SPX', 'DJI']
         results = []
         try:
             for code in us_indices:
@@ -399,9 +403,9 @@ class YfinanceFetcher(BaseFetcher):
                 if not yf_symbol:
                     continue
                 display_name = {
-                    'DJI': '道琼斯指数',
-                    'IXIC': '纳斯达克指数',
-                    'SPX': '标普500指数',
+                    'DJI': '道琼斯工业指数',
+                    'IXIC': '纳斯达克综合指数',
+                    'SPX': '标普500',
                 }.get(code, name)
                 try:
                     item = self._fetch_yf_ticker_data(yf, yf_symbol, display_name, code)

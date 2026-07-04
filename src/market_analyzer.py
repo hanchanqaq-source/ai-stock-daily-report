@@ -70,6 +70,8 @@ class MarketIndex:
     amount: float = 0.0          # 成交额（元）
     amplitude: float = 0.0       # 振幅(%)
     data_date: str = ""          # 数据日期（最新可得交易日）
+    data_source: str = ""        # 数据来源
+    data_status: str = ""        # 数据状态：实时 / 最近交易日 / 暂缺
     
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -85,6 +87,8 @@ class MarketIndex:
             'amount': self.amount,
             'amplitude': self.amplitude,
             'data_date': self.data_date,
+            'data_source': self.data_source,
+            'data_status': self.data_status,
         }
 
 
@@ -483,7 +487,9 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                         volume=item['volume'],
                         amount=item['amount'],
                         amplitude=item['amplitude'],
-                        data_date=str(item.get('data_date') or '')
+                        data_date=str(item.get('data_date') or ''),
+                        data_source=str(item.get('data_source') or item.get('source') or ''),
+                        data_status=str(item.get('data_status') or item.get('status') or ''),
                     )
                     indices.append(index)
 
@@ -505,7 +511,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                             ",".join(missing),
                         )
                     else:
-                        logger.info("[DATA_FETCH] provider=akshare target=a_share_indices status=success")
+                        logger.info("[DATA_FETCH] provider=akshare target=a_share_indices status=success count=%d", len(indices))
                 if self.region == "cn":
                     indices.extend(self._get_overseas_indices_for_global_structure())
 
@@ -519,11 +525,15 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
     def _get_overseas_indices_for_global_structure(self) -> List[MarketIndex]:
         """Fetch overseas indices for the Discord global-index structure without affecting A-share data."""
         extra_indices: List[MarketIndex] = []
+        target_by_market = {"HK": "hk_indices", "US": "us_indices", "JP": "jp_indices", "KR": "kr_indices"}
+        expected_by_market = {"HK": 2, "US": 3, "JP": 1, "KR": 1}
+        total_available = 0
+        total_expected = sum(expected_by_market.values())
         for market, region in (("HK", "hk"), ("US", "us"), ("JP", "jp"), ("KR", "kr")):
             try:
                 data_list = self.data_manager.get_main_indices(region=region) or []
             except Exception as exc:
-                logger.warning("[GLOBAL_INDEX] market=%s status=missing reason=%s", market, exc)
+                logger.warning("[DATA_FETCH] provider=yfinance target=%s status=missing reason=%s", target_by_market[market], type(exc).__name__)
                 continue
 
             market_indices: List[MarketIndex] = []
@@ -544,6 +554,8 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                             amount=item["amount"],
                             amplitude=item["amplitude"],
                             data_date=str(item.get("data_date") or ""),
+                            data_source=str(item.get("data_source") or item.get("source") or ""),
+                            data_status=str(item.get("data_status") or item.get("status") or ""),
                         )
                     )
                 except Exception as exc:
@@ -553,16 +565,20 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                         exc,
                     )
 
-            expected = {"HK": 2, "US": 3, "JP": 2, "KR": 2}[market]
+            expected = expected_by_market[market]
+            target = target_by_market[market]
             if not market_indices:
-                logger.info("[GLOBAL_INDEX] market=%s status=missing", market)
+                logger.info("[DATA_FETCH] provider=yfinance target=%s status=missing reason=provider_empty", target)
             else:
                 status = "success" if len(market_indices) >= expected else "partial"
-                logger.info("[GLOBAL_INDEX] market=%s status=%s count=%d", market, status, len(market_indices))
+                logger.info("[DATA_FETCH] provider=yfinance target=%s status=%s count=%d", target, status, len(market_indices))
+                total_available += min(len(market_indices), expected)
                 extra_indices.extend(market_indices)
                 dates = sorted({idx.data_date for idx in market_indices if idx.data_date})
                 if dates and (len(dates) > 1 or dates[0] != datetime.now().strftime("%Y-%m-%d")):
                     logger.info("[GLOBAL_INDEX] market=%s data_date=%s", market, ",".join(dates))
+        global_status = "success" if total_available >= total_expected else "partial" if total_available else "missing"
+        logger.info("[DATA_FETCH] target=global_indices status=%s available=%d missing=%d", global_status, total_available, max(total_expected - total_available, 0))
         return extra_indices
 
     def _get_market_statistics(self, overview: MarketOverview):
@@ -1595,13 +1611,13 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             return ""
         if self._get_review_language() == "en":
             lines = [
-                f"| Index | Last | Change % | Open | High | Low | Amplitude | Turnover ({self._get_turnover_unit_label()}) | Data date |",
-                "|-------|------|----------|------|------|-----|-----------|-----------------|-----------|",
+                f"| Index | Last | Change % | Open | High | Low | Amplitude | Turnover ({self._get_turnover_unit_label()}) | Data date | Source | Status |",
+                "|-------|------|----------|------|------|-----|-----------|-----------------|-----------|--------|--------|",
             ]
         else:
             lines = [
-                "| 指数 | 最新 | 涨跌幅 | 开盘 | 最高 | 最低 | 振幅 | 成交额(亿) | 数据日期 |",
-                "|------|------|--------|------|------|------|------|-----------|----------|",
+                "| 指数 | 最新 | 涨跌幅 | 开盘 | 最高 | 最低 | 振幅 | 成交额(亿) | 数据日期 | 数据来源 | 数据状态 |",
+                "|------|------|--------|------|------|------|------|-----------|----------|----------|----------|",
             ]
         for idx in overview.indices:
             arrow = self._get_index_change_arrow(idx.change_pct)
@@ -1611,7 +1627,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 f"| {idx.name} | {idx.current:.2f} | {arrow} {idx.change_pct:+.2f}% | "
                 f"{self._format_optional_number(idx.open)} | {self._format_optional_number(idx.high)} | "
                 f"{self._format_optional_number(idx.low)} | {self._format_optional_pct(idx.amplitude)} | {amount_str} | "
-                f"{idx.data_date or overview.date} |"
+                f"{idx.data_date or overview.date} | {idx.data_source or 'unknown'} | {idx.data_status or '未知'} |"
             )
         return "\n".join(lines)
 

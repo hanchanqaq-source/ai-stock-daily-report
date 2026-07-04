@@ -385,32 +385,40 @@ def _discord_recent_change_lines(content: str) -> List[str]:
 
 def _discord_global_brief_lines(content: str) -> List[str]:
     markets = [
-        ("🇨🇳 A股", ("上证", "深证", "创业", "科创", "沪深", "中证")),
-        ("🇭🇰 港股", ("恒生", "国企", "红筹")),
-        ("🇺🇸 美股", ("道琼", "纳斯达克", "标普", "S&P", "NASDAQ", "DOW")),
-        ("🇯🇵 日股", ("日经", "TOPIX", "东证", "Nikkei")),
-        ("🇰🇷 韩股", ("KOSPI", "KOSDAQ", "韩国")),
+        ("🇨🇳 A股", ("上证", "深证", "创业", "科创", "沪深", "中证"), 3),
+        ("🇭🇰 港股", ("恒生", "国企", "红筹"), 2),
+        ("🇺🇸 美股", ("纳斯达克", "标普", "道琼", "S&P", "NASDAQ", "DOW"), 3),
+        ("🇯🇵 日股", ("日经", "TOPIX", "东证", "Nikkei"), 1),
+        ("🇰🇷 韩股", ("KOSPI", "KOSDAQ", "韩国"), 1),
     ]
+    items = _extract_discord_index_items(content)
     lines: List[str] = []
-    for label, keys in markets:
-        changes = []
-        for name, change in re.findall(r"•\s*([^\n]+)\n\s*点位[:：][^\n]*\n\s*涨跌[:：]\s*([^\n]+)", content):
-            if any(k.lower() in name.lower() for k in keys):
-                changes.append(_safe_float(change))
-        if not changes:
-            lines.append(f"{label}：数据暂缺")
-        else:
-            vals = [v for v in changes if v is not None]
-            if not vals:
-                direction = "数据暂缺"
-            elif sum(vals) > 0:
-                direction = "整体偏强"
-            elif sum(vals) < 0:
-                direction = "整体偏弱"
-            else:
-                direction = "整体震荡"
-            lines.append(f"{label}：{direction}")
+    for label, keys, limit in markets:
+        lines.append(f"{label}：")
+        matched = [item for item in items if any(k.lower() in item["name"].lower() for k in keys)][:limit]
+        if not matched:
+            lines.append("• 数据暂缺")
+            continue
+        for item in matched:
+            date = f"，数据日：{item['date']}" if item.get("date") else ""
+            lines.append(f"• {item['name']}：{item['value']}，{_normalize_index_change_color(item['change'])}{date}")
     return lines
+
+
+def _extract_discord_index_items(content: str) -> List[Dict[str, str]]:
+    items: List[Dict[str, str]] = []
+    pattern = re.compile(
+        r"•\s*([^\n]+)\n\s*点位[:：]\s*([^\n]+)\n\s*涨跌[:：]\s*([^\n]+)(?:\n\s*数据日期[:：]\s*([^\n]+))?",
+        re.MULTILINE,
+    )
+    for match in pattern.finditer(content):
+        items.append({
+            "name": match.group(1).strip(),
+            "value": match.group(2).strip(),
+            "change": match.group(3).strip(),
+            "date": (match.group(4) or "").strip(),
+        })
+    return items
 
 
 def _discord_breadth_lines(content: str) -> List[str]:
