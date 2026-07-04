@@ -66,7 +66,7 @@ TEXT_EXTENSIONS = {
 }
 
 DISCORD_WEBHOOK_RE = re.compile(r"https://(?:discord(?:app)?\.com)/api/webhooks/[A-Za-z0-9_./?=&%:-]+")
-GITHUB_TOKEN_RE = re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9_]{20,}|\bgithub_pat_[A-Za-z0-9_]{20,}")
+GITHUB_TOKEN_RE = re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b|\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}\b")
 OPENAI_KEY_RE = re.compile(r"\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}")
 ENV_SECRET_RE = re.compile(r"\b(?:OPENAI_API_KEY|DEEPSEEK_API_KEY|ZHIPU_API_KEY|API_KEY)\s*=\s*([^\s#'\"]{12,})")
 EMAIL_RE = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
@@ -91,13 +91,13 @@ SENSITIVE_FIELDS = {
     "收益金额",
 }
 FIELD_VALUE_RE = re.compile(
-    r"(?P<key>\b(?:amount|asset|assets|balance|cost|cost_price|holding_amount|position_amount|profit|real_amount|account_value)\b|账户资产|成本价|持仓金额|收益金额)"
-    r"\s*[:=]\s*(?P<value>[0-9][0-9_,]*(?:\.[0-9]+)?)",
+    r"[\"\']?(?P<key>amount|asset|assets|balance|cost|cost_price|holding_amount|position_amount|profit|real_amount|account_value|账户资产|成本价|持仓金额|收益金额)[\"\']?"
+    r"\s*[:=]\s*[\"\']?(?P<value>[-+]?[0-9][0-9_,]*(?:\.[0-9]+)?)",
     re.IGNORECASE,
 )
 
 EXAMPLE_MARKERS = ("example", "demo", "sample", "示例", "public")
-DOC_EXTENSIONS = {".md", ".txt"}
+DOC_EXTENSIONS = {".md"}
 
 
 @dataclass(frozen=True)
@@ -193,9 +193,7 @@ def _finding(severity: str, rule_id: str, rel_path: str, line_no: int, message: 
 
 def scan_line(rel_path: str, line_no: int, line: str) -> list[Finding]:
     findings: list[Finding] = []
-    test_fixture = rel_path.startswith("tests/") or "/tests/" in rel_path
-    line_placeholder = is_placeholder(line)
-    doc_or_example = is_documentation_path(rel_path) or is_example_path(rel_path) or test_fixture or line_placeholder
+    doc_or_example = is_documentation_path(rel_path) or is_example_path(rel_path) or rel_path == ".gitignore"
 
     for match in DISCORD_WEBHOOK_RE.finditer(line):
         value = match.group(0)
@@ -204,12 +202,12 @@ def scan_line(rel_path: str, line_no: int, line: str) -> list[Finding]:
 
     for match in GITHUB_TOKEN_RE.finditer(line):
         value = match.group(0)
-        severity = "INFO" if is_placeholder(value) or doc_or_example else "BLOCKER"
+        severity = "INFO" if doc_or_example else "BLOCKER"
         findings.append(_finding(severity, "github_token", rel_path, line_no, "疑似 GitHub Token", mask_value(value), "撤销并重新签发 token，仓库仅保留 Secret 名称。"))
 
     for match in OPENAI_KEY_RE.finditer(line):
         value = match.group(0)
-        severity = "INFO" if is_placeholder(value) or doc_or_example else "HIGH"
+        severity = "INFO" if doc_or_example or is_placeholder(value) else "HIGH"
         findings.append(_finding(severity, "api_key", rel_path, line_no, "疑似 API Key", mask_value(value), "删除真实 API Key，改用 GitHub Secrets 或本地环境变量。"))
 
     env_match = ENV_SECRET_RE.search(line)
@@ -304,6 +302,17 @@ def print_summary(result: dict) -> None:
         print(f"... {len(result['findings']) - 20} more findings omitted; use --json for full structured output.")
 
 
+def should_fail(result: dict, fail_on_high: bool) -> bool:
+    summary = result.get("summary", {})
+    blocker = int(summary.get("blocker", 0) or 0)
+    high = int(summary.get("high", 0) or 0)
+    if blocker > 0:
+        return True
+    if fail_on_high and high > 0:
+        return True
+    return False
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Scan repository for public-repo sensitive content risks.")
     parser.add_argument("--root", default=".", help="Repository root to scan (default: current directory).")
@@ -316,7 +325,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=False, indent=2))
     else:
         print_summary(result)
-    return 1 if result["summary"]["blocker"] or result["summary"]["high"] else 0
+    return 1 if should_fail(result, args.fail_on_high) else 0
 
 
 if __name__ == "__main__":
