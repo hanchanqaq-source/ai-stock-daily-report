@@ -54,7 +54,22 @@ env/
 .cursorrules
 
 # 数据和日志
-/data/
+
+# 私人用户配置与密钥（只允许提交 example）
+data/user_config/*.json
+data/user_config/**/*.json
+local_config/*.json
+private_config/*.json
+*.local.json
+*.secret.json
+secrets/
+tokens/
+!config/examples/*.example.json
+!data/user_config/*.example.json
+!data/user_config/
+
+/data/*
+!data/user_config/
 /.llm_usage_hmac_secret
 **/.llm_usage_hmac_secret
 logs/

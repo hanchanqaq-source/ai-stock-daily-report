@@ -1,0 +1,14 @@
+{
+  "config_version": 1,
+  "users": [
+    {
+      "user_id": "demo_public_user",
+      "display_name": "示例用户",
+      "risk_profile": "balanced",
+      "preferred_language": "zh-CN",
+      "enabled": true,
+      "task_group_ids": ["demo_ai_hardware"],
+      "discord_webhook_secret_name": "DISCORD_WEBHOOK_DEMO_USER"
+    }
+  ]
+}
