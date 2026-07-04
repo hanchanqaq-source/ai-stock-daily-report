@@ -58,7 +58,8 @@ from src.utils.data_processing import (
     signal_attribution_weight_items,
     normalize_model_used,
 )
-from src.data_quality import assess_data_quality, format_data_quality_block
+from src.data_quality import assess_data_quality
+from src.data_fallback import data_mode_label
 from src.notification_sender import (
     AstrbotSender,
     CustomWebhookSender,
@@ -114,6 +115,34 @@ _RUN_MODE_ALIASES = {
     "full": ("完整日报", "完整", "满载", "full"),
 }
 
+
+
+def format_non_trading_day_discord_notice(
+    *,
+    report_date: str,
+    latest_trading_day: str,
+    run_mode: str = "scheduled_cron",
+    request_id: Optional[str] = None,
+    trigger_source: str = "scheduled_cron",
+) -> str:
+    """Build the compact Discord notice used when scheduled runs skip non-trading days."""
+    return "\n".join([
+        "# 📌 AI股票基金每日盯盘报告",
+        "",
+        "今日判断为非交易日，已跳过正式日报生成。",
+        "",
+        "## 数据状态",
+        f"• 报告日期：{report_date}",
+        f"• 最近交易日：{latest_trading_day or '未知'}",
+        f"• 运行模式：{run_mode}",
+        "• 处理结果：非交易日跳过",
+        "• 如需生成参考报告：请使用 force_run 手动运行",
+        "",
+        "运行信息：",
+        f"- 请求编号：{request_id or (os.getenv('REQUEST_ID') or 'unknown').strip() or 'unknown'}",
+        f"- 触发来源：{trigger_source}",
+        "- 生成状态：skipped_non_trading_day",
+    ])
 
 def append_discord_operation_panel(content: str) -> str:
     """Append the static Discord operation panel without changing report artifacts."""
@@ -255,7 +284,7 @@ def _build_discord_compact_daily_summary(content: str, *, max_chars: int) -> str
     lines.extend(_discord_conclusion_lines(body))
     quality_lines = _discord_data_quality_lines(body)
     if quality_lines:
-        lines.extend(["", *quality_lines])
+        lines.extend(["", "## 数据日期", *quality_lines])
     lines.extend(["", "## 1. 核心信号"])
     lines.extend(_discord_core_signal_lines(body))
     change_lines = _discord_recent_change_lines(body)
@@ -306,7 +335,26 @@ def _discord_data_quality_lines(content: str) -> List[str]:
     """Return compact data-quality diagnostics for Discord without blocking delivery."""
     try:
         quality = assess_data_quality(content)
-        return format_data_quality_block(quality).splitlines()
+        report_date = _first_regex(content, [r"报告日期[:：]\s*([0-9]{4}-[0-9]{2}-[0-9]{2})"]) or "未知"
+        market_date = str(quality.get("latest_data_date") or "未知")
+        coverage = quality.get("coverage_percent")
+        mode = str(quality.get("data_mode") or "unknown")
+        coverage_text = f"{coverage if coverage is not None else 0}%"
+        lines = [
+            f"• 报告日期：{report_date}",
+            f"• 行情日期：{market_date}",
+            f"• 数据日期：{market_date}",
+            f"• 数据状态：{data_mode_label(mode)}",
+            f"• 数据质量：{coverage_text}",
+            f"• 数据覆盖率：{coverage_text}",
+        ]
+        if mode == "history_fallback":
+            lines.append(f"• 说明：实时数据暂缺，以下使用最近历史快照 {market_date}。")
+        elif mode == "recent_trading_day":
+            lines.append("• 说明：当前可能未开盘，以下使用最近完整交易日数据。")
+        elif mode == "insufficient_data":
+            lines.append("• 说明：实时与历史样本不足，以下仅展示已获取数据。")
+        return lines
     except Exception as exc:  # pragma: no cover - defensive notification fallback
         logger.warning("Discord data quality summary failed: %s", exc)
         return ["数据质量检查暂不可用。"]

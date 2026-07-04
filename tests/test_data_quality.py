@@ -190,3 +190,25 @@ def test_global_indices_ok_when_all_markets_present():
 
     assert "global_indices" in quality["available_fields"]
     assert "global_indices" not in quality["partial_fields"]
+
+
+def test_data_quality_recognizes_new_data_modes():
+    assert assess_data_quality({"data_mode": "history_fallback"})["data_mode"] == "history_fallback"
+    assert assess_data_quality({"data_mode": "insufficient_data"})["data_mode"] == "insufficient_data"
+    assert assess_data_quality("数据状态：非交易日跳过")["data_mode"] == "skipped_non_trading_day"
+
+
+def test_discord_summary_shows_report_market_date_and_mode_label():
+    content = """
+# 大盘复盘
+报告日期：2026-07-04
+行情日期：2026-07-03
+数据状态：历史快照兜底
+今日结论：使用历史快照。
+上涨占比：55%
+"""
+    summary = format_discord_report_summary(content)
+    assert "## 数据日期" in summary
+    assert "• 报告日期：2026-07-04" in summary
+    assert "• 行情日期：2026-07-03" in summary
+    assert "• 数据状态：历史快照兜底" in summary
