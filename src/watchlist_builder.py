@@ -84,7 +84,7 @@ def _build_watchlist(*, trend, persistence, risk_radar, data_quality, latest_sna
     pending: list[str] = []
 
     if status != "available":
-        pending.append("历史样本不足，暂不做长期趋势判断。")
+        return _insufficient_watchlist()
 
     temp = _metric_dir(five, "market_temperature")
     if temp == "升温":
@@ -132,6 +132,22 @@ def _build_watchlist(*, trend, persistence, risk_radar, data_quality, latest_sna
 
 def _empty(reason):
     return {"status": "insufficient_data", "summary": _clean(reason), "market_watch": [], "sector_watch": [], "risk_watch": [], "data_quality_watch": [], "next_period_watch": [], "pending_watch": [reason]}
+
+
+def _insufficient_watchlist():
+    reason = "历史样本不足，暂不生成完整观察清单。"
+    return {
+        "status": "insufficient_data",
+        "summary": _clean(reason),
+        "market_watch": [],
+        "sector_watch": [],
+        "risk_watch": [],
+        "data_quality_watch": [
+            _item("中", "历史样本不足，暂不生成完整观察清单", "缺少足够历史数据", "watchlist_builder")
+        ],
+        "next_period_watch": [],
+        "pending_watch": [reason],
+    }
 
 def _item(priority, item, reason, source): return {"priority": priority if priority in {"高", "中", "低"} else "中", "item": _clean(item), "reason": _clean(reason), "source": source}
 def _clean(text):

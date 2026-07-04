@@ -930,7 +930,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             ),
             render_watchlist_section(
                 ["市场温度是否延续", "成交额是否配合指数承接", "板块 / 概念持续性是否扩散"],
-                title="## 8. 今日观察清单",
+                title="## 8. 今日观察重点",
             ),
         ]
         return "\n\n".join(section.strip() for section in sections if section).rstrip() + "\n"
