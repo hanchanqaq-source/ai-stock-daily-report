@@ -15,6 +15,8 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Dict, Optional
+
+from src.data_fallback import data_mode_label
 import uuid
 
 from src.config import get_config
@@ -505,10 +507,47 @@ def _render_market_review_payload_markdown(
     wrapper_title: Optional[str] = None,
 ) -> str:
     """Render Markdown from the structured market-review payload for file/push compatibility."""
-    body = _render_market_review_payload_body(payload)
+    body = _prepend_market_review_data_note(_render_market_review_payload_body(payload), payload)
     if wrapper_title:
         return f"{wrapper_title}\n\n{body}".strip()
     return body.strip()
+
+
+def _prepend_market_review_data_note(markdown: str, payload: Dict[str, Any]) -> str:
+    """Ensure full Markdown reports expose report date, quote date, and data mode."""
+    text = str(markdown or "").strip()
+    if "### 数据说明" in text:
+        return text
+    quality = payload.get("data_quality") if isinstance(payload, dict) else {}
+    if not isinstance(quality, dict):
+        quality = {}
+    report_date = str(payload.get("report_date") or datetime.now().strftime("%Y-%m-%d"))
+    market_date = str(
+        payload.get("latest_data_date")
+        or payload.get("data_date")
+        or quality.get("latest_data_date")
+        or report_date
+    )
+    mode = str(payload.get("data_mode") or quality.get("data_mode") or "realtime")
+    coverage = quality.get("coverage_percent", quality.get("overall_score", 0))
+    force_run = bool(payload.get("force_run", False))
+    note = "实时数据。"
+    if mode == "history_fallback":
+        note = "实时数据暂缺，本报告基于最近历史快照生成，仅供观察。"
+    elif mode == "recent_trading_day":
+        note = "当前可能处于未开盘或数据未完全更新阶段，以下使用最近完整交易日数据作为参考。"
+    elif mode == "insufficient_data":
+        note = "实时与历史样本不足，本报告仅展示已获取数据，不编造缺失行情。"
+    block = "\n".join([
+        "### 数据说明",
+        f"- 报告日期：{report_date}",
+        f"- 行情日期：{market_date}",
+        f"- 数据状态：{data_mode_label(mode)}",
+        f"- 数据覆盖率：{coverage if coverage is not None else 0}%",
+        f"- 是否 force_run：{'是' if force_run else '否'}",
+        f"- 运行说明：{note}",
+    ])
+    return f"{block}\n\n{text}" if text else block
 
 
 def _render_market_review_merge_markdown(

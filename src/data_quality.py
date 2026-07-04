@@ -13,14 +13,9 @@ import logging
 import re
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set
 
-logger = logging.getLogger(__name__)
+from src.data_fallback import DATA_MODE_LABELS, data_mode_label
 
-DATA_MODE_LABELS = {
-    "realtime": "实时",
-    "recent_trading_day": "最近交易日",
-    "history_fallback": "历史快照兜底",
-    "unknown": "未知",
-}
+logger = logging.getLogger(__name__)
 
 _FIELD_LABELS = {
     "report_date": "报告日期",
@@ -113,7 +108,7 @@ def format_data_quality_block(quality: Mapping[str, Any]) -> str:
         return "数据质量检查暂不可用。"
     coverage = quality.get("coverage_percent")
     data_mode = str(quality.get("data_mode") or "unknown")
-    mode_label = DATA_MODE_LABELS.get(data_mode, DATA_MODE_LABELS["unknown"])
+    mode_label = data_mode_label(data_mode)
     latest = str(quality.get("latest_data_date") or "未知")
     missing_labels = [_FIELD_LABELS.get(str(name), str(name)) for name in list(quality.get("missing_fields") or [])[:4]]
     missing = "、".join(missing_labels) if missing_labels else "无重点缺失"
@@ -291,6 +286,10 @@ def _normalize_data_mode(value: Any) -> str:
     text = str(value or "").strip().lower()
     if not text:
         return "unknown"
+    if "skip" in text or "非交易日跳过" in text:
+        return "skipped_non_trading_day"
+    if "insufficient" in text or "数据不足" in text:
+        return "insufficient_data"
     if "history" in text or "历史" in text:
         return "history_fallback"
     if "recent" in text or "最近交易日" in text:

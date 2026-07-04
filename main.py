@@ -427,6 +427,49 @@ def parse_arguments() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _send_non_trading_day_skip_notice(
+    config: Config,
+    args: argparse.Namespace,
+    *,
+    request_id: Optional[str] = None,
+) -> None:
+    """Send a compact Discord notice when scheduled daily analysis skips a non-trading day."""
+    report_date = datetime.now().strftime("%Y-%m-%d")
+    try:
+        from src.core.trading_calendar import get_effective_trading_date, is_market_open
+        region = (getattr(config, "market_review_region", "cn") or "cn").split(",")[0].strip() or "cn"
+        latest_trading_day = get_effective_trading_date(region).isoformat()
+        logger.info(
+            "[TRADING_DAY] report_date=%s is_trading_day=%s",
+            report_date,
+            is_market_open(region, date.today()),
+        )
+    except Exception as exc:  # fail-open diagnostics only
+        latest_trading_day = "未知"
+        logger.warning("[TRADING_DAY] latest_trading_day_unavailable reason=%s", type(exc).__name__)
+    logger.info("[TRADING_DAY] force_run=%s", bool(getattr(args, "force_run", False)))
+    logger.info("[DATA_MODE] mode=skipped_non_trading_day")
+    if not getattr(config, "discord_webhook_url", None) and not (
+        getattr(config, "discord_bot_token", None)
+        and getattr(config, "discord_main_channel_id", None)
+    ):
+        logger.info("[DISCORD] skipped_notice_sent=false reason=discord_not_configured")
+        return
+    try:
+        from src.notification import NotificationService, format_non_trading_day_discord_notice
+        notice = format_non_trading_day_discord_notice(
+            report_date=report_date,
+            latest_trading_day=latest_trading_day,
+            run_mode="scheduled_cron",
+            request_id=request_id,
+            trigger_source=(os.getenv("TRIGGER_SOURCE") or "scheduled_cron"),
+        )
+        sent = NotificationService(config).send_to_discord(notice)
+        logger.info("[DISCORD] skipped_notice_sent=%s reason=non_trading_day", str(bool(sent)).lower())
+    except Exception as exc:  # notification must not break scheduler
+        logger.warning("[DISCORD] skipped_notice_sent=false reason=%s", type(exc).__name__)
+
+
 def _compute_trading_day_filter(
     config: Config,
     args: argparse.Namespace,
@@ -688,6 +731,7 @@ def run_full_analysis(
             logger.info(
                 "今日所有相关市场均为非交易日，跳过执行。可使用 --force-run 强制执行。"
             )
+            _send_non_trading_day_skip_notice(config, args, request_id=uuid.uuid4().hex)
             return True
         if set(filtered_codes) != set(effective_codes):
             skipped = set(effective_codes) - set(filtered_codes)
