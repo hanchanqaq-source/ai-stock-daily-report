@@ -1,5 +1,6 @@
 # 信息来源可查证规则
 
+资产自动补全框架见 `docs/asset_enrichment.md`，所有补全结果必须保留来源、状态和置信度。
 > 项目级产品规则见 `docs/product_rules.md`。
 
 统一资产模型见 `docs/asset_model.md`，后续账户分组、个人雷达、网页工作台均应复用该模型。代码自动识别框架见 `docs/code_identifier.md`，所有识别结果必须遵守信息来源可查证规则。
