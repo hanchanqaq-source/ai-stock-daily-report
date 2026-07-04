@@ -47,6 +47,9 @@ on:
           - "auto｜自动版｜智能选择"
           - "final｜最终版｜最高质量"
 
+permissions:
+  contents: write
+
 # 并发控制：仅取消同一分支上当前日报 workflow 的旧运行，避免手动重复触发排队堆积
 concurrency:
   group: daily-report-${{ github.workflow }}-${{ github.ref }}
@@ -633,6 +636,53 @@ jobs:
           CURRENT_STAGE="finished"
           echo "[STAGE] finished success"
       
+      - name: 持久化公开市场历史数据
+        if: ${{ success() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'repository_dispatch') }}
+        run: |
+          set -euo pipefail
+
+          history_dir="data/history"
+          echo "[HISTORY_PERSIST] history_dir=${history_dir}"
+
+          if [ ! -d "${history_dir}" ]; then
+            echo "[HISTORY_PERSIST] changed=false"
+            echo "[HISTORY_PERSIST] commit_created=false"
+            echo "[HISTORY_PERSIST] push_success=false"
+            echo "[HISTORY_PERSIST] skipped_reason=history_dir_missing"
+            exit 0
+          fi
+
+          if [ -z "$(git status --porcelain -- "${history_dir}")" ]; then
+            echo "[HISTORY_PERSIST] changed=false"
+            echo "[HISTORY_PERSIST] commit_created=false"
+            echo "[HISTORY_PERSIST] push_success=false"
+            echo "[HISTORY_PERSIST] skipped_reason=no_history_changes"
+            exit 0
+          fi
+
+          echo "[HISTORY_PERSIST] changed=true"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add "${history_dir}/"
+          if git diff --cached --quiet -- "${history_dir}"; then
+            echo "[HISTORY_PERSIST] commit_created=false"
+            echo "[HISTORY_PERSIST] push_success=false"
+            echo "[HISTORY_PERSIST] skipped_reason=no_staged_history_changes"
+            exit 0
+          fi
+
+          commit_date=$(TZ=Asia/Shanghai date '+%Y-%m-%d')
+          git commit -m "chore(history): update market history ${commit_date} [skip ci]"
+          echo "[HISTORY_PERSIST] commit_created=true"
+
+          if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+            echo "[HISTORY_PERSIST] push_success=true"
+          else
+            echo "[HISTORY_PERSIST] push_success=false"
+            exit 1
+          fi
+
       - name: 生成 artifact 显示名
         id: artifact_name
         if: always()
