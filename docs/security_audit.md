@@ -68,3 +68,5 @@ python scripts/security_scan.py --json
 - P6-D：本地网页工作台私人配置隔离。
 
 建议在 P6-B 前将 `python scripts/security_scan.py --json` 纳入人工发布检查；在接入真实配置前，仍以 GitHub Secrets、本地 `.env` 和 private-only 配置目录作为唯一真实敏感信息入口。
+
+后续所有资产识别、标签补全和个人雷达分析必须遵守 `docs/source_verification.md` 的信息来源可查证规则。

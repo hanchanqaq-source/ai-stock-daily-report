@@ -50,3 +50,5 @@ python scripts/run_delivery_plan_demo.py
 ```
 
 该脚本只加载 example 配置，只生成 dry-run delivery plan，并打印 Markdown demo；不会读取真实 `data/user_config`，不会读取 webhook，也不会发送 Discord。
+
+后续所有资产识别、标签补全和个人雷达分析必须遵守 `docs/source_verification.md` 的信息来源可查证规则。

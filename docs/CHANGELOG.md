@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 GLOBAL-R1 信息来源可查证规则文档、来源证据结构、自动补全校验与正式分析可用性测试约束。
 - [新功能] 新增公开仓库安全扫描脚本、脱敏结构化报告、example 误报控制测试与安全检查文档。
 
 - [新功能] 新增多用户报告分发框架 public 安全版 dry-run，基于 example 配置生成结构化 delivery plan 与 Markdown demo，当前不读取 webhook、不发送 Discord。
