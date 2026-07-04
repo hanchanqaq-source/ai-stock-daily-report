@@ -434,7 +434,7 @@ class YfinanceFetcher(BaseFetcher):
         # 该映射由离线单测 tests/test_yfinance_hk_indices.py 固化，避免在线依赖导致非确定性失败。
         hk_indices = {
             'HSI': ('^HSI', '恒生指数'),
-            'HSTECH': ('3033.HK', '恒生科技指数'),
+            'HSTECH': ('HSTECH.HK', '恒生科技指数'),
             'HSCEI': ('^HSCE', '国企指数'),
         }
         results = []
