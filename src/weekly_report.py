@@ -13,11 +13,22 @@ from typing import Any, Mapping, Optional
 
 from src.history_store import load_market_history_csv
 from src.trend_analyzer import analyze_multi_window_trends, analyze_multi_window_persistence
+from src.report_sections import (
+    INSUFFICIENT_HISTORY_MESSAGE as STANDARD_INSUFFICIENT_HISTORY_MESSAGE,
+    NO_DATA_MESSAGE,
+    render_data_quality_section,
+    render_market_temperature_section,
+    render_one_line_summary,
+    render_sector_persistence_section,
+    render_trend_observation_section,
+    render_watchlist_section,
+    sanitize_observation_text,
+)
 
 logger = logging.getLogger(__name__)
 
-INSUFFICIENT_HISTORY_MESSAGE = "本周历史样本不足，暂时只展示已有交易日数据，不做强趋势判断。"
-DATA_MISSING = "数据暂缺"
+INSUFFICIENT_HISTORY_MESSAGE = STANDARD_INSUFFICIENT_HISTORY_MESSAGE
+DATA_MISSING = NO_DATA_MESSAGE
 FORBIDDEN_ADVICE_WORDS = ("买入", "卖出", "加仓", "减仓")
 
 
@@ -178,48 +189,61 @@ def _render_markdown(r: Mapping[str, Any]) -> str:
     trend = r.get("trend", {})
     quality = r.get("data_quality", {})
     p = _combined_persistence(r.get("persistence", {}), "5")
-    lines = [
-        "# AI 股票基金市场周报", "",
-        "## 1. 本周一句话总结", "", r["summary"], "",
-        "## 2. 本周市场温度", "",
-        f"- 本周交易日数量：{r['trading_days']}",
-        f"- 平均上涨占比：{_fmt(m['average_rise_ratio'])}%",
-        f"- 最新上涨占比：{_fmt(m['latest_rise_ratio'])}%",
-        f"- 平均成交额：{_fmt(m['average_turnover'])} 亿",
-        f"- 最新成交额：{_fmt(m['latest_turnover'])} 亿",
-        f"- 平均涨跌停差：{_signed(m['average_limit_diff'])}",
-        f"- 最新涨跌停差：{_signed(m['latest_limit_diff'])}",
-        f"- 市场评分变化：{_change(m['average_market_score'], m['latest_market_score'])}",
-        f"- 市场温度：{r['market_temperature']}", "",
-        "## 3. 趋势观察", "",
-        f"- 近 5 日趋势：{_trend_temp(trend, '5')}",
-        f"- 近 20 日趋势：{_trend_temp(trend, '20')}",
-        f"- 上涨占比趋势：{_trend_metric(trend, '5', 'rise_ratio')}",
-        f"- 成交额趋势：{_trend_metric(trend, '5', 'turnover')}",
-        f"- 涨跌停差趋势：{_trend_metric(trend, '5', 'limit_diff')}",
-        f"- 市场评分趋势：{_trend_metric(trend, '5', 'market_score')}",
-        f"- 数据质量趋势：{_quality_trend(trend)}", "",
-        "## 4. 板块 / 概念持续性", "",
-        f"- 持续走强方向：{_names(p, 'persistent_leaders')}",
-        f"- 短线爆发方向：{_names(p, 'short_term_breakouts')}",
-        f"- 轮动扩散方向：{_names(p, 'rotation_candidates')}",
-        f"- 冲高回落风险：{_names(p, 'pullback_risks')}",
-        f"- 持续走弱方向：{_names(p, 'persistent_laggers')}", "",
-        "## 5. 数据质量说明", "",
-        f"- 本周平均覆盖率：{_fmt(quality.get('average_coverage_percent'))}%",
-        f"- 最低覆盖率日期：{quality.get('lowest_coverage_date') or DATA_MISSING}",
-        f"- 数据不足日期：{_join(quality.get('insufficient_data_days'))}",
-        f"- 历史兜底日期：{_join(quality.get('fallback_days'))}",
-        f"- 是否影响结论：{quality.get('impact')}", "",
+    low_quality = quality.get("impact") == "是"
+    sections = [
+        "# AI 股票基金市场周报",
+        render_one_line_summary(r.get("summary"), title="## 1. 本周一句话总结"),
+        render_market_temperature_section(
+            {
+                "本周交易日数量": r.get("trading_days"),
+                "平均上涨占比": f"{_fmt(m['average_rise_ratio'])}%",
+                "最新上涨占比": f"{_fmt(m['latest_rise_ratio'])}%",
+                "平均成交额": f"{_fmt(m['average_turnover'])} 亿",
+                "最新成交额": f"{_fmt(m['latest_turnover'])} 亿",
+                "平均涨跌停差": _signed(m["average_limit_diff"]),
+                "最新涨跌停差": _signed(m["latest_limit_diff"]),
+                "市场评分变化": _change(m["average_market_score"], m["latest_market_score"]),
+                "市场温度": r.get("market_temperature"),
+            },
+            title="## 2. 本周市场温度",
+        ),
+        render_trend_observation_section(
+            {
+                "近 5 日趋势": _trend_temp(trend, "5"),
+                "近 20 日趋势": _trend_temp(trend, "20"),
+                "上涨占比趋势": _trend_metric(trend, "5", "rise_ratio"),
+                "成交额趋势": _trend_metric(trend, "5", "turnover"),
+                "涨跌停差趋势": _trend_metric(trend, "5", "limit_diff"),
+                "市场评分趋势": _trend_metric(trend, "5", "market_score"),
+                "数据质量趋势": _quality_trend(trend),
+            },
+            title="## 3. 本周趋势观察",
+            insufficient=r.get("status") == "insufficient_data",
+        ),
+        render_sector_persistence_section(
+            {
+                "持续走强方向": _names(p, "persistent_leaders"),
+                "短线爆发方向": _names(p, "short_term_breakouts"),
+                "轮动扩散方向": _names(p, "rotation_candidates"),
+                "冲高回落风险": _names(p, "pullback_risks"),
+                "持续走弱方向": _names(p, "persistent_laggers"),
+            },
+            title="## 4. 板块 / 概念持续性观察",
+        ),
+        render_data_quality_section(
+            {
+                "本周平均覆盖率": f"{_fmt(quality.get('average_coverage_percent'))}%",
+                "最低覆盖率日期": quality.get("lowest_coverage_date") or DATA_MISSING,
+                "数据不足日期": _join(quality.get("insufficient_data_days")),
+                "历史兜底日期": _join(quality.get("fallback_days")),
+                "是否影响结论": quality.get("impact"),
+            },
+            title="## 5. 数据质量说明",
+            low_quality=low_quality,
+        ),
+        render_watchlist_section(r.get("next_week_watchlist", []), title="## 6. 下周观察重点"),
     ]
-    if quality.get("impact") == "是":
-        lines += ["本周部分数据覆盖率较低，趋势判断仅供观察。", ""]
-    lines += ["## 6. 下周观察重点", ""] + [f"- {x}" for x in r.get("next_week_watchlist", [])]
-    text = "\n".join(lines).rstrip() + "\n"
-    for word in FORBIDDEN_ADVICE_WORDS:
-        text = text.replace(word, "观察")
-    return text
-
+    return "\n\n".join(section.strip() for section in sections if section).rstrip() + "\n"
 
 def _render_discord_summary(r: Mapping[str, Any]) -> str:
     p = _combined_persistence(r.get("persistence", {}), "5")
@@ -289,7 +313,7 @@ def _summary(status, temp, metrics, persistence):
     turnover = "成交额温和放大" if (metrics.get("latest_turnover") or 0) >= (metrics.get("average_turnover") or 10**18) else "成交额未明显放大"
     tail = f"，{strong} 等方向持续活跃" if strong != "暂无" else ""
     risk_text = f"，但 {risk} 出现冲高回落风险" if risk != "暂无" else ""
-    return f"本周市场整体{temp}，{turnover}{tail}{risk_text}。"
+    return sanitize_observation_text(f"本周市场整体{temp}，{turnover}{tail}{risk_text}。")
 
 def _trend_temp(trend, key):
     item=_mapping(_mapping(trend).get(key)); return _mapping(item.get("market_temperature")).get("direction") or "数据不足"
