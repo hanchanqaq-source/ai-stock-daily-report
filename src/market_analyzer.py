@@ -809,7 +809,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 "[大盘] %s action=generate_review status=fallback_template reason=no_analyzer",
                 self._log_context(),
             )
-            return self._generate_template_review(overview, news)
+            return self._append_trend_observation_section(self._generate_template_review(overview, news))
 
         # 构建 Prompt
         prompt = self._build_review_prompt(overview, news)
@@ -853,13 +853,30 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 len(review),
             )
             # Inject structured data tables into LLM prose sections
-            return self._inject_data_into_review(review, overview, news)
+            return self._append_trend_observation_section(self._inject_data_into_review(review, overview, news))
 
         logger.warning(
             "[大盘] %s action=generate_review status=fallback_template reason=empty_llm_response",
             self._log_context(),
         )
-        return self._generate_template_review(overview, news)
+        return self._append_trend_observation_section(self._generate_template_review(overview, news))
+
+
+    def _append_trend_observation_section(self, report: str) -> str:
+        """Append optional recent trend observations without blocking report generation."""
+        if self.region != "cn":
+            return report
+        try:
+            from src.trend_analyzer import analyze_multi_window_trends, render_trend_summary_text
+
+            trend_result = analyze_multi_window_trends([5, 20])
+            trend_text = render_trend_summary_text(trend_result)
+            if not trend_text.strip():
+                return report
+            return f"{report.rstrip()}\n\n{trend_text}"
+        except Exception as exc:  # pragma: no cover - defensive report-path guard
+            logger.warning("[TREND_ANALYZER] skipped_reason=%s", exc)
+            return report
 
     def _get_analyzer_generation_backend_config_error(self) -> Optional[GenerationError]:
         """Return analyzer backend config errors without relying on dynamic mock attributes."""
