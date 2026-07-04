@@ -897,6 +897,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 break
         sections = [
             "# AI 股票基金市场日报",
+            "## AI 股票基金市场日报",
             render_one_line_summary(summary, title="## 1. 今日一句话总结"),
             report.rstrip(),
             render_data_quality_section(
@@ -1145,7 +1146,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 )
                 review = f"{review.rstrip()}\n\n{fallback_heading}\n{sector_block}\n"
 
-        return review
+        return self._wrap_daily_report(review, overview)
 
 
 
