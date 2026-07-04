@@ -2866,6 +2866,10 @@ Sector text.
         assert "| 上涨/下跌/平盘 | 3200 / 1800 / 100 |" in result
         assert "| 指数 | 最新 | 涨跌幅 | 开盘 | 最高 | 最低 | 振幅 | 成交额(亿) |" in result
         assert "| 上证指数 | 3300.00 | 🟢 +0.36% | 3288.00 | 3312.00 | 3276.00 | 1.10% | 1450 |" in result
+        assert "# AI 股票基金市场日报" in result
+        assert "## 1. 今日一句话总结" in result
+        assert "## 7. 数据质量说明" in result
+        assert "## 8. 今日观察重点" in result
         assert "#### 行业板块领涨 Top 5" in result
         assert "| 1 | AI算力 | +3.25% |" in result
         assert "#### 近三日市场线索" not in result

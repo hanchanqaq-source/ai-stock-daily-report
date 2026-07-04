@@ -33,6 +33,13 @@ from src.llm.generation_backend import GenerationError
 from src.schemas.market_light import MARKET_LIGHT_REGIONS, MarketLightSnapshot
 from src.services.run_diagnostics import record_llm_run, record_llm_run_started
 from src.services.intelligence_service import IntelligenceService
+from src.report_sections import (
+    NO_DATA_MESSAGE,
+    render_data_quality_section,
+    render_one_line_summary,
+    render_watchlist_section,
+    sanitize_observation_text,
+)
 from data_provider.base import DataFetcherManager
 
 logger = logging.getLogger(__name__)
@@ -872,11 +879,42 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             trend_result = analyze_multi_window_trends([5, 20])
             trend_text = render_trend_summary_text(trend_result)
             if not trend_text.strip():
-                return report
-            return f"{report.rstrip()}\n\n{trend_text}"
+                return self._wrap_daily_report(report, None)
+            return self._wrap_daily_report(f"{report.rstrip()}\n\n{trend_text}", None)
         except Exception as exc:  # pragma: no cover - defensive report-path guard
             logger.warning("[TREND_ANALYZER] skipped_reason=%s", exc)
+            return self._wrap_daily_report(report, None)
+
+    def _wrap_daily_report(self, report: str, overview: Optional[MarketOverview]) -> str:
+        """Add the unified daily shell while keeping legacy section titles intact."""
+        if self._get_review_language() != "zh" or report.lstrip().startswith("# AI 股票基金市场日报"):
             return report
+        summary = "观察市场温度、指数承接、成交额变化和板块 / 概念持续性。"
+        for line in report.splitlines():
+            stripped = line.strip()
+            if stripped.startswith(">"):
+                summary = stripped.lstrip("> ").strip() or summary
+                break
+        sections = [
+            "# AI 股票基金市场日报",
+            "## AI 股票基金市场日报",
+            render_one_line_summary(summary, title="## 1. 今日一句话总结"),
+            report.rstrip(),
+            render_data_quality_section(
+                {
+                    "覆盖率": NO_DATA_MESSAGE,
+                    "缺失字段": NO_DATA_MESSAGE,
+                    "部分缺失字段": "无",
+                    "是否影响判断": "否",
+                },
+                title="## 7. 数据质量说明",
+            ),
+            render_watchlist_section(
+                ["市场温度是否延续", "成交额是否配合指数承接", "板块 / 概念持续性是否扩散"],
+                title="## 8. 今日观察重点",
+            ),
+        ]
+        return "\n\n".join(section.strip() for section in sections if section).rstrip() + "\n"
 
     def _get_analyzer_generation_backend_config_error(self) -> Optional[GenerationError]:
         """Return analyzer backend config errors without relying on dynamic mock attributes."""
@@ -1108,7 +1146,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
                 )
                 review = f"{review.rstrip()}\n\n{fallback_heading}\n{sector_block}\n"
 
-        return review
+        return self._wrap_daily_report(review, overview)
 
 
 
@@ -1439,7 +1477,7 @@ Focus on index trend, liquidity, and sector rotation to shape the next-session t
             else "- **涨停/跌停**：暂缺",
             f"- 涨跌停差：{limit_spread:+d}" if (overview.limit_up_count or overview.limit_down_count) else "- 涨跌停差：暂缺",
             f"- **信号依据**：{'；'.join(light['reasons'])}",
-            f"- **操作建议**：{light['guidance']}",
+            f"- **操作建议**：{sanitize_observation_text(light['guidance'])}",
             "",
             "| 指标 | 数值 | 观察 |",
             "|------|------|------|",
@@ -2294,7 +2332,7 @@ Market conditions can change quickly. The data above is for reference only and d
             if self.profile.has_market_stats
             else ""
         )
-        return f"""## {overview.date} 大盘复盘
+        return self._wrap_daily_report(f"""## {overview.date} 大盘复盘
 
 > 今日{market_label}市场整体呈现**{market_mood}**态势，优先观察{summary_focus}。
 
@@ -2320,7 +2358,7 @@ Market conditions can change quickly. The data above is for reference only and d
 
 ---
 *复盘时间: {datetime.now().strftime('%H:%M')}*
-"""
+""", overview)
     
     def _run_daily_review_parts(self) -> MarketLightReviewResult:
         """Run market review once and keep report/snapshot on the same overview."""

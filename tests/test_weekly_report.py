@@ -57,7 +57,7 @@ def test_weekly_report_shows_insufficient_history(tmp_path):
 
     assert result.insufficient_history is True
     assert result.structured_result["status"] == "insufficient_data"
-    assert "历史样本不足" in result.report
+    assert "历史样本不足，暂不生成趋势判断。" in result.report
     assert "历史样本不足" in result.discord_summary
 
 
@@ -77,13 +77,16 @@ def test_weekly_report_generates_enhanced_markdown_and_structured_result(tmp_pat
     assert result.structured_result["metrics"]["average_rise_ratio"] == 46.0
     assert result.structured_result["market_temperature"] in {"升温", "降温", "震荡", "数据不足"}
     assert "# AI 股票基金市场周报" in result.report
+    assert "## 1. 本周一句话总结" in result.report
     assert "## 2. 本周市场温度" in result.report
     assert "- 本周交易日数量：5" in result.report
     assert "- 平均上涨占比：46.0%" in result.report
     assert "- 平均成交额：12000.0 亿" in result.report
     assert "- 市场温度：" in result.report
+    assert "## 3. 本周趋势观察" in result.report
     assert "近 5 日趋势" in result.report
     assert "近 20 日趋势" in result.report
+    assert "## 4. 板块 / 概念持续性观察" in result.report
     assert "持续走强方向" in result.report
     assert "数据质量说明" in result.report
     assert "下周观察重点" in result.report
