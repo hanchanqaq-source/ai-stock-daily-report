@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [chore] AI 股票基金每日盯盘报告 workflow 在日报成功后仅将 data/history/ 公开市场历史数据变更提交回当前分支，提交信息带 [skip ci] 且跳过空提交。
 - [新功能] 新增公开市场历史数据仓库，日报大盘复盘后保存 data/history JSON 快照与 CSV 汇总，并提供最近快照读取工具。
 - [新功能] 新增轻量数据覆盖率检查模块，并在 Discord 日报摘要中展示覆盖率、数据日期、数据状态与重点缺失字段。
 - [新功能] 新增 AI 股票基金每周复盘报告，可读取本周市场快照生成周度趋势 artifact，并支持 Discord 精简摘要与 GitHub Actions 手动/定时触发。
