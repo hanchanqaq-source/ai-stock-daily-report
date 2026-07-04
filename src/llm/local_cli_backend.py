@@ -855,6 +855,12 @@ class LocalCliGenerationBackend(GenerationBackend):
                             try:
                                 stdio_output_bytes = _combined_path_size_required(stdout_path, stderr_path)
                             except OSError as exc:
+                                # A stat failure can race with a child process that has
+                                # just created a diagnostic file but has not flushed its
+                                # contents yet. Give the process one poll interval before
+                                # terminating the whole group so diagnostics stay usable,
+                                # then still fail with structured output_stat details.
+                                time.sleep(_PROCESS_POLL_INTERVAL_SECONDS)
                                 self._terminate_process_group(process)
                                 diagnostics.update(_preview_diagnostics_from_files(stdout_path, stderr_path))
                                 raise self._output_file_error(
