@@ -521,6 +521,12 @@ def _prepend_market_review_data_note(markdown: str, payload: Dict[str, Any]) -> 
     quality = payload.get("data_quality") if isinstance(payload, dict) else {}
     if not isinstance(quality, dict):
         quality = {}
+    has_explicit_data_note = any(
+        payload.get(key) is not None
+        for key in ("report_date", "latest_data_date", "data_date", "data_mode", "force_run")
+    ) or bool(quality)
+    if not has_explicit_data_note:
+        return text
     report_date = str(payload.get("report_date") or datetime.now().strftime("%Y-%m-%d"))
     market_date = str(
         payload.get("latest_data_date")

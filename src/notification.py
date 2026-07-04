@@ -339,11 +339,14 @@ def _discord_data_quality_lines(content: str) -> List[str]:
         market_date = str(quality.get("latest_data_date") or "未知")
         coverage = quality.get("coverage_percent")
         mode = str(quality.get("data_mode") or "unknown")
+        coverage_text = f"{coverage if coverage is not None else 0}%"
         lines = [
             f"• 报告日期：{report_date}",
             f"• 行情日期：{market_date}",
+            f"• 数据日期：{market_date}",
             f"• 数据状态：{data_mode_label(mode)}",
-            f"• 数据覆盖率：{coverage if coverage is not None else 0}%",
+            f"• 数据质量：{coverage_text}",
+            f"• 数据覆盖率：{coverage_text}",
         ]
         if mode == "history_fallback":
             lines.append(f"• 说明：实时数据暂缺，以下使用最近历史快照 {market_date}。")
