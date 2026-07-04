@@ -1,5 +1,7 @@
 # 多用户报告分发框架说明
 
+> 项目级产品规则见 `docs/product_rules.md`。
+
 `src/user_report_dispatcher.py` 是 P5-C 的公开仓库安全版 / dry-run 版多用户报告分发框架。当前阶段只基于 `config/examples/` 下的 example 配置生成结构化 delivery plan 和 Markdown demo，不接入正式日报、周报、Discord Webhook、GitHub Actions 定时任务、历史保存或归档清理。
 
 ## 当前 public 阶段边界
