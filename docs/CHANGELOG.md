@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增基于公开市场历史数据的近 5 日 / 20 日趋势分析，并在大盘日报 Markdown 追加可选趋势观察小节。
 - [新功能] 新增历史数据月度归档摘要、机器摘要与待删除清单生成能力，默认不删除重要文件，后续清理需显式确认。
 - [chore] AI 股票基金每日盯盘报告 workflow 在日报成功后仅将 data/history/ 公开市场历史数据变更提交回当前分支，提交信息带 [skip ci] 且跳过空提交。
 - [新功能] 新增公开市场历史数据仓库，日报大盘复盘后保存 data/history JSON 快照与 CSV 汇总，并提供最近快照读取工具。
