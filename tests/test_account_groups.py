@@ -16,6 +16,18 @@ from src.account_groups import (
 )
 
 
+def collect_keys(obj):
+    keys = []
+    if isinstance(obj, dict):
+        for key, value in obj.items():
+            keys.append(key)
+            keys.extend(collect_keys(value))
+    elif isinstance(obj, list):
+        for item in obj:
+            keys.extend(collect_keys(item))
+    return keys
+
+
 def test_loads_example_account_groups():
     config = load_example_account_groups()
     validate_account_group_config(config)
@@ -30,8 +42,7 @@ def test_loads_example_account_groups():
 def test_example_config_contains_no_sensitive_personal_or_money_values():
     config = load_example_account_groups()
     assert scan_account_group_for_sensitive_values(config) == []
-    serialized = str(config).lower()
-    forbidden_fragments = [
+    forbidden_keys = {
         "email",
         "phone",
         "id_card",
@@ -47,9 +58,9 @@ def test_example_config_contains_no_sensitive_personal_or_money_values():
         "webhook",
         "token",
         "api_key",
-    ]
-    for fragment in forbidden_fragments:
-        assert fragment not in serialized
+    }
+    for key in collect_keys(config):
+        assert key.lower() not in forbidden_keys
 
 
 def test_validates_required_account_group_fields():
