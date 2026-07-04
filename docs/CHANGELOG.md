@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-D 账户 / 分组模型 example 配置、统一 assets 结构、读取校验、动态页面判断、结构化摘要与 public-safe 文档说明。
+
 - [新功能] 新增 GLOBAL-R1 信息来源可查证规则文档、来源证据结构、自动补全校验与正式分析可用性测试约束。
 - [新功能] 新增公开仓库安全扫描脚本、脱敏结构化报告、example 误报控制测试与安全检查文档。
 

@@ -1,0 +1,137 @@
+{
+  "config_version": 1,
+  "account_groups": [
+    {
+      "account_id": "demo_fund_group",
+      "account_name": "示例基金组",
+      "enabled": true,
+      "risk_profile": "balanced",
+      "description": "只包含基金的示例账户分组",
+      "assets": [
+        {
+          "asset_id": "demo_fund_001",
+          "type": "fund",
+          "code": "000000",
+          "name": "示例基金A",
+          "market": "CN",
+          "tags": ["示例标签", "AI硬件"],
+          "status": "holding",
+          "weight_level": 3,
+          "source_status": "manual_user_input"
+        }
+      ]
+    },
+    {
+      "account_id": "demo_stock_group",
+      "account_name": "示例股票组",
+      "enabled": true,
+      "risk_profile": "balanced",
+      "description": "只包含股票的示例账户分组",
+      "assets": [
+        {
+          "asset_id": "demo_stock_001",
+          "type": "stock",
+          "code": "000000",
+          "name": "示例股票A",
+          "market": "CN",
+          "tags": ["示例标签", "PCB"],
+          "status": "watching",
+          "weight_level": 1,
+          "source_status": "manual_user_input"
+        }
+      ]
+    },
+    {
+      "account_id": "demo_mixed_group",
+      "account_name": "示例基金股票混合组",
+      "enabled": true,
+      "risk_profile": "balanced",
+      "description": "同时包含基金和股票的示例账户分组",
+      "assets": [
+        {
+          "asset_id": "demo_mixed_fund_001",
+          "type": "fund",
+          "code": "000000",
+          "name": "示例基金B",
+          "market": "CN",
+          "tags": ["示例标签", "半导体"],
+          "status": "holding",
+          "weight_level": 3,
+          "source_status": "manual_user_input"
+        },
+        {
+          "asset_id": "demo_mixed_stock_001",
+          "type": "stock",
+          "code": "000000",
+          "name": "示例股票B",
+          "market": "CN",
+          "tags": ["示例标签", "AI硬件"],
+          "status": "watching",
+          "weight_level": 2,
+          "source_status": "manual_user_input"
+        }
+      ]
+    },
+    {
+      "account_id": "demo_company_group",
+      "account_name": "示例企业观察组",
+      "enabled": true,
+      "risk_profile": "balanced",
+      "description": "只包含企业、行业、主题、指数的示例账户分组",
+      "assets": [
+        {
+          "asset_id": "demo_company_001",
+          "type": "company",
+          "code": "000000",
+          "name": "示例企业A",
+          "market": "unknown",
+          "tags": ["示例标签"],
+          "status": "watching",
+          "weight_level": 1,
+          "source_status": "manual_user_input"
+        },
+        {
+          "asset_id": "demo_industry_001",
+          "type": "industry",
+          "code": "000000",
+          "name": "示例行业A",
+          "market": "unknown",
+          "tags": ["示例标签"],
+          "status": "cleared",
+          "weight_level": 1,
+          "source_status": "manual_user_input"
+        },
+        {
+          "asset_id": "demo_theme_001",
+          "type": "theme",
+          "code": "000000",
+          "name": "示例主题A",
+          "market": "unknown",
+          "tags": ["示例标签"],
+          "status": "archived",
+          "weight_level": 1,
+          "source_status": "manual_user_input"
+        },
+        {
+          "asset_id": "demo_index_001",
+          "type": "index",
+          "code": "000000",
+          "name": "示例指数A",
+          "market": "CN",
+          "tags": ["示例标签"],
+          "status": "watching",
+          "weight_level": 1,
+          "source_status": "manual_user_input"
+        }
+      ]
+    },
+    {
+      "account_id": "demo_empty_group",
+      "account_name": "示例空分组",
+      "enabled": true,
+      "risk_profile": "balanced",
+      "description": "不包含资产的示例账户分组",
+      "assets": []
+    }
+  ]
+}

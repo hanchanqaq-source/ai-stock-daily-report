@@ -52,3 +52,7 @@ python scripts/run_delivery_plan_demo.py
 该脚本只加载 example 配置，只生成 dry-run delivery plan，并打印 Markdown demo；不会读取真实 `data/user_config`，不会读取 webhook，也不会发送 Discord。
 
 后续所有资产识别、标签补全和个人雷达分析必须遵守 `docs/source_verification.md` 的信息来源可查证规则。
+
+## 账户 / 分组模型衔接
+
+后续多用户报告分发将逐步简化为账户 / 分组 / 投资组合模型。账户不代表实名用户，不需要邮箱、手机号或身份证；账户中的 `assets` 将作为个人雷达和网页工作台的主要输入，分发框架继续保持 public-safe dry-run 边界。
