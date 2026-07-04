@@ -14,6 +14,7 @@ from typing import Any, Mapping, Optional
 from src.history_store import load_market_history_csv
 from src.trend_analyzer import analyze_multi_window_trends, analyze_multi_window_persistence
 from src.risk_radar import build_risk_radar
+from src.watchlist_builder import build_watchlist, render_watchlist_markdown
 from src.report_sections import (
     INSUFFICIENT_HISTORY_MESSAGE as STANDARD_INSUFFICIENT_HISTORY_MESSAGE,
     NO_DATA_MESSAGE,
@@ -23,7 +24,6 @@ from src.report_sections import (
     render_risk_radar_section,
     render_sector_persistence_section,
     render_trend_observation_section,
-    render_watchlist_section,
     sanitize_observation_text,
 )
 
@@ -150,6 +150,8 @@ def _build_structured_result(items: list[dict[str, Any]], week_start: date, week
     }
     temperature = _weekly_temperature(items, trend)
     data_quality = _data_quality(items)
+    risk_radar = build_risk_radar(latest_snapshot=items[-1] if items else {}, trend=trend, persistence=persistence, data_quality=data_quality, history_count=len(items))
+    watchlist = build_watchlist(trend=trend, persistence=persistence, risk_radar=risk_radar, data_quality=data_quality, latest_snapshot=items[-1] if items else {}, period="weekly")
     result = {
         "week_start": week_start.isoformat(),
         "week_end": week_end.isoformat(),
@@ -161,8 +163,8 @@ def _build_structured_result(items: list[dict[str, Any]], week_start: date, week
         "trend": trend,
         "persistence": persistence,
         "data_quality": data_quality,
-        "risk_radar": build_risk_radar(latest_snapshot=items[-1] if items else {}, trend=trend, persistence=persistence, data_quality=data_quality, history_count=len(items)),
-        "next_week_watchlist": _watchlist(temperature, trend, persistence, data_quality),
+        "risk_radar": risk_radar,
+        "next_week_watchlist": watchlist,
     }
     if status == "insufficient_data":
         logger.info("[WEEKLY_REPORT] skipped_reason=insufficient_weekly_history")
@@ -245,7 +247,7 @@ def _render_markdown(r: Mapping[str, Any]) -> str:
             low_quality=low_quality,
         ),
         render_risk_radar_section(r.get("risk_radar", {}), title="## 本周风险雷达", weekly=True),
-        render_watchlist_section(r.get("next_week_watchlist", []), title="## 6. 下周观察重点"),
+        render_watchlist_markdown(r.get("next_week_watchlist", {}), title="## 下周观察清单"),
     ]
     return "\n\n".join(section.strip() for section in sections if section).rstrip() + "\n"
 
@@ -263,6 +265,7 @@ def _render_discord_summary(r: Mapping[str, Any]) -> str:
         "数据质量：",
         f"本周平均覆盖率：{_fmt(r.get('data_quality', {}).get('average_coverage_percent'))}%",
         _risk_discord_line(r.get("risk_radar", {})),
+        _watchlist_discord_line(r.get("next_week_watchlist", {})),
     ]
     return "\n".join(lines)
 
@@ -357,3 +360,10 @@ def _risk_discord_line(radar):
     risks = [str(x.get("risk_type", "")).replace("风险", "") for x in radar.get("risks", []) if isinstance(x, Mapping) and x.get("level") in {"中", "高"}]
     focus = "、".join(risks[:2]) if risks else "暂无明显中高风险"
     return f"风险雷达：综合风险{radar.get('overall_risk_level', '数据不足')}，主要关注{focus}。"
+
+
+def _watchlist_discord_line(watchlist):
+    if not isinstance(watchlist, Mapping) or watchlist.get("status") != "available":
+        return "观察清单：历史样本不足，暂不生成完整观察重点。"
+    items = [str(x) for x in watchlist.get("next_period_watch", []) if x]
+    return "观察清单：重点观察" + "、".join(items[:3]) + "。" if items else "观察清单：继续观察成交额变化、持续强势方向扩散，以及冲高回落风险。"
