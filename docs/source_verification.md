@@ -2,7 +2,7 @@
 
 > 项目级产品规则见 `docs/product_rules.md`。
 
-统一资产模型见 `docs/asset_model.md`，后续账户分组、个人雷达、网页工作台均应复用该模型。
+统一资产模型见 `docs/asset_model.md`，后续账户分组、个人雷达、网页工作台均应复用该模型。代码自动识别框架见 `docs/code_identifier.md`，所有识别结果必须遵守信息来源可查证规则。
 
 ## 1. 为什么需要这个规则
 

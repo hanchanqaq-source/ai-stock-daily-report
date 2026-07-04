@@ -141,8 +141,10 @@ def validate_asset(asset: dict[str, Any]) -> None:
         raise AssetModelError(f"Invalid type for asset_id {asset_id}.")
     if not isinstance(asset.get("code"), str):
         raise AssetModelError(f"code must be a string for asset_id {asset_id}.")
-    if not isinstance(asset.get("name"), str) or not asset.get("name"):
-        raise AssetModelError(f"name is required for asset_id {asset_id}.")
+    if not isinstance(asset.get("name"), str):
+        raise AssetModelError(f"name must be a string for asset_id {asset_id}.")
+    if not asset.get("name") and asset.get("source_status") in {"manual_user_input", "verified"}:
+        raise AssetModelError(f"name is required for confirmed asset_id {asset_id}.")
     if asset.get("market") not in ALLOWED_MARKETS:
         raise AssetModelError(f"Invalid market for asset_id {asset_id}.")
     if not isinstance(asset.get("tags", []), list) or not all(isinstance(tag, str) for tag in asset.get("tags", [])):
