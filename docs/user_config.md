@@ -61,3 +61,5 @@ P5-A 不会执行以下行为：
 - 不做多 webhook 或 Discord 私人频道推送。
 - 不接入数据库、SQLite、DeepSeek 或新数据源。
 - 不保存真实个人数据、真实金额、成本价、账户资产、webhook URL、Token 或 API Key。
+
+后续所有资产识别、标签补全和个人雷达分析必须遵守 `docs/source_verification.md` 的信息来源可查证规则。
