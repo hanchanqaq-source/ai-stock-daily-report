@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-H 资产状态管理模块，支持 holding / watching / cleared / archived / deleted 的预览确认、风险等级、结构化执行结果与回归测试。
 - [新功能] 新增 P5-F 代码自动识别框架，基于格式规则返回资产类型 / 市场候选、置信度、来源证据、待确认状态与 asset 草稿转换，当前不联网、不补全真实名称或标签。
 - [新功能] 新增 P5-E 统一资产模型模块、资产校验 / 标准化 / 摘要 / public safe view，并让账户分组复用统一 asset 枚举与安全检查。
 - [文档] 新增 AI 股票基金日报系统产品规则总纲，记录账户 / 分组、统一资产、DATA-R1、GLOBAL-R2、危险操作确认和后续优先级路线。
