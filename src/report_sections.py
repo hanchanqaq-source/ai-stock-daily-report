@@ -98,3 +98,30 @@ def _format_value(value: Any) -> str:
     if isinstance(value, (list, tuple, set)):
         return "、".join(str(x) for x in value if x) or "无"
     return str(value)
+
+
+def render_risk_radar_section(radar: Mapping[str, Any] | None, *, title: str = "## 风险雷达", weekly: bool = False) -> str:
+    """Render structured risk radar data into compact Markdown."""
+    radar = radar if isinstance(radar, Mapping) else {}
+    lines = [title, ""]
+    if radar.get("status") == "insufficient_data" and not radar.get("risks"):
+        lines.extend([
+            "- 综合风险等级：数据不足",
+            "- 说明：历史样本不足，暂不生成完整风险判断。",
+        ])
+        return "\n".join(lines)
+    lines.append(f"- 综合风险等级：{sanitize_observation_text(radar.get('overall_risk_level') or '数据不足')}")
+    risks = list(radar.get("risks") or [])
+    if weekly:
+        names = [str(r.get("risk_type", "")).replace("风险", "") for r in risks if r.get("level") in {"中", "高"}]
+        lines.append(f"- 本周主要风险：{'、'.join(names[:5]) if names else '暂无明显中高风险'}")
+    for risk in risks[:6]:
+        if not isinstance(risk, Mapping):
+            continue
+        reason = sanitize_observation_text(risk.get("reason") or NO_DATA_MESSAGE)
+        lines.append(f"- {risk.get('risk_type', '风险提示')}：{risk.get('level', '数据不足')}，原因：{reason}")
+    points = [sanitize_observation_text(x) for x in (radar.get("watch_points") or []) if x]
+    if points:
+        lines.append(f"- {'下周' if weekly else '今日'}观察重点：")
+        lines.extend(f"  - {p}" for p in points[:5])
+    return "\n".join(lines)

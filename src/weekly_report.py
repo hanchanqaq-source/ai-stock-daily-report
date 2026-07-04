@@ -13,12 +13,14 @@ from typing import Any, Mapping, Optional
 
 from src.history_store import load_market_history_csv
 from src.trend_analyzer import analyze_multi_window_trends, analyze_multi_window_persistence
+from src.risk_radar import build_risk_radar
 from src.report_sections import (
     INSUFFICIENT_HISTORY_MESSAGE as STANDARD_INSUFFICIENT_HISTORY_MESSAGE,
     NO_DATA_MESSAGE,
     render_data_quality_section,
     render_market_temperature_section,
     render_one_line_summary,
+    render_risk_radar_section,
     render_sector_persistence_section,
     render_trend_observation_section,
     render_watchlist_section,
@@ -159,6 +161,7 @@ def _build_structured_result(items: list[dict[str, Any]], week_start: date, week
         "trend": trend,
         "persistence": persistence,
         "data_quality": data_quality,
+        "risk_radar": build_risk_radar(latest_snapshot=items[-1] if items else {}, trend=trend, persistence=persistence, data_quality=data_quality, history_count=len(items)),
         "next_week_watchlist": _watchlist(temperature, trend, persistence, data_quality),
     }
     if status == "insufficient_data":
@@ -241,6 +244,7 @@ def _render_markdown(r: Mapping[str, Any]) -> str:
             title="## 5. 数据质量说明",
             low_quality=low_quality,
         ),
+        render_risk_radar_section(r.get("risk_radar", {}), title="## 本周风险雷达", weekly=True),
         render_watchlist_section(r.get("next_week_watchlist", []), title="## 6. 下周观察重点"),
     ]
     return "\n\n".join(section.strip() for section in sections if section).rstrip() + "\n"
@@ -258,6 +262,7 @@ def _render_discord_summary(r: Mapping[str, Any]) -> str:
         f"冲高回落：{_names(p, 'pullback_risks', limit=3)}", "",
         "数据质量：",
         f"本周平均覆盖率：{_fmt(r.get('data_quality', {}).get('average_coverage_percent'))}%",
+        _risk_discord_line(r.get("risk_radar", {})),
     ]
     return "\n".join(lines)
 
@@ -344,3 +349,11 @@ def _watchlist(temp, trend, persistence, quality):
         for word in FORBIDDEN_ADVICE_WORDS: item=item.replace(word,"观察")
         clean.append(item)
     return clean
+
+
+def _risk_discord_line(radar):
+    if not isinstance(radar, Mapping) or radar.get("status") == "insufficient_data":
+        return "风险雷达：历史样本不足，暂不生成完整风险判断。"
+    risks = [str(x.get("risk_type", "")).replace("风险", "") for x in radar.get("risks", []) if isinstance(x, Mapping) and x.get("level") in {"中", "高"}]
+    focus = "、".join(risks[:2]) if risks else "暂无明显中高风险"
+    return f"风险雷达：综合风险{radar.get('overall_risk_level', '数据不足')}，主要关注{focus}。"
