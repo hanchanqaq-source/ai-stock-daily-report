@@ -29,6 +29,8 @@ P5-Q 阶段只做真实 A股 / ETF provider 接入前评估，不接真实行情
 
 ## 4. dry-run 路线
 
+接入路线为 dry-run → local-only → local real provider 最小闭环；P5-Q2 仅使用本地 fixture 验证字段映射和安全边界。
+
 后续路线必须按以下顺序推进：
 
 1. 先使用 fixture 验证 registry、字段映射和失败状态。

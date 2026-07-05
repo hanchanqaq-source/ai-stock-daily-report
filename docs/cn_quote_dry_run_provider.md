@@ -1,5 +1,7 @@
 # A股 / ETF Provider Dry-run Adapter 说明
 
+P5-Q2 新增 local-only provider，用于在不联网情况下验证字段映射和结果标准化；dry-run 仍只验证请求计划，不处理 provider response。
+
 ## 1. 设计目标
 
 A股 / ETF provider dry-run adapter 用于在真实 provider 接入前验证请求计划和安全检查。它只读取 `provider_registry` 中的候选 provider 元数据，检查 provider 是否默认关闭、是否需要 `network_enabled`、是否允许写入 public repo，以及是否具备字段映射、缓存策略和失败兜底策略。

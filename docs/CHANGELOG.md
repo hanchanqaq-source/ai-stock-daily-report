@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-Q2 A股 / ETF provider local-only 测试适配器，使用本地 fixture 验证字段映射、结果标准化和安全边界，不联网、不保存真实行情。
+
 - [新功能] 新增 P5-Q1 A股 / ETF provider dry-run adapter，基于 provider_registry 与 provider_safety 验证真实接入前的请求计划和安全边界；当前不联网、不请求真实行情、不保存真实价格、涨跌幅或成交额。
 
 - [新功能] 新增 P5-Q0 个人观察点位卡片与 Web 页面布局参考模型，提供 model_only 四宫格卡片、Markdown Demo、文案安全规则和测试；当前不联网、不接真实行情、不保存真实价格、涨跌幅、净值或成交额。
