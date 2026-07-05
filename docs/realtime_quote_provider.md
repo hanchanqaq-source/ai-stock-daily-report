@@ -31,3 +31,4 @@
 ## 数据安全边界
 
 本模块不得保存或返回真实 `price`、`change_pct`、`turnover`。当前 `QuoteResult` 中这些字段固定为 `None`，所有 mock 数据必须通过 `fixture_only=true` 与 `source_status=fixture_only` 标记。
+真实 provider 接入前安全规则见 `docs/provider_safety.md`。真实行情和真实基金净值默认不写入 public 仓库。真实 provider 必须显式启用网络权限，并保留来源、checked_at、source_status。
