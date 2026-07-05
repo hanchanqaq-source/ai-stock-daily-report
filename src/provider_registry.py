@@ -234,6 +234,7 @@ def build_provider_dry_run_plan(provider_name: str) -> dict[str, Any]:
             "run_fixture_only_contract_tests",
             "run_dry_run_without_network_request",
             "run_local_only_adapter_after_explicit_review",
+            "run_real_provider_minimal_gated_adapter_after_explicit_review",
         ],
         "entry_criteria": ["no real quote persistence", "no secrets in config", "explicit network gate for real providers"],
         "exit_criteria": ["source metadata preserved", "timeouts and retry limits defined", "conflicts marked with warning"],
@@ -349,6 +350,8 @@ def build_cn_quote_provider_evaluation() -> dict[str, Any]:
         "future_route": [
             "P5-Q1: A股 / ETF provider dry-run adapter",
             "P5-Q2: A股 / ETF provider local-only 测试",
+            "P5-Q3: A股 / ETF provider real-provider minimal gated adapter",
+            "P5-Q4: A股 / ETF provider 本地手动试跑脚本",
             "P5-R: 场外基金真实净值 provider 接入评估",
         ],
     }

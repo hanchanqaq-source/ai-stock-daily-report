@@ -1,6 +1,8 @@
 # A股 / ETF Provider Local-only 测试说明
 
 ## 1. 设计目标
+> P5-Q3 新增真实请求最小闭环 adapter，但默认关闭；CI 测试仍不联网，不请求真实行情。
+
 
 P5-Q2 local-only provider 用于在不联网的情况下验证未来 A股 / ETF provider response 的字段映射、结果标准化与安全边界。它只处理本地 fixture / demo provider response，不请求真实行情，不读取真实 `user_config`，不保存真实价格、涨跌幅或成交额。
 
