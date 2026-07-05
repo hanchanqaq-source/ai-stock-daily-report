@@ -29,7 +29,7 @@ P5-Q 阶段只做真实 A股 / ETF provider 接入前评估，不接真实行情
 
 ## 4. dry-run 路线
 
-接入路线为 dry-run → local-only → real-provider minimal gated adapter → local manual smoke test；P5-Q3 只新增默认关闭的真实请求最小闭环，CI 不联网。
+接入路线为 dry-run → local-only → real-provider minimal gated adapter → local manual smoke test；P5-Q4 在该路线末端新增本地手动 smoke 脚本，CI 仍不联网、不请求真实行情。
 
 后续路线必须按以下顺序推进：
 
@@ -37,7 +37,7 @@ P5-Q 阶段只做真实 A股 / ETF provider 接入前评估，不接真实行情
 2. 增加 dry-run adapter，只验证配置、字段计划和错误路径，不发起真实请求。
 3. 增加 local-only adapter，在显式配置下进行本地验证，产物不进入 public repo。
 4. 增加 real-provider minimal gated adapter，必须显式开启 network_enabled / provider_enabled / allow_real_request 后才允许调用注入 fetcher。
-5. 完成安全审查、字段映射审查和缓存审查后，再进入本地手动试跑脚本。
+5. 增加 local manual smoke test，只允许用户本地显式开启真实请求，CI 默认禁止真实 provider。
 
 ## 4.1 P5-Q1 dry-run adapter
 
