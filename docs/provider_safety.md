@@ -57,3 +57,5 @@ Token、API Key、Webhook、authorization、bearer、cookie、session、password
 - P5-S：真实 provider dry-run 模式。
 
 个人观察点位卡片见 `docs/personal_signal_cards.md`。Web 页面布局参考见 `docs/ui_layout_reference.md`。点位卡片仅用于个人观察和记录，不会自动执行任何操作。
+
+真实 A股 / ETF provider 接入评估见 `docs/cn_quote_provider_evaluation.md`。Provider registry 见 `docs/provider_registry.md`。候选 provider 不代表已接入或已验证，真实 provider 默认关闭。
