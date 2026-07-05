@@ -31,7 +31,7 @@ BASE_WARNINGS = [
     "本阶段为 fixture/mock 数据，不代表真实行情或真实基金净值。",
     "场外基金估算净值不等于最终净值，最终以基金公司公布净值为准。",
 ]
-DISCLAIMER = "本阶段仅验证账户行情 / 净值汇总框架，不抓取真实行情，不构成交易建议。"
+DISCLAIMER = "本阶段仅验证账户行情 / 净值汇总框架，不抓取真实行情，仅用于信息展示与风险观察。"
 COMPANY_UNSUPPORTED_REASON = "企业本身不是直接报价对象，后续可通过关联 stock asset 展示行情。"
 THEME_UNSUPPORTED_REASON = "行业 / 主题本阶段不直接抓行情，后续可通过指数或系统计算指标实现。"
 COMPUTED_UNSUPPORTED_REASON = "computed_indicator 由市场指标模块生成，本阶段不直接抓 quote。"
@@ -366,5 +366,5 @@ def render_account_realtime_summary_markdown(result: Mapping[str, Any]) -> str:
         "## 5. 数据说明",
         "- 本阶段为 mock / fixture 数据，不代表真实行情。",
         "- 场外基金不支持真正实时价格，盘中估算仅供观察，最终以基金公司公布净值为准。",
-        "- 本结果只做观察，不构成交易建议。",
+        "- 本结果仅用于信息展示与风险观察，不作为任何操作依据。",
     ])

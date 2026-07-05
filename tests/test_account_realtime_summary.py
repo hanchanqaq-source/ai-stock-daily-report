@@ -135,8 +135,8 @@ def test_markdown_demo_contains_required_disclaimer_and_no_forbidden_trading_wor
     markdown = render_account_realtime_summary_markdown(build_account_realtime_summary(mixed_group()))
     assert "最终以基金公司公布净值为准" in markdown
     assert "本阶段为 mock / fixture 数据，不代表真实行情。" in markdown
-    assert "本结果只做观察，不构成交易建议。" in markdown
-    for forbidden in ["买入", "卖出", "加仓", "减仓", "必须买", "必须卖", "实时基金涨跌", "实时基金净值"]:
+    assert "本结果仅用于信息展示与风险观察，不作为任何操作依据。" in markdown
+    for forbidden in ["买入", "卖出", "加仓", "减仓", "必须买", "必须卖", "交易建议", "实时基金涨跌", "实时基金净值"]:
         assert forbidden not in markdown
 
 

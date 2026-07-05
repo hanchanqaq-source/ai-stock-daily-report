@@ -65,3 +65,5 @@
 允许输出公开安全字段：`asset_id`、`type`、`code`、`name`、`market`、`tags`、`status`、`weight_level`、`source_status`。`weight_level` 只是 1 到 5 的关注等级，不是金额；`balanced` 是风险偏好枚举，不是 `balance`。
 
 禁止输出或保存：真实金额、成本价、账户资产、Webhook、Token、API Key、个人邮箱、手机号、身份证等敏感信息。
+
+账户页面行情 / 净值展示模型见 docs/account_market_page_adapter.md。页面模型只展示结构化行情 / 净值摘要，不保存真实行情数据。场外基金不能称为实时涨跌。
