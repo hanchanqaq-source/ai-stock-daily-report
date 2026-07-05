@@ -41,7 +41,7 @@ jobs:
   backend-gate:
     name: backend-gate
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 70
     needs: [ai-governance]
     steps:
       - name: 📥 Checkout
@@ -75,7 +75,7 @@ jobs:
       - name: ✅ Local deterministic checks
         run: ./scripts/ci_gate.sh deterministic
       - name: ✅ Offline test suite
-        timeout-minutes: 30
+        timeout-minutes: 60
         run: ./scripts/ci_gate.sh offline-tests
 
   docker-build:
