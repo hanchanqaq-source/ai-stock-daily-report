@@ -95,8 +95,9 @@ _INDEX_ITEMS = (
     ("kr_kosdaq", "KOSDAQ", "kr", "growth_tech", "official_index", "用于观察韩股成长市场表现。"),
     ("kr_kosdaq_150", "KOSDAQ 150", "kr", "growth_tech", "official_index", "用于观察韩股成长市场代表资产表现。"),
     ("kr_median_change_pct", "韩股中位数涨跌幅", "kr", "market_breadth", "computed_indicator", "用于观察韩股普通股票市场体感，非官方指数。"),
-    ("kr_advancing_ratio", "韩股上涨家数占比", "kr", "market_breadth", "computed_indicator", "用于观察韩股上涨股票覆盖面，非官方指数。"),
+    ("kr_rise_ratio", "韩股上涨家数占比", "kr", "market_breadth", "computed_indicator", "用于观察韩股上涨股票覆盖面，非官方指数。"),
     ("kr_average_change_pct", "韩股平均涨跌幅", "kr", "market_breadth", "computed_indicator", "用于观察韩股整体平均涨跌体感，非官方指数。"),
+    ("kr_equal_weight_change_pct", "韩股全市场等权涨跌", "kr", "market_breadth", "computed_indicator", "用于观察韩股等权口径市场体感，非官方指数。"),
     ("kr_turnover_change", "韩股成交额变化", "kr", "market_breadth", "computed_indicator", "用于观察韩股成交活跃度变化，非官方指数。"),
 )
 
