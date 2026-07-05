@@ -30,12 +30,13 @@ _GROUP_LABELS = {
     "core_weight": "权重核心",
     "growth_tech": "成长科技",
     "small_mid": "中小盘",
+    "broad_market": "大中小盘 / 覆盖",
     "market_breadth": "市场体感",
 }
 
 _MARKET_GROUP_ORDER = {
     "cn": ("core_weight", "small_mid", "growth_tech", "market_breadth"),
-    "hk": ("core_weight", "growth_tech", "market_breadth"),
+    "hk": ("core_weight", "growth_tech", "broad_market", "market_breadth"),
     "us": ("core_weight", "growth_tech", "small_mid", "market_breadth"),
     "kr": ("core_weight", "growth_tech", "market_breadth"),
 }
@@ -66,9 +67,13 @@ _INDEX_ITEMS = (
     ("hk_hscei", "恒生中国企业指数", "hk", "core_weight", "official_index", "用于观察港股中国企业权重资产表现。"),
     ("hk_hsci", "恒生综合指数", "hk", "core_weight", "official_index", "用于观察港股较广市场表现。"),
     ("hk_hstech", "恒生科技指数", "hk", "growth_tech", "official_index", "用于观察港股科技成长资产表现。"),
+    ("hk_large_cap", "恒生大型股指数", "hk", "broad_market", "official_index", "用于观察港股大型股覆盖表现，不包含真实点位。"),
+    ("hk_mid_cap", "恒生中型股指数", "hk", "broad_market", "official_index", "用于观察港股中型股覆盖表现，不包含真实点位。"),
+    ("hk_small_cap", "恒生小型股指数", "hk", "broad_market", "official_index", "用于观察港股小型股覆盖表现，不包含真实点位。"),
     ("hk_median_change_pct", "港股中位数涨跌幅", "hk", "market_breadth", "computed_indicator", "用于观察港股普通股票市场体感，非官方指数。"),
-    ("hk_advancing_ratio", "港股上涨家数占比", "hk", "market_breadth", "computed_indicator", "用于观察港股上涨股票覆盖面，非官方指数。"),
     ("hk_average_change_pct", "港股平均涨跌幅", "hk", "market_breadth", "computed_indicator", "用于观察港股整体平均涨跌体感，非官方指数。"),
+    ("hk_rise_ratio", "港股上涨家数占比", "hk", "market_breadth", "computed_indicator", "用于观察港股上涨股票覆盖面，非官方指数。"),
+    ("hk_equal_weight_change_pct", "港股全市场等权涨跌", "hk", "market_breadth", "computed_indicator", "用于观察港股等权口径市场体感，非官方指数。"),
     ("hk_turnover_change", "港股成交额变化", "hk", "market_breadth", "computed_indicator", "用于观察港股成交活跃度变化，非官方指数。"),
     ("us_sp_500", "标普500", "us", "core_weight", "official_index", "用于观察美股大盘核心资产表现。"),
     ("us_djia", "道琼斯工业平均指数", "us", "core_weight", "official_index", "用于观察美股蓝筹工业代表资产表现。"),
