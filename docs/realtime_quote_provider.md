@@ -1,5 +1,5 @@
 # 股票 / ETF 实时行情抓取框架（离线完整版）
-真实 A股 / ETF provider 接入评估见 `docs/cn_quote_provider_evaluation.md`。Provider registry 见 `docs/provider_registry.md`。候选 provider 不代表已接入或已验证，真实 provider 默认关闭。
+真实 A股 / ETF provider 接入评估见 `docs/cn_quote_provider_evaluation.md`。Provider registry 见 `docs/provider_registry.md`。P5-Q1 dry-run adapter 见 `docs/cn_quote_dry_run_provider.md`，用于在真实接入前验证请求计划和安全边界；dry-run 不请求真实行情，不保存真实数据。候选 provider 不代表已接入或已验证，真实 provider 默认关闭。
 账户资产行情 / 基金净值汇总见 `docs/account_realtime_summary.md`。股票 / ETF / 官方指数走 `realtime_quote_provider`；场外基金走 `fund_nav_provider`；持有和收藏必须分开汇总；场外基金不能称为实时涨跌。
 场外基金净值 / 估算涨跌抓取框架见 `docs/fund_nav_provider.md`。场外 fund 不进入股票 / ETF 实时行情框架；场外 fund 只能展示净值 / 估算净值，不能称为实时涨跌。
 

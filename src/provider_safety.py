@@ -11,11 +11,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Mapping
 
-PROVIDER_TYPES = frozenset({"fixture", "mock", "public_web", "api", "local_cache"})
+PROVIDER_TYPES = frozenset({"fixture", "mock", "public_web", "public_web_or_library", "api", "local_cache"})
 DATA_MODES = frozenset({
     "fixture_only",
     "mock_only",
     "model_only",
+    "dry_run",
     "real_provider",
     "real_provider_cached",
     "mixed_real_and_fixture",
@@ -91,6 +92,7 @@ def classify_provider_data_mode(provider_config: Mapping[str, Any]) -> str:
         "mock": "mock_only",
         "local_cache": "real_provider_cached",
         "public_web": "real_provider",
+        "public_web_or_library": "real_provider",
         "api": "real_provider",
     }.get(provider_type, "unsupported")
 
@@ -124,10 +126,10 @@ def validate_provider_config(config: Mapping[str, Any]) -> list[str]:
     provider_type = str(config.get("provider_type") or "")
     if provider_type not in PROVIDER_TYPES:
         errors.append("unsupported provider_type")
-    if provider_type in {"public_web", "api"} and config.get("enabled") is True:
+    if provider_type in {"public_web", "public_web_or_library", "api"} and config.get("enabled") is True:
         if config.get("network_enabled") is not True:
             errors.append("network provider must explicitly set network_enabled=true")
-    if provider_type == "public_web":
+    if provider_type in {"public_web", "public_web_or_library"}:
         for field in ("timeout_seconds", "retry", "rate_limit"):
             if field not in config:
                 errors.append(f"public_web provider requires {field}")

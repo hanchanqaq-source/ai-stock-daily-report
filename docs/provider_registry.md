@@ -26,6 +26,10 @@ Provider registry 用于登记 A股 / ETF / 官方指数行情候选数据源，
 | `tencent_finance` | `public_web` | CN | stock / etf | `candidate_only` |
 | `local_fixture` | `fixture` | CN | stock / etf / index | `supported_for_tests` |
 
+## 3.1 P5-Q1 dry-run adapter
+
+P5-Q1 已新增 A股 / ETF provider dry-run adapter，用于在真实接入前验证请求计划和安全边界。dry-run 只读取 registry 中的候选状态、字段映射、缓存策略和失败兜底策略，不请求真实行情，不保存真实数据。
+
 ## 4. 启用策略
 
 真实 provider 默认关闭，必须显式启用 `network_enabled` 和 provider config，且必须通过 provider safety、字段映射、timeout、retry、cache policy 和 source metadata 检查。
