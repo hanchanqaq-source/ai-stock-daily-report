@@ -48,6 +48,31 @@ def mixed_group():
     }
 
 
+
+FORBIDDEN_DIRECTIVE_TRADING_PHRASES = [
+    "建议买入", "建议卖出", "建议加仓", "建议减仓", "建议清仓",
+    "推荐买入", "推荐卖出", "推荐加仓", "推荐减仓", "推荐清仓",
+    "应该买入", "应该卖出", "应该加仓", "应该减仓", "应该清仓",
+    "必须买入", "必须卖出", "必须加仓", "必须减仓", "必须清仓",
+    "立即买入", "立即卖出", "立即加仓", "立即减仓", "立即清仓",
+    "可以买入", "可以卖出", "可以加仓", "可以减仓", "可以清仓",
+]
+
+FORBIDDEN_FUND_REALTIME_PHRASES = [
+    "实时基金涨跌",
+    "实时基金净值",
+    "基金实时涨跌",
+    "基金实时净值",
+]
+
+
+def assert_no_directive_trading_phrases(text: str) -> None:
+    for phrase in FORBIDDEN_DIRECTIVE_TRADING_PHRASES:
+        assert phrase not in text, f"不应出现指挥性交易表达: {phrase}"
+    for phrase in FORBIDDEN_FUND_REALTIME_PHRASES:
+        assert phrase not in text, f"场外基金不应被写成实时行情: {phrase}"
+
+
 def payload_text(value):
     return json.dumps(value, ensure_ascii=False) + "\n" + render_account_market_page_demo_markdown(value)
 
@@ -85,7 +110,7 @@ def test_page_sections_match_required_filters_and_comparison_counts():
     assert watching["results"] and all(item["asset"]["status"] == "watching" for item in watching["results"])
     assert compare["holding"]["available_count"] == 2
     assert compare["watching"]["available_count"] == 2
-    assert "买" not in compare["disclaimer"] and "卖" not in compare["disclaimer"]
+    assert_no_directive_trading_phrases(compare["disclaimer"])
 
 
 def test_empty_and_history_pages_do_not_show_current_market_data():
@@ -124,9 +149,11 @@ def test_markdown_has_required_notes_and_no_forbidden_trading_or_fund_realtime_w
     markdown = render_account_market_page_demo_markdown(build_account_page_model_with_market_data(mixed_group()))
     assert "最终以基金公司公布净值为准" in markdown
     assert "本阶段为 mock / fixture 数据，不代表真实行情。" in markdown
-    assert "本结果仅用于信息展示与风险观察，不作为任何操作依据。" in markdown
-    for forbidden in ["买入", "卖出", "加仓", "减仓", "必须买", "必须卖", "交易建议", "实时基金涨跌", "实时基金净值"]:
-        assert forbidden not in markdown
+    assert "本页面内容不构成投资建议。" in markdown
+    assert "本页面仅用于信息展示、风险观察和个人记录，不会自动执行任何操作。" in markdown
+    assert "记录买入 / 记录卖出 / 记录加仓 / 记录减仓 / 标记清仓" in markdown
+    assert "不代表系统建议你进行对应操作" in markdown
+    assert_no_directive_trading_phrases(markdown)
 
 
 def test_output_excludes_real_values_money_holdings_and_secrets():
