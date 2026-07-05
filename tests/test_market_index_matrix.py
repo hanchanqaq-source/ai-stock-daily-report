@@ -52,6 +52,7 @@ def test_market_group_orders():
     assert [g["key"] for g in build_market_page_model("hk")["groups"]] == [
         "core_weight",
         "growth_tech",
+        "broad_market",
         "market_breadth",
     ]
     assert [g["key"] for g in build_market_page_model("us")["groups"]] == [
