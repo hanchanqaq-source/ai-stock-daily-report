@@ -55,3 +55,5 @@ Token、API Key、Webhook、authorization、bearer、cookie、session、password
 - P5-Q：真实 A股 / ETF provider 接入评估。
 - P5-R：真实场外基金净值 provider 接入评估。
 - P5-S：真实 provider dry-run 模式。
+
+个人观察点位卡片见 `docs/personal_signal_cards.md`。Web 页面布局参考见 `docs/ui_layout_reference.md`。点位卡片仅用于个人观察和记录，不会自动执行任何操作。

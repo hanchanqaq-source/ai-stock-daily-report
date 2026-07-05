@@ -39,3 +39,5 @@
 - P5-P：真实 provider 接入前安全审查。
 - Web-P15：实时行情与基金净值看板。
 真实 provider 接入前安全规则见 `docs/provider_safety.md`。真实行情和真实基金净值默认不写入 public 仓库。真实 provider 必须显式启用网络权限，并保留来源、checked_at、source_status。
+
+个人观察点位卡片见 `docs/personal_signal_cards.md`。Web 页面布局参考见 `docs/ui_layout_reference.md`。点位卡片仅用于个人观察和记录，不会自动执行任何操作。
