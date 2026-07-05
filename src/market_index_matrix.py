@@ -88,6 +88,7 @@ _INDEX_ITEMS = (
     ("us_nasdaq_advancing_ratio", "Nasdaq上涨家数占比", "us", "market_breadth", "computed_indicator", "用于观察Nasdaq上涨股票覆盖面，非官方指数。"),
     ("us_median_change_pct", "美股中位数涨跌幅", "us", "market_breadth", "computed_indicator", "用于观察美股普通股票市场体感，非官方指数。"),
     ("us_average_change_pct", "美股平均涨跌幅", "us", "market_breadth", "computed_indicator", "用于观察美股整体平均涨跌体感，非官方指数。"),
+    ("us_equal_weight_change_pct", "美股全市场等权涨跌", "us", "market_breadth", "computed_indicator", "用于观察美股等权口径市场体感，非官方指数。"),
     ("kr_kospi", "KOSPI", "kr", "core_weight", "official_index", "用于观察韩股主板市场表现。"),
     ("kr_kospi_200", "KOSPI 200", "kr", "core_weight", "official_index", "用于观察韩股核心权重资产表现。"),
     ("kr_krx_300", "KRX 300", "kr", "core_weight", "official_index", "用于观察韩股更广代表性资产表现。"),
