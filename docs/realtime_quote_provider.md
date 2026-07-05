@@ -1,4 +1,5 @@
 # 股票 / ETF 实时行情抓取框架（离线完整版）
+场外基金净值 / 估算涨跌抓取框架见 `docs/fund_nav_provider.md`。场外 fund 不进入股票 / ETF 实时行情框架；场外 fund 只能展示净值 / 估算净值，不能称为实时涨跌。
 
 `src/realtime_quote_provider.py` 定义 P5-L5 的实时行情抓取框架契约，但本阶段仍然是离线、fixture-only 能力：不联网，不接 AKShare / yfinance / 东方财富 / Yahoo Finance / TradingView，不读取真实 `user_config`，不保存真实价格、真实涨跌幅或真实成交额，也不接日报或 Discord。
 
