@@ -31,6 +31,8 @@
 
 ## 4. 支持范围
 
+P5-Q4 提供 `scripts/run_cn_quote_provider_smoke.py` 本地手动 smoke 脚本；脚本默认 dry-run，CI 默认禁止真实 provider 请求，真实请求必须由用户本地显式开启。
+
 P5-Q3 最小闭环仅支持：
 
 - A股 stock
@@ -70,5 +72,5 @@ CI 测试使用 fake_fetcher / monkeypatch，不请求真实网络，不 import 
 
 ## 8. 后续路线
 
-- P5-Q4：A股 / ETF provider 本地手动试跑脚本。
+- P5-Q4：A股 / ETF provider 本地手动试跑脚本，默认 dry-run，CI 禁止真实请求。
 - P5-R：场外基金真实净值 provider 接入评估。

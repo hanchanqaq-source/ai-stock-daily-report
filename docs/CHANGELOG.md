@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-Q4 A股 / ETF provider 本地手动 smoke 脚本与说明文档；默认 dry-run、不联网、不保存真实行情，real 模式要求三个环境变量且 CI 强制阻断真实请求。
+
 - [新功能] 新增 P5-Q3 A股 / ETF provider 真实请求最小闭环 adapter，默认关闭并要求 network_enabled / provider_enabled / allow_real_request 三重显式开关；CI 使用 fake fetcher，不请求真实行情、不保存真实价格、涨跌幅或成交额。
 
 - [新功能] 新增 P5-Q2 A股 / ETF provider local-only 测试适配器，使用本地 fixture 验证字段映射、结果标准化和安全边界，不联网、不保存真实行情。
