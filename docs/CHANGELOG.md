@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-N 账户资产行情 / 基金净值汇总框架，离线汇总 stock / etf / 官方指数实时行情框架和 fund 净值框架结果，holding / watching 分开统计；当前不联网、不保存真实行情或净值、不输出交易建议。
 - [新功能] 新增 P5-M 场外基金净值 / 估算涨跌抓取框架，提供离线 FundNavRequest / FundNavResult / FundNavProvider 与 mock / fixture provider；当前不联网、不接真实基金净值源、不保存真实净值、估算净值或涨跌幅。
 - [新功能] 新增 P5-L5 股票 / ETF / 官方指数实时行情抓取框架完整版，提供离线 QuoteRequest / QuoteResult / QuoteProvider 与 mock / fixture provider；当前不联网、不接真实行情源、不保存真实价格、涨跌幅或成交额。
 - [新功能] 新增 P5-L4 韩股指数矩阵与体感指标计算框架，支持中位数、平均涨跌、上涨家数占比、全市场等权和成交额变化结构；当前仅处理输入样例，不抓取行情。

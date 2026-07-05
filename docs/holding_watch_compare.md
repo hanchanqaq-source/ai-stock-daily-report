@@ -1,4 +1,5 @@
 # 持有 vs 收藏对比分析说明
+账户资产行情 / 基金净值汇总见 `docs/account_realtime_summary.md`。股票 / ETF / 官方指数走 `realtime_quote_provider`；场外基金走 `fund_nav_provider`；持有和收藏必须分开汇总；场外基金不能称为实时涨跌。
 
 账户动态页面模型见 `docs/account_page_model.md`。
 
