@@ -35,6 +35,8 @@ def _assert_local_only_available(result):
     assert result["provider_checks"]["network_enabled"] is False
     assert result["provider_checks"]["will_fetch_real_data"] is False
     assert result["provider_checks"]["has_real_market_data"] is False
+    assert result["provider_checks"]["allow_commit_to_repo"] is False
+    assert result["provider_checks"]["allow_fixture_definition_in_repo"] is True
     assert result["warnings"]
 
 
@@ -53,6 +55,8 @@ def test_config_is_local_only_and_safety_checked():
     assert config["network_enabled"] is False
     assert config["will_fetch_real_data"] is False
     assert config["has_real_market_data"] is False
+    assert config["allow_commit_to_repo"] is False
+    assert config["allow_fixture_definition_in_repo"] is True
     assert config["source_status"] == "local_fixture_only"
     rendered = json.dumps(config, ensure_ascii=False).lower()
     assert not any(term in rendered for term in ["tok" + "en", "api" + "_key", "web" + "hook", "coo" + "kie", "author" + "ization", "bear" + "er"])

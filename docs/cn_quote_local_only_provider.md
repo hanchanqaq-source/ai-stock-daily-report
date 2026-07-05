@@ -48,6 +48,7 @@ local-only provider 必须满足以下规则：
 - fixture quote 字段只允许为空值，用于验证字段是否存在，不代表真实价格、涨跌幅或成交额。
 - config、fixture 和 result 不允许包含 凭据、回调地址、会话标识或鉴权字段等 secret 字段。
 - local-only 结果不得被当作 real_provider 数据。
+- local-only fixture 的代码、schema 和示例配置可以提交到仓库，但 provider 输出结果、行情映射结果和缓存策略仍不得写入 public repo；因此 `allow_commit_to_repo=false`，`allow_fixture_definition_in_repo=true`。
 
 ## 7. 后续路线
 

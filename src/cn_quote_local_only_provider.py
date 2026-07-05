@@ -45,7 +45,8 @@ def build_cn_quote_local_only_config(provider_name: str = "local_fixture") -> di
         "default_enabled": True,
         "will_fetch_real_data": False,
         "has_real_market_data": False,
-        "allow_commit_to_repo": True,
+        "allow_commit_to_repo": False,
+        "allow_fixture_definition_in_repo": True,
         "cache_scope": "test_fixture_only",
         "source_status": "local_fixture_only",
         "fixture_path": None,
@@ -125,7 +126,7 @@ def build_cn_quote_local_only_request(asset_or_request: Any, provider_name: str 
 
 
 def _provider_checks(config: Mapping[str, Any]) -> dict[str, Any]:
-    return {"network_enabled": False, "will_fetch_real_data": False, "has_real_market_data": False, "allow_commit_to_repo": True, "cache_scope": config.get("cache_scope", "test_fixture_only"), "field_mapping_ready": True, "provider_safety_ready": not validate_cn_quote_local_only_config(config)}
+    return {"network_enabled": False, "will_fetch_real_data": False, "has_real_market_data": False, "allow_commit_to_repo": False, "allow_fixture_definition_in_repo": True, "cache_scope": config.get("cache_scope", "test_fixture_only"), "field_mapping_ready": True, "provider_safety_ready": not validate_cn_quote_local_only_config(config)}
 
 
 def _base_result(item: Any, data_status: str, reason: str = "", provider_name: str = "local_fixture", row: Mapping[str, Any] | None = None) -> dict[str, Any]:
