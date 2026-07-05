@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-L0 全球市场指数矩阵与页面切换模型，定义 global / cn / hk / us / kr 页面、稳定 tabs、指数分组和 official_index / computed_indicator 分类；当前仅 model_only，不抓取真实行情。
 - [新功能] 新增 P5-J 账户动态页面模型，根据 active fund / stock / company / theme 和 holding / watching / history 状态生成可复用页面结构。
 - [新功能] 新增 P5-H 资产状态管理模块，支持 holding / watching / cleared / archived / deleted 的预览确认、风险等级、结构化执行结果与回归测试。
 - [新功能] 新增 P5-F 代码自动识别框架，基于格式规则返回资产类型 / 市场候选、置信度、来源证据、待确认状态与 asset 草稿转换，当前不联网、不补全真实名称或标签。
