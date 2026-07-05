@@ -15,7 +15,7 @@ from src.account_realtime_summary import build_account_realtime_summary
 from src.fund_nav_provider import FundNavProvider
 from src.realtime_quote_provider import QuoteProvider
 
-DISCLAIMER = "本页面模型只做展示结构，不构成交易建议。"
+DISCLAIMER = "本页面模型只做展示结构，仅用于信息展示与风险观察。"
 MARKET_DISCLAIMER = "本阶段为 mock / fixture 数据，不代表真实行情。"
 FUND_DISCLAIMER = "场外基金不支持真正实时价格，盘中估算仅供观察，最终以基金公司公布净值为准。"
 BASE_WARNING = "本阶段为 mock / fixture 数据，不代表真实行情或真实基金净值。"
@@ -242,5 +242,5 @@ def render_account_market_page_demo_markdown(model: Mapping[str, Any]) -> str:
         "## 6. 数据说明",
         f"- {MARKET_DISCLAIMER}",
         f"- {FUND_DISCLAIMER}",
-        "- 本结果只做观察，不构成交易建议。",
+        "- 本结果仅用于信息展示与风险观察，不作为任何操作依据。",
     ])

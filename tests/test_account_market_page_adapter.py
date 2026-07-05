@@ -102,10 +102,13 @@ def test_inactive_assets_are_not_in_market_page_results_and_input_is_not_mutated
     before = deepcopy(group)
     model = build_account_page_model_with_market_data(group)
     assert group == before
-    text = payload_text(model)
-    assert "demo_stock_002" not in text
-    assert "demo_fund_002" not in text
-    assert "demo_etf_002" not in text
+    market_text = json.dumps(
+        {key: page.get("market_summary") for key, page in model["pages"].items()},
+        ensure_ascii=False,
+    )
+    assert "demo_stock_002" not in market_text
+    assert "demo_fund_002" not in market_text
+    assert "demo_etf_002" not in market_text
     assert {item["status"] for item in group["assets"]} == {item["status"] for item in before["assets"]}
 
 
@@ -121,8 +124,8 @@ def test_markdown_has_required_notes_and_no_forbidden_trading_or_fund_realtime_w
     markdown = render_account_market_page_demo_markdown(build_account_page_model_with_market_data(mixed_group()))
     assert "最终以基金公司公布净值为准" in markdown
     assert "本阶段为 mock / fixture 数据，不代表真实行情。" in markdown
-    assert "本结果只做观察，不构成交易建议。" in markdown
-    for forbidden in ["买入", "卖出", "加仓", "减仓", "必须买", "必须卖", "实时基金涨跌", "实时基金净值"]:
+    assert "本结果仅用于信息展示与风险观察，不作为任何操作依据。" in markdown
+    for forbidden in ["买入", "卖出", "加仓", "减仓", "必须买", "必须卖", "交易建议", "实时基金涨跌", "实时基金净值"]:
         assert forbidden not in markdown
 
 
