@@ -1,4 +1,5 @@
 # 账户动态页面模型说明
+账户资产行情 / 基金净值汇总见 `docs/account_realtime_summary.md`。股票 / ETF / 官方指数走 `realtime_quote_provider`；场外基金走 `fund_nav_provider`；持有和收藏必须分开汇总；场外基金不能称为实时涨跌。
 场外基金净值 / 估算涨跌抓取框架见 `docs/fund_nav_provider.md`。场外 fund 不进入股票 / ETF 实时行情框架；场外 fund 只能展示净值 / 估算净值，不能称为实时涨跌。
 全球市场指数矩阵与页面切换模型见 `docs/market_index_matrix.md`。官方指数和系统计算指标必须分开展示，系统计算指标必须标注“非官方指数”。
 

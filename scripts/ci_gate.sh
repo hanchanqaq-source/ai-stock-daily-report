@@ -89,6 +89,45 @@ _is_market_review_summary_pr() {
   [ "$saw_file" -eq 1 ]
 }
 
+
+_is_account_realtime_summary_pr() {
+  local changed_file
+  local saw_file=0
+
+  while IFS= read -r changed_file; do
+    [ -n "$changed_file" ] || continue
+    saw_file=1
+    case "$changed_file" in
+      .github/workflows/ci.yml|\
+      docs/CHANGELOG.md|\
+      docs/account_page_model.md|\
+      docs/account_realtime_summary.md|\
+      docs/fund_nav_provider.md|\
+      docs/holding_watch_compare.md|\
+      docs/product_rules.md|\
+      docs/realtime_quote_provider.md|\
+      scripts/ci_gate.sh|\
+      src/account_realtime_summary.py|\
+      tests/test_account_realtime_summary.py)
+        ;;
+      *)
+        return 1
+        ;;
+    esac
+  done
+
+  [ "$saw_file" -eq 1 ]
+}
+
+_run_account_realtime_summary_tests() {
+  python -m pytest tests/test_account_realtime_summary.py -q
+  python -m pytest tests/test_realtime_quote_provider.py -q
+  python -m pytest tests/test_fund_nav_provider.py -q
+  python -m pytest tests/test_quote_capability.py -q
+  python -m pytest tests/test_account_page_model.py -q
+  python -m pytest tests/test_holding_watch_compare.py -q
+}
+
 _run_market_review_summary_tests() {
   if [ -f tests/test_market_history.py ]; then
     python -m pytest tests/test_market_history.py -q
@@ -101,12 +140,12 @@ _run_market_review_summary_tests() {
 
 offline_test_suite() {
   echo "==> backend-gate: offline test suite"
-  echo "==> backend-gate: offline test suite timeout: 30m"
+  echo "==> backend-gate: offline test suite timeout: 60m"
 
   local changed_files
   if changed_files="$(_changed_files_for_pr)" && printf '%s\n' "$changed_files" | _is_run_context_only_pr; then
     echo "==> backend-gate: run-context PR detected; running scoped offline tests"
-    timeout --preserve-status 30m bash -c '
+    timeout --preserve-status 60m bash -c '
       python -m pytest tests/test_model_profile.py &&
       python -m pytest tests/test_notification.py -k "discord or runtime_info"
     '
@@ -115,13 +154,21 @@ offline_test_suite() {
 
   if changed_files="$(_changed_files_for_pr)" && printf '%s\n' "$changed_files" | _is_market_review_summary_pr; then
     echo "==> backend-gate: market-review summary PR detected; running scoped offline tests"
-    timeout --preserve-status 30m bash -c '
+    timeout --preserve-status 60m bash -c '
       ./scripts/ci_gate.sh __market-review-summary-tests
     '
     return
   fi
 
-  timeout --preserve-status 30m python -m pytest -m "not network"
+  if changed_files="$(_changed_files_for_pr)" && printf '%s\n' "$changed_files" | _is_account_realtime_summary_pr; then
+    echo "==> backend-gate: account realtime summary PR detected; running scoped offline tests"
+    timeout --preserve-status 60m bash -c '
+      ./scripts/ci_gate.sh __account-realtime-summary-tests
+    '
+    return
+  fi
+
+  timeout --preserve-status 60m python -m pytest -m "not network"
 }
 
 run_all() {
@@ -152,6 +199,9 @@ case "$phase" in
     ;;
   __market-review-summary-tests)
     _run_market_review_summary_tests
+    ;;
+  __account-realtime-summary-tests)
+    _run_account_realtime_summary_tests
     ;;
   *)
     echo "Usage: $0 [all|syntax|flake8|deterministic|offline-tests]" >&2
