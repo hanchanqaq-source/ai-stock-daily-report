@@ -60,3 +60,4 @@ ETF 属于交易所交易品种，应使用股票 / ETF 实时行情框架；场
 - P5-M1：真实基金净值数据源接入评估。
 - P5-N：账户资产实时涨跌 / 净值汇总。
 - Web-P15：实时行情与基金净值看板。
+真实 provider 接入前安全规则见 `docs/provider_safety.md`。真实行情和真实基金净值默认不写入 public 仓库。真实 provider 必须显式启用网络权限，并保留来源、checked_at、source_status。
