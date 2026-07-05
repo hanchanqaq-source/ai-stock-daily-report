@@ -36,6 +36,10 @@ P5-Q 阶段只做真实 A股 / ETF provider 接入前评估，不接真实行情
 3. 增加 local-only adapter，在显式配置下进行本地验证，产物不进入 public repo。
 4. 完成安全审查、字段映射审查和缓存审查后，再考虑真实 provider。
 
+## 4.1 P5-Q1 dry-run adapter
+
+P5-Q1 已新增 dry-run adapter，用于在真实接入前验证 A股 stock / ETF / official index 的请求计划和安全边界。dry-run 不请求真实行情，不保存真实数据，也不会把结果标记为 available real data。
+
 ## 5. public 仓库安全边界
 
 public 仓库不得保存：
