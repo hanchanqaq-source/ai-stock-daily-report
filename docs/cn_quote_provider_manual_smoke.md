@@ -4,6 +4,8 @@
 
 `scripts/run_cn_quote_provider_smoke.py` 用于本地手动验证 A股 / ETF provider 接入链路是否能跑通。脚本默认不联网、不请求真实行情、不读取真实 `user_config`，也不接入日报、周报、Discord 或 Web UI。
 
+本地手动试跑真实 provider 后，应先通过 P5-Q5 结果审计（`src/cn_quote_result_audit.py`），只查看 redacted audit summary，不要把原始真实结果提交到仓库。
+
 该脚本只负责 CLI 参数、显式开关校验、安全提示和控制台输出；dry-run、local-only 与 real-provider 路径分别复用现有 provider 模块。CI / GitHub Actions 中禁止真实 provider 请求。
 
 ## 2. 默认 dry-run
