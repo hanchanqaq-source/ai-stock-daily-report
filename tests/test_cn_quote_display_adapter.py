@@ -115,6 +115,10 @@ def test_local_real_allowed_requires_display_safe_commit_safe_cache_and_checked_
     missing_checked_at["source"].pop("checked_at")
     assert build_cn_quote_display_model(missing_checked_at, audit_for(missing_checked_at, audit_status="passed_with_warnings", display_safe=True), policy)["display_mode"] != "local_real_allowed"
 
+    missing_source_status = demo_result()
+    missing_source_status["source"].pop("source_status")
+    assert build_cn_quote_display_model(missing_source_status, audit_for(missing_source_status, audit_status="passed_with_warnings", display_safe=True), policy)["display_mode"] != "local_real_allowed"
+
 
 def test_secret_blocks_real_display_and_does_not_expose_secret_names():
     policy = {**build_cn_quote_display_policy(), "allow_real_values_on_local_page": True, "redact_by_default": False}
