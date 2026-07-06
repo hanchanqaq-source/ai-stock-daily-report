@@ -34,7 +34,11 @@
 
 本阶段不保存真实价格、涨跌幅、净值、估算净值、金额、成本价、账户资产、Token、Webhook。页面模型中的 `has_real_market_data` 必须为 `false`，`data_mode` 仅允许 `fixture_only`、`model_only` 或 `mixed_fixture_only`。
 
-## 6. 后续路线
+## 6. A股 / ETF provider 展示适配衔接
+
+P5-Q6 新增 `src/cn_quote_display_adapter.py`，仅负责把审计后的 A股 / ETF provider 结果转换为本地页面展示模型。当前账户页面主流程暂不直接接入真实 provider；后续 P5-Q7 会把该 display adapter 接到账户行情汇总 / 页面模型 dry-run。
+
+## 7. 后续路线
 
 - P5-P：真实 provider 接入前安全审查。
 - Web-P15：实时行情与基金净值看板。

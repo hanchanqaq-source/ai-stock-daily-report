@@ -54,7 +54,11 @@ Token、API Key、Webhook、authorization、bearer、cookie、session、password
 
 P5-Q4 新增的 A股 / ETF provider 本地手动 smoke 脚本默认 dry-run，不联网、不保存真实行情。真实 provider 路径必须同时满足 `--real`、三个环境变量开关、非 CI 环境、`allow_commit_to_repo=false` 与 `cache_scope=local_only`。输出只允许打印到控制台，并默认脱敏 Token、API Key、Webhook、cookie、authorization、bearer、password 和 secret 等敏感信息。
 
-## 10. 后续路线
+## 10. 页面展示安全适配
+
+真实 A股 / ETF provider 结果进入页面前必须先通过结果审计，再通过 `cn_quote_display_adapter` 生成页面展示模型。默认展示模式为 `redacted`；审计失败、被阻断或发现 secret 时，页面只能展示错误状态，不显示真实行情值。
+
+## 11. 后续路线
 
 - P5-Q：真实 A股 / ETF provider 接入评估。
 - P5-Q4：A股 / ETF provider 本地手动试跑脚本。
