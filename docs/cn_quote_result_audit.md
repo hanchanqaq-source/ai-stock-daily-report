@@ -68,7 +68,11 @@
 - `issues` 只记录字段路径，不记录原值。
 - `redacted_result` 中对应值显示为 `<redacted>`。
 
-## 7. 后续路线
+## 7. 页面展示适配
+
+P5-Q6 使用审计结果生成页面展示模型，默认脱敏价格、涨跌幅、成交额等行情字段。只有 `passed` / `passed_with_warnings` 且 `display_safe=true` 的审计结果才可进入本地页面展示模型；`failed` / `blocked` 只允许展示错误状态，不显示真实行情值。
+
+## 8. 后续路线
 
 - P5-Q6：A股 / ETF provider 本地页面展示安全适配。
 - P5-R：场外基金真实净值 provider 接入评估。

@@ -4,7 +4,7 @@
 
 `src/cn_quote_real_provider.py` 用于在安全边界下提供 A股 / ETF 真实 provider 最小闭环 adapter。该模块只负责显式开关、请求校验、可注入 fetcher 调用、结果标准化和失败状态返回；默认关闭，不读取真实 `user_config`，不接日报 / 周报 / Discord，不做 Web UI，也不把真实 provider 结果写入仓库。
 
-真实 provider 返回结果进入页面展示前，应先通过 `src/cn_quote_result_audit.py` 执行 P5-Q5 结果审计，确认 source metadata、freshness、repository safety 与 secret scan 均符合要求，并只使用脱敏后的审计摘要。
+真实 provider 返回结果进入页面展示前，应先通过 `src/cn_quote_result_audit.py` 执行 P5-Q5 结果审计，确认 source metadata、freshness、repository safety 与 secret scan 均符合要求；随后通过 `src/cn_quote_display_adapter.py` 执行 P5-Q6 页面展示安全适配。默认页面展示必须脱敏，只有本地显式开启且审计允许时才可展示真实值。
 
 ## 2. 启用条件
 
