@@ -32,6 +32,8 @@ ETF 属于交易所交易品种，应使用股票 / ETF 实时行情框架；场
 
 真实 provider 后续可以评估接入天天基金、东方财富、基金公司官网等来源，但本阶段不接入这些来源。
 
+真实基金净值 provider 接入评估见 `docs/fund_nav_provider_evaluation.md`，候选 registry 见 `docs/fund_nav_provider_registry.md`。
+
 ## 6. 数据状态
 
 - `available`：每日净值和估算净值 fixture 均可用。
