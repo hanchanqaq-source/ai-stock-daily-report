@@ -63,17 +63,30 @@ def _checks(candidate: Mapping[str, Any] | None, network_enabled: bool = False) 
     mapping = (candidate or {}).get("field_mapping") or {}
     cache = (candidate or {}).get("cache_policy") or {}
     failure = (candidate or {}).get("failure_policy") or {}
+    if candidate is None:
+        return {
+            "provider_registered": False,
+            "provider_candidate_only": False,
+            "network_required": None,
+            "network_enabled": bool(network_enabled),
+            "default_enabled": False,
+            "daily_nav_mapping_ready": False,
+            "estimated_nav_mapping_ready": False,
+            "cache_policy_ready": False,
+            "failure_policy_ready": False,
+            "allow_commit_to_repo": False,
+        }
     return {
-        "provider_registered": candidate is not None,
-        "provider_candidate_only": (candidate or {}).get("status") == "candidate_only",
-        "network_required": bool((candidate or {}).get("network_required") is True),
+        "provider_registered": True,
+        "provider_candidate_only": candidate.get("status") == "candidate_only",
+        "network_required": bool(candidate.get("network_required") is True),
         "network_enabled": bool(network_enabled),
-        "default_enabled": bool((candidate or {}).get("default_enabled") is True),
+        "default_enabled": bool(candidate.get("default_enabled") is True),
         "daily_nav_mapping_ready": bool(mapping.get("daily_nav_fields")),
         "estimated_nav_mapping_ready": bool(mapping.get("estimated_nav_fields")),
         "cache_policy_ready": bool(cache.get("policies")),
         "failure_policy_ready": bool(failure.get("failure_policy")),
-        "allow_commit_to_repo": bool((candidate or {}).get("allow_commit_to_repo") is True),
+        "allow_commit_to_repo": bool(candidate.get("allow_commit_to_repo") is True),
     }
 
 
@@ -158,8 +171,10 @@ def _result(item: Mapping[str, Any] | FundNavRequest, provider_name: str, status
     if candidate is None:
         result["data_status"] = "provider_not_registered"
         result["source"]["source_status"] = "dry_run_only"
-        result["warnings"].append("provider 未登记在 fund_nav_provider_registry。")
-    if scan_provider_config_for_secrets(candidate or {}) or validate_provider_config({"provider_type": provider_type, "data_mode": "dry_run", "enabled": False, "network_enabled": False, "timeout_seconds": 10, "retry": 0, "rate_limit": "dry_run"}):
+        result["warnings"] = ["provider 未在 fund_nav_provider_registry 中注册。"]
+        validate_fund_nav_dry_run_result(result)
+        return result
+    if scan_provider_config_for_secrets(candidate) or validate_provider_config({"provider_type": provider_type, "data_mode": "dry_run", "enabled": False, "network_enabled": False, "timeout_seconds": 10, "retry": 0, "rate_limit": "dry_run"}):
         result["data_status"] = "provider_policy_blocked"
     try:
         assert_real_data_not_written_to_repo({"has_real_market_data": False, "allow_commit_to_repo": False})
