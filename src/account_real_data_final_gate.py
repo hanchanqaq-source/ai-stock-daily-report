@@ -11,6 +11,12 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Iterable, Mapping
 
+from src.personal_observation_label_policy import (
+    OBSERVATION_LABEL_DISCLAIMER,
+    classify_observation_label_text,
+    is_allowed_personal_observation_label,
+)
+
 GATE_NAME = "account_real_data_final_gate"
 POLICY_NAME = "account_real_data_final_gate_policy"
 FUND_ESTIMATE_DISCLAIMER = "盘中估算仅供观察，最终以基金公司公布净值为准。"
@@ -39,6 +45,8 @@ def build_account_real_data_final_gate_policy() -> dict[str, Any]:
         "forbid_fund_realtime_wording": True,
         "require_fund_estimate_disclaimer": True,
         "require_stock_fund_field_boundary": True,
+        "allow_personal_observation_label": True,
+        "require_personal_observation_label_disclaimer": True,
         "allowed_display_modes": ["redacted", "blocked", "unavailable"],
         "local_allowed_display_modes": ["redacted", "blocked", "unavailable", "local_real_allowed"],
         "forbidden_secret_fields": ["token", "api_key", "apikey", "secret", "password", "webhook", "cookie", "authorization", "bearer", "client_secret", "private_key"],
@@ -155,6 +163,23 @@ def check_unified_summary_field_boundaries(summary: Mapping[str, Any]) -> dict[s
     return {"ok": not issues, "issues": issues, "warnings": []}
 
 
+
+def check_personal_observation_label_wording(summary: Mapping[str, Any]) -> dict[str, Any]:
+    issues: list[dict[str, str]] = []
+    warnings: list[str] = []
+    disclaimer_needed = False
+    for path, _key, value in _walk(summary):
+        if not isinstance(value, str):
+            continue
+        classified = classify_observation_label_text(value)
+        if classified.get("blocked") is True:
+            issues.append(_issue(str(classified.get("classification")), f"个人观察标签安全规则阻断 {path}：{classified.get('reason')}", str(classified.get("severity") or "blocker")))
+        elif is_allowed_personal_observation_label(value):
+            disclaimer_needed = True
+    if disclaimer_needed:
+        warnings.append(OBSERVATION_LABEL_DISCLAIMER)
+    return {"ok": not issues, "issues": issues, "warnings": warnings}
+
 def summarize_final_gate_issues(issues: list[Mapping[str, Any]]) -> str:
     return "；".join(str(item.get("message") or item.get("code") or item) for item in issues)
 
@@ -198,8 +223,9 @@ def build_allowed_final_page_payload(summary: Mapping[str, Any], gate_result: Ma
             "fund_nav": {"enabled": bool((sections.get("fund_nav") or {}).get("enabled", True)), "display_models": (sections.get("fund_nav") or {}).get("display_models") or []},
         },
         "safety_badges": ["已审计", "默认脱敏", "禁止写入真实数据"],
+        "personal_observation_label_disclaimer": OBSERVATION_LABEL_DISCLAIMER,
         "warnings": list(gate_result.get("warnings") or []),
-        "disclaimer": PAGE_DISCLAIMER,
+        "disclaimer": PAGE_DISCLAIMER + " " + OBSERVATION_LABEL_DISCLAIMER,
     }
     return redact_final_page_payload(payload, policy)
 
@@ -211,7 +237,7 @@ def build_blocked_final_page_payload(summary: Mapping[str, Any], gate_result: Ma
 def run_account_real_data_final_gate(summary: Mapping[str, Any], policy: Mapping[str, Any] | None = None) -> dict[str, Any]:
     final_policy = dict(policy or build_account_real_data_final_gate_policy())
     validate_account_real_data_final_gate_policy(final_policy)
-    checks = [check_unified_summary_audit_status, check_unified_summary_display_status, check_unified_summary_repository_safety, check_unified_summary_secret_safety, check_unified_summary_personal_money_fields, check_unified_summary_fund_wording, check_unified_summary_field_boundaries]
+    checks = [check_unified_summary_audit_status, check_unified_summary_display_status, check_unified_summary_repository_safety, check_unified_summary_secret_safety, check_unified_summary_personal_money_fields, check_unified_summary_fund_wording, check_unified_summary_field_boundaries, check_personal_observation_label_wording]
     issues: list[dict[str, str]] = []
     warnings: list[str] = [DEFAULT_WARNING]
     for check in checks:
@@ -267,6 +293,6 @@ def render_account_real_data_final_gate_markdown(gate_result: Mapping[str, Any])
         f"- decision：{gate_result.get('decision')}", f"- severity：{gate_result.get('severity')}", f"- can_enter_account_page_model：{gate_result.get('can_enter_account_page_model') is True}", f"- can_write_to_public_repo：{gate_result.get('can_write_to_public_repo') is True}", "", "## 2. 检查项",
         f"- 是否全部审计：{gate_result.get('all_results_audited') is True}", f"- 是否全部展示适配：{gate_result.get('all_display_models_checked') is True}", f"- 是否默认脱敏：{gate_result.get('default_redacted') is True}", f"- 是否发现 secret：{gate_result.get('secrets_detected') is True}", f"- 是否发现真实金额 / 成本价：{gate_result.get('personal_money_fields_detected') is True}", f"- 场外基金措辞是否合规：{gate_result.get('fund_wording_ok') is True}", "", "## 3. 页面 Payload",
         f"- payload_status：{payload.get('payload_status')}", f"- display_mode：{payload.get('display_mode')}", f"- sections：{list((payload.get('sections') or {}).keys())}", "", "## 4. 数据说明",
-        "- 最终安全闸门通过后，数据才允许进入账户页面模型。", "- 默认展示脱敏结果，不保存真实行情或真实基金净值到仓库。", "- 场外基金不支持真正实时价格。", f"- {FUND_ESTIMATE_DISCLAIMER}", "- 本页面只用于个人观察和记录，不构成交易建议。",
+        "- 最终安全闸门通过后，数据才允许进入账户页面模型。", "- 默认展示脱敏结果，不保存真实行情或真实基金净值到仓库。", "- 场外基金不支持真正实时价格。", f"- {FUND_ESTIMATE_DISCLAIMER}", "- 本页面只用于个人观察和记录，不构成交易建议。", f"- {OBSERVATION_LABEL_DISCLAIMER}",
     ]
     return "\n".join(lines) + "\n"

@@ -187,3 +187,39 @@ def test_markdown_is_safe_and_contains_required_disclaimers():
     assert "最终以基金公司公布净值为准" in markdown
     assert "不构成交易建议" in markdown
     assert "最终安全闸门通过后，数据才允许进入账户页面模型" in markdown
+
+
+def test_final_gate_allows_personal_observation_label_payload():
+    summary = safe_summary()
+    summary["personal_observation_label"] = "买入观察"
+    result = run_account_real_data_final_gate(summary)
+    assert result["decision"] in {"allowed", "allowed_with_warnings"}
+    assert result["can_enter_account_page_model"] is True
+    assert result["final_page_payload"]["personal_observation_label_disclaimer"] == "本页面标签仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
+
+
+def test_final_gate_does_not_block_allowed_buy_add_reduce_labels():
+    for label in ["买入观察", "加仓观察", "减仓观察"]:
+        summary = safe_summary()
+        summary["sections"]["stock_etf"]["display_models"].append({"personal_observation_label": label})
+        result = run_account_real_data_final_gate(summary)
+        assert result["decision"] in {"allowed", "allowed_with_warnings"}
+        assert not result["issues"]
+
+
+def test_final_gate_blocks_forced_guaranteed_and_auto_execution_expressions():
+    for text in ["必须买入", "保证收益", "自动下单"]:
+        summary = safe_summary()
+        summary["sections"]["stock_etf"]["display_models"].append({"personal_observation_label": text})
+        result = run_account_real_data_final_gate(summary)
+        assert result["decision"] == "blocked"
+        assert result["severity"] == "blocker"
+
+
+def test_final_page_payload_and_markdown_include_personal_observation_disclaimer():
+    summary = safe_summary()
+    summary["personal_observation_label"] = "加仓观察"
+    result = run_account_real_data_final_gate(summary)
+    assert "个人观察和记录，不自动下单，不构成强制交易指令" in result["final_page_payload"]["disclaimer"]
+    markdown = render_account_real_data_final_gate_markdown(result)
+    assert "个人观察和记录，不自动下单，不构成强制交易指令" in markdown

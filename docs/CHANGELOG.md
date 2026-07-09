@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-S1 个人观察标签与直接表达规则，允许买入观察、加仓观察、减仓观察等作为个人观察标签，并继续阻断必须买入、保证收益、自动下单等强制交易、收益承诺和自动执行表达。
+
 - [新功能] 新增 P5-T 真实数据进入账户页面模型前最终安全闸门，检查 audit、display adapter、默认脱敏、仓库写入、secret、真实金额、场外基金措辞和字段边界，并生成默认 redacted 的 final_page_payload；当前不联网、不请求真实行情或真实基金净值、不保存真实数据。
 
 - [新功能] 新增 P5-S 股票 / ETF / 基金真实数据统一汇总安全适配层，统一 stock_etf / fund_nav section、审计与展示适配状态、默认 dry-run / redacted；当前不联网、不请求真实行情或真实基金净值、不保存真实价格、净值、估算净值、涨跌幅或 secrets。
