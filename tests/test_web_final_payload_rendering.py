@@ -111,8 +111,8 @@ def test_docs_explain_final_payload_rendering_and_safety_boundary():
     doc = _read("docs/web_final_payload_rendering.md")
     for text in [
         "只消费 `final_page_payload`",
-        "不请求真实行情",
-        "不请求真实基金净值",
+        "不请求原始行情字段",
+        "不请求原始基金净值字段",
         "blocked 状态下也不得展示上游 raw value",
         "最终以基金公司公布净值为准",
         "买入观察",

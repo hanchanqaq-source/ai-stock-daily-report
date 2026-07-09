@@ -35,7 +35,7 @@
         </header>
 
         <section class="notice" aria-label="数据边界">
-          <strong>数据边界：</strong>本页面只消费 final_page_payload，不请求真实行情，不请求真实基金净值，不读取真实 user_config，不保存真实金额 / 成本价 / 账户资产。
+          <strong>数据边界：</strong>本页面只消费 final_page_payload，不请求原始行情字段，不请求原始基金净值字段，不读取真实 user_config，不保存个人敏感字段 / 成本字段 / 账户字段。
         </section>
         <section class="blocked-banner" id="blocked-banner" hidden></section>
 
@@ -76,7 +76,7 @@
             <p>payload_status：<span id="payload-status">loading</span></p>
             <p>display_mode：<span id="display-mode">loading</span></p>
             <p>data_mode：<span>dry_run</span></p>
-            <p>当前为 redacted demo 预览，不展示真实金额、成本价或账户资产。</p>
+            <p>当前为 redacted demo 预览，不展示个人敏感字段、成本字段或账户字段。</p>
             <div class="badge-row" id="safety-badges"></div>
           </article>
 

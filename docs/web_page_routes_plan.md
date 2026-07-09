@@ -1,6 +1,6 @@
 # Web 页面路由规划
 
-Web-P0 只规划页面路由，不实现真实页面，不请求真实行情，不请求真实基金净值，不读取真实 `user_config`，不保存 secrets 或真实账户数值。
+Web-P0 只规划页面路由，不实现真实页面，不请求原始行情字段，不请求原始基金净值字段，不读取真实 `user_config`，不保存 secrets 或个人敏感字段。
 
 ## Planned routes
 
@@ -26,12 +26,12 @@ Web-P1 先以 `web/static/index.html` 承载本地静态首页骨架，包含左
 
 ## Web-P15 行情与基金净值安全看板
 
-Web-P15 在 `web/static/index.html` 中增强股票 / ETF 行情和场外基金净值卡片展示，只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求真实行情，不请求真实基金净值，并保留“不自动下单 / 不构成强制交易指令”的安全文案。
+Web-P15 在 `web/static/index.html` 中增强股票 / ETF 行情和场外基金净值卡片展示，只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求原始行情字段，不请求原始基金净值字段，并保留“不自动下单 / 不构成强制交易指令”的安全文案。
 
 ## Web-P16 个人观察点位卡片
 
-当前本地静态页面已支持个人观察点位卡片展示，为 Web-P17 账户首页综合看板预留 `observation_points` 页面区域。该区域只消费 demo `final_page_payload` / 未来 P5-T `final_page_payload`，不请求真实行情、真实基金净值或真实 provider。
+当前本地静态页面已支持个人观察点位卡片展示，为 Web-P17 账户首页综合看板预留 `observation_points` 页面区域。该区域只消费 demo `final_page_payload` / 未来 P5-T `final_page_payload`，不请求原始行情字段、原始基金净值字段或真实 provider。
 
 ## Web-P17 账户首页综合看板
 
-当前本地静态首页已支持账户首页综合看板，把账户总览、安全状态、数据概览、股票 / ETF 快览、场外基金净值快览、个人观察点位快览、风险提醒和数据说明整合到同一入口。该页面只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求真实行情，不请求真实基金净值，不读取真实 `user_config`，不保存真实金额 / 成本价 / 账户资产或 secrets。
+当前本地静态首页已支持账户首页综合看板，把账户总览、安全状态、数据概览、股票 / ETF 快览、场外基金净值快览、个人观察点位快览、风险提醒和数据说明整合到同一入口。该页面只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求原始行情字段，不请求原始基金净值字段，不读取真实 `user_config`，不保存个人敏感字段 / 成本字段 / 账户字段或 secrets。

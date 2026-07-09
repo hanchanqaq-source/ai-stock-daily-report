@@ -17,8 +17,8 @@ def test_web_p17_docs_exists_and_documents_safety_boundaries():
     assert doc_path.exists()
     text = doc_path.read_text(encoding="utf-8")
     assert "# Web-P17 账户首页综合看板说明" in text
-    assert "不请求真实行情" in text
-    assert "不请求真实基金净值" in text
+    assert "不请求原始行情字段" in text
+    assert "不请求原始基金净值字段" in text
     assert "默认展示脱敏结果" in text
     assert "最终以基金公司公布净值为准" in text
     assert "实时涨跌" in text

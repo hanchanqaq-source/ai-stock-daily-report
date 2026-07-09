@@ -8,60 +8,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
-- [新功能] 新增 Web-P17 账户首页综合看板，整合账户总览、安全状态、数据概览、股票 / ETF 快览、场外基金快览、个人观察点位快览和风险提醒；当前不联网、不请求真实行情或真实基金净值、不保存真实数据。
-- [新功能] 新增 Web-P16 个人观察点位卡片页面，支持 observation_points 标签、状态 badge、风险等级 badge、脱敏观察点位和安全免责声明；当前不联网、不请求真实行情或真实基金净值、不保存真实数据。
-- [新功能] 新增 Web-P15 行情与基金净值安全 payload 看板，支持 stock_etf / fund_nav 卡片、redacted / blocked / unavailable 状态、provider 元数据和安全提示；当前不联网、不请求真实行情或真实基金净值、不保存真实数据。
-- [新功能] 新增 Web-P2 final_page_payload 静态页面渲染适配，支持账户状态、默认脱敏、安全徽章、股票 / ETF、场外基金净值、个人观察点位、warnings、disclaimer 与 blocked payload 安全提示；当前不联网、不请求真实行情或真实基金净值、不保存真实数据。
+- [新功能] 新增 Web-P17 账户首页综合看板，整合账户总览、安全状态、数据概览、股票 / ETF 快览、场外基金快览、个人观察点位快览和风险提醒；当前不联网、不请求原始行情字段或原始基金净值字段、不保存真实数据。
+- [新功能] 新增 Web-P16 个人观察点位卡片页面，支持 observation_points 标签、状态 badge、风险等级 badge、脱敏观察点位和安全免责声明；当前不联网、不请求原始行情字段或原始基金净值字段、不保存真实数据。
+- [新功能] 新增 Web-P15 行情与基金净值安全 payload 看板，支持 stock_etf / fund_nav 卡片、redacted / blocked / unavailable 状态、provider 元数据和安全提示；当前不联网、不请求原始行情字段或原始基金净值字段、不保存真实数据。
+- [新功能] 新增 Web-P2 final_page_payload 静态页面渲染适配，支持账户状态、默认脱敏、安全徽章、股票 / ETF、场外基金净值、个人观察点位、warnings、disclaimer 与 blocked payload 安全提示；当前不联网、不请求原始行情字段或原始基金净值字段、不保存真实数据。
 - [新功能] 新增 Web-P1 本地 Web 最小静态页面骨架、demo final_page_payload、入口文档和安全边界测试。
 - [文档] 新增 Web-P0 本地网页工作台入口规范、目录骨架和数据边界说明。
 
 - [新功能] 新增 P5-S1 个人观察标签与直接表达规则，允许买入观察、加仓观察、减仓观察等作为个人观察标签，并继续阻断必须买入、保证收益、自动下单等强制交易、收益承诺和自动执行表达。
 
-- [新功能] 新增 P5-T 真实数据进入账户页面模型前最终安全闸门，检查 audit、display adapter、默认脱敏、仓库写入、secret、真实金额、场外基金措辞和字段边界，并生成默认 redacted 的 final_page_payload；当前不联网、不请求真实行情或真实基金净值、不保存真实数据。
+- [新功能] 新增 P5-T 真实数据进入账户页面模型前最终安全闸门，检查 audit、display adapter、默认脱敏、仓库写入、secret、个人敏感字段、场外基金措辞和字段边界，并生成默认 redacted 的 final_page_payload；当前不联网、不请求原始行情字段或原始基金净值字段、不保存真实数据。
 
-- [新功能] 新增 P5-S 股票 / ETF / 基金真实数据统一汇总安全适配层，统一 stock_etf / fund_nav section、审计与展示适配状态、默认 dry-run / redacted；当前不联网、不请求真实行情或真实基金净值、不保存真实价格、净值、估算净值、涨跌幅或 secrets。
+- [新功能] 新增 P5-S 股票 / ETF / 基金真实数据统一汇总安全适配层，统一 stock_etf / fund_nav section、审计与展示适配状态、默认 dry-run / redacted；当前不联网、不请求原始行情字段或原始基金净值字段、不保存原始价格字段、净值、估算净值、涨跌幅或 secrets。
 
-- [新功能] 新增 P5-R7 场外基金净值接入账户基金汇总 dry-run 编排层，支持 holding / watching 分开汇总、CN 场外 fund 分流、审计与默认脱敏展示；当前不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
+- [新功能] 新增 P5-R7 场外基金净值接入账户基金汇总 dry-run 编排层，支持 holding / watching 分开汇总、CN 场外 fund 分流、审计与默认脱敏展示；当前不联网、不请求原始基金净值字段、不保存真实净值、估算净值或涨跌幅。
 
-- [新功能] 新增 P5-R6 场外基金净值页面展示安全适配模块、默认脱敏展示、blocked / unavailable / local_real_allowed 模式、Markdown Demo 与测试；不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
+- [新功能] 新增 P5-R6 场外基金净值页面展示安全适配模块、默认脱敏展示、blocked / unavailable / local_real_allowed 模式、Markdown Demo 与测试；不联网、不请求原始基金净值字段、不保存真实净值、估算净值或涨跌幅。
 
-- [新功能] 新增 P5-R5 场外基金净值 provider 结果审计模块、脱敏摘要、freshness / repository safety / secret scan 测试与说明；不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
+- [新功能] 新增 P5-R5 场外基金净值 provider 结果审计模块、脱敏摘要、freshness / repository safety / secret scan 测试与说明；不联网、不请求原始基金净值字段、不保存真实净值、估算净值或涨跌幅。
 
 - [测试] 新增场外基金净值 provider 本地手动 smoke 脚本、文档与安全测试。
 
-- [新功能] 新增 P5-R2 场外基金净值 provider local-only 测试适配器，使用本地 fixture 验证字段映射、结果标准化和安全边界，不联网、不保存真实基金净值。
+- [新功能] 新增 P5-R2 场外基金净值 provider local-only 测试适配器，使用本地 fixture 验证字段映射、结果标准化和安全边界，不联网、不保存原始基金净值字段。
 
-- [新功能] 新增 P5-R1 场外基金净值 provider dry-run adapter，基于 registry 与 provider_safety 验证真实接入前的请求计划和安全边界；当前不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
+- [新功能] 新增 P5-R1 场外基金净值 provider dry-run adapter，基于 registry 与 provider_safety 验证真实接入前的请求计划和安全边界；当前不联网、不请求原始基金净值字段、不保存真实净值、估算净值或涨跌幅。
 
-- [新功能] 新增 P5-R 场外基金真实净值 provider 接入评估 registry、字段映射计划、缓存策略、失败兜底和文档；当前不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
+- [新功能] 新增 P5-R 场外基金真实净值 provider 接入评估 registry、字段映射计划、缓存策略、失败兜底和文档；当前不联网、不请求原始基金净值字段、不保存真实净值、估算净值或涨跌幅。
 
-- [新功能] 新增 P5-Q7 A股 / ETF provider 接入账户行情汇总 dry-run，支持 holding / watching 分开汇总、默认脱敏展示、审计与展示安全适配；当前不联网、不请求真实行情、不保存真实价格、涨跌幅或成交额。
+- [新功能] 新增 P5-Q7 A股 / ETF provider 接入账户行情汇总 dry-run，支持 holding / watching 分开汇总、默认脱敏展示、审计与展示安全适配；当前不联网、不请求原始行情字段、不保存原始价格字段、涨跌幅或成交额。
 
 - [新功能] 新增 P5-Q6 A股 / ETF provider 本地页面展示安全适配，支持默认脱敏、blocked 状态和显式本地真实展示策略。
 
-- [新功能] 新增 P5-Q5 A股 / ETF provider 本地真实请求结果审计模块、脱敏摘要、freshness / repository safety / secret scan 测试与说明；不联网、不请求真实行情、不保存真实价格、涨跌幅或成交额。
+- [新功能] 新增 P5-Q5 A股 / ETF provider 本地真实请求结果审计模块、脱敏摘要、freshness / repository safety / secret scan 测试与说明；不联网、不请求原始行情字段、不保存原始价格字段、涨跌幅或成交额。
 
-- [新功能] 新增 P5-Q4 A股 / ETF provider 本地手动 smoke 脚本与说明文档；默认 dry-run、不联网、不保存真实行情，real 模式要求三个环境变量且 CI 强制阻断真实请求。
+- [新功能] 新增 P5-Q4 A股 / ETF provider 本地手动 smoke 脚本与说明文档；默认 dry-run、不联网、不保存原始行情字段，real 模式要求三个环境变量且 CI 强制阻断真实请求。
 
-- [新功能] 新增 P5-Q3 A股 / ETF provider 真实请求最小闭环 adapter，默认关闭并要求 network_enabled / provider_enabled / allow_real_request 三重显式开关；CI 使用 fake fetcher，不请求真实行情、不保存真实价格、涨跌幅或成交额。
+- [新功能] 新增 P5-Q3 A股 / ETF provider 真实请求最小闭环 adapter，默认关闭并要求 network_enabled / provider_enabled / allow_real_request 三重显式开关；CI 使用 fake fetcher，不请求原始行情字段、不保存原始价格字段、涨跌幅或成交额。
 
-- [新功能] 新增 P5-Q2 A股 / ETF provider local-only 测试适配器，使用本地 fixture 验证字段映射、结果标准化和安全边界，不联网、不保存真实行情。
+- [新功能] 新增 P5-Q2 A股 / ETF provider local-only 测试适配器，使用本地 fixture 验证字段映射、结果标准化和安全边界，不联网、不保存原始行情字段。
 
-- [新功能] 新增 P5-Q1 A股 / ETF provider dry-run adapter，基于 provider_registry 与 provider_safety 验证真实接入前的请求计划和安全边界；当前不联网、不请求真实行情、不保存真实价格、涨跌幅或成交额。
+- [新功能] 新增 P5-Q1 A股 / ETF provider dry-run adapter，基于 provider_registry 与 provider_safety 验证真实接入前的请求计划和安全边界；当前不联网、不请求原始行情字段、不保存原始价格字段、涨跌幅或成交额。
 
-- [新功能] 新增 P5-Q0 个人观察点位卡片与 Web 页面布局参考模型，提供 model_only 四宫格卡片、Markdown Demo、文案安全规则和测试；当前不联网、不接真实行情、不保存真实价格、涨跌幅、净值或成交额。
+- [新功能] 新增 P5-Q0 个人观察点位卡片与 Web 页面布局参考模型，提供 model_only 四宫格卡片、Markdown Demo、文案安全规则和测试；当前不联网、不接原始行情字段、不保存原始价格字段、涨跌幅、净值或成交额。
 
 - [新功能] 新增账户页面行情 / 净值展示适配模型，将 fixture/model-only 汇总结果接入账户页面。
 
-- [新功能] 新增 P5-N 账户资产行情 / 基金净值汇总框架，离线汇总 stock / etf / 官方指数实时行情框架和 fund 净值框架结果，holding / watching 分开统计；当前不联网、不保存真实行情或净值、不输出交易建议。
-- [新功能] 新增 P5-M 场外基金净值 / 估算涨跌抓取框架，提供离线 FundNavRequest / FundNavResult / FundNavProvider 与 mock / fixture provider；当前不联网、不接真实基金净值源、不保存真实净值、估算净值或涨跌幅。
-- [新功能] 新增 P5-L5 股票 / ETF / 官方指数实时行情抓取框架完整版，提供离线 QuoteRequest / QuoteResult / QuoteProvider 与 mock / fixture provider；当前不联网、不接真实行情源、不保存真实价格、涨跌幅或成交额。
+- [新功能] 新增 P5-N 账户字段行情 / 基金净值汇总框架，离线汇总 stock / etf / 官方指数实时行情框架和 fund 净值框架结果，holding / watching 分开统计；当前不联网、不保存原始行情字段或净值、不输出交易建议。
+- [新功能] 新增 P5-M 场外基金净值 / 估算涨跌抓取框架，提供离线 FundNavRequest / FundNavResult / FundNavProvider 与 mock / fixture provider；当前不联网、不接原始基金净值字段源、不保存真实净值、估算净值或涨跌幅。
+- [新功能] 新增 P5-L5 股票 / ETF / 官方指数实时行情抓取框架完整版，提供离线 QuoteRequest / QuoteResult / QuoteProvider 与 mock / fixture provider；当前不联网、不接原始行情字段源、不保存原始价格字段、涨跌幅或成交额。
 - [新功能] 新增 P5-L4 韩股指数矩阵与体感指标计算框架，支持中位数、平均涨跌、上涨家数占比、全市场等权和成交额变化结构；当前仅处理输入样例，不抓取行情。
-- [新功能] 新增 P5-L3 美股指数矩阵与广度 / 体感指标计算框架，支持中位数、平均涨跌、上涨家数占比、NYSE / Nasdaq 上涨家数占比和全市场等权涨跌结构；当前仅处理输入样例，不抓取真实行情。
+- [新功能] 新增 P5-L3 美股指数矩阵与广度 / 体感指标计算框架，支持中位数、平均涨跌、上涨家数占比、NYSE / Nasdaq 上涨家数占比和全市场等权涨跌结构；当前仅处理输入样例，不抓取原始行情字段。
 
-- [新功能] 新增 P5-L2 港股指数矩阵与体感指标计算框架，支持中位数、平均涨跌、上涨家数占比、全市场等权和成交额变化结构；当前仅处理输入样例，不抓取真实行情。
-- [新功能] 新增 P5-L1 A股指数矩阵与体感指标计算框架，支持中位数、平均涨跌、上涨家数占比、涨跌停差、全A等权和成交额变化结构；当前仅处理输入样例，不抓取真实行情。
-- [新功能] 新增 P5-L0 全球市场指数矩阵与页面切换模型，定义 global / cn / hk / us / kr 页面、稳定 tabs、指数分组和 official_index / computed_indicator 分类；当前仅 model_only，不抓取真实行情。
+- [新功能] 新增 P5-L2 港股指数矩阵与体感指标计算框架，支持中位数、平均涨跌、上涨家数占比、全市场等权和成交额变化结构；当前仅处理输入样例，不抓取原始行情字段。
+- [新功能] 新增 P5-L1 A股指数矩阵与体感指标计算框架，支持中位数、平均涨跌、上涨家数占比、涨跌停差、全A等权和成交额变化结构；当前仅处理输入样例，不抓取原始行情字段。
+- [新功能] 新增 P5-L0 全球市场指数矩阵与页面切换模型，定义 global / cn / hk / us / kr 页面、稳定 tabs、指数分组和 official_index / computed_indicator 分类；当前仅 model_only，不抓取原始行情字段。
 - [新功能] 新增 P5-J 账户动态页面模型，根据 active fund / stock / company / theme 和 holding / watching / history 状态生成可复用页面结构。
 - [新功能] 新增 P5-H 资产状态管理模块，支持 holding / watching / cleared / archived / deleted 的预览确认、风险等级、结构化执行结果与回归测试。
 - [新功能] 新增 P5-F 代码自动识别框架，基于格式规则返回资产类型 / 市场候选、置信度、来源证据、待确认状态与 asset 草稿转换，当前不联网、不补全真实名称或标签。
