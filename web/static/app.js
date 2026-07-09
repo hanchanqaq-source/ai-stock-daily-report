@@ -1,32 +1,34 @@
+const fallbackPayload = {
+  account_id: "demo_account",
+  account_name: "示例账户",
+  payload_status: "safe_for_account_page",
+  display_mode: "redacted",
+  data_mode: "dry_run",
+  can_write_to_public_repo: false,
+  sections: {
+    stock_etf: { enabled: false, title: "股票 / ETF 行情", display_models: [] },
+    fund_nav: { enabled: false, title: "场外基金净值", display_models: [] },
+    observation_points: {
+      enabled: true,
+      title: "个人观察点位",
+      items: [
+        { label: "买入观察", text: "仅作为个人观察记录，不自动下单。" },
+        { label: "加仓观察", text: "等待回调确认后再记录。" },
+        { label: "止盈观察", text: "接近目标区时重点观察。" },
+        { label: "风险位", text: "跌破关键位置时提高风险等级。" }
+      ]
+    }
+  },
+  safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据"],
+  warnings: [
+    "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
+    "场外基金盘中估算仅供观察，最终以基金公司公布净值为准。"
+  ],
+  disclaimer: "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
+};
+
 function getFallbackPayload() {
-  return {
-    account_id: "demo_account",
-    account_name: "示例账户",
-    payload_status: "safe_for_account_page",
-    display_mode: "redacted",
-    data_mode: "dry_run",
-    can_write_to_public_repo: false,
-    sections: {
-      stock_etf: { enabled: false, title: "股票 / ETF 行情", display_models: [] },
-      fund_nav: { enabled: false, title: "场外基金净值", display_models: [] },
-      observation_points: {
-        enabled: true,
-        title: "个人观察点位",
-        items: [
-          { label: "买入观察", text: "仅作为个人观察记录，不自动下单。" },
-          { label: "加仓观察", text: "等待回调确认后再记录。" },
-          { label: "止盈观察", text: "接近目标区时重点观察。" },
-          { label: "风险位", text: "跌破关键位置时提高风险等级。" }
-        ]
-      }
-    },
-    safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据"],
-    warnings: [
-      "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
-      "场外基金盘中估算仅供观察，最终以基金公司公布净值为准。"
-    ],
-    disclaimer: "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
-  };
+  return fallbackPayload;
 }
 
 function byId(id) {
@@ -54,7 +56,7 @@ async function loadFinalPagePayload() {
     if (!response.ok) throw new Error("Cannot load local demo payload");
     return await response.json();
   } catch (error) {
-    return getFallbackPayload();
+    return fallbackPayload;
   }
 }
 
