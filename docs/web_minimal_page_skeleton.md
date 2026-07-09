@@ -32,8 +32,8 @@ python -m http.server 8000 -d web/static
 
 Web-P1 保持以下安全边界：
 
-- 不请求原始行情字段。
-- 不请求原始基金净值字段。
+- 不请求真实行情，不直接请求原始行情字段。
+- 不请求真实基金净值，不直接请求原始基金净值字段。
 - 不读取真实 `user_config`。
 - 不保存个人敏感字段 / 成本字段 / 账户字段。
 - 不保存 Token / API Key / Webhook。
@@ -47,8 +47,8 @@ Web-P1 保持以下安全边界：
 - 左侧导航：首页、指数、持仓、观察、个人点位、清理中心、设置。
 - 顶部栏：页面标题、搜索框占位、数据状态。
 - 账户概览：展示 demo 账户名称和 safety badges。
-- 股票 ETF：占位卡片，不请求原始行情字段。
-- 场外基金：占位卡片，不请求原始基金净值字段。
+- 股票 ETF：占位卡片，不请求真实行情，不直接请求原始行情字段。
+- 场外基金：占位卡片，不请求真实基金净值，不直接请求原始基金净值字段。
 - 个人观察点位：展示 demo 个人观察标签。
 - 风险提醒：展示不自动下单和非强制交易指令说明。
 - 数据说明：说明当前只消费 demo payload，未来只消费 `final_page_payload`。
@@ -69,4 +69,4 @@ Web-P1 保持以下安全边界：
 
 Web-P2 在最小静态页面骨架上继续增强 `final_page_payload` 渲染能力。页面读取 `web/static/demo_final_page_payload.json`，并渲染账户名称、`payload_status`、`display_mode`、`safety_badges`、股票 / ETF section、场外基金净值 section、个人观察点位、warnings、disclaimer 和 blocked payload 安全提示。
 
-该适配仍然只消费 `final_page_payload`，不请求原始行情字段，不请求原始基金净值字段，不读取真实 `user_config`，不保存个人敏感字段 / 成本字段 / 账户字段，也不保存 Token / API Key / Webhook。
+该适配仍然只消费 `final_page_payload`，不请求真实行情，不直接请求原始行情字段，不请求真实基金净值，不直接请求原始基金净值字段，不读取真实 `user_config`，不保存个人敏感字段 / 成本字段 / 账户字段，也不保存 Token / API Key / Webhook。

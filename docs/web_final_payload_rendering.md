@@ -32,8 +32,8 @@ Web-P2 让 `web/static/` 下的静态 HTML / CSS / JS 页面能够消费 `final_
 
 Web-P2 保持以下边界：
 
-- 不请求原始行情字段。
-- 不请求原始基金净值字段。
+- 不请求真实行情，不直接请求原始行情字段。
+- 不请求真实基金净值，不直接请求原始基金净值字段。
 - 不读取真实 `user_config`。
 - 不保存个人敏感字段 / 成本字段 / 账户字段。
 - 不保存 Token / API Key / Webhook。
@@ -60,4 +60,4 @@ Web-P16 将个人观察点位从简单列表增强为卡片列表，消费 `sect
 
 ## Web-P17 账户首页综合看板
 
-Web-P17 在静态首页新增综合看板区域，消费 `dashboard_summary`、账户字段、`safety_badges`、`sections.stock_etf`、`sections.fund_nav`、`sections.observation_points` 和 `warnings`。页面继续只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求原始行情字段、不请求原始基金净值字段、不读取真实 `user_config`，并默认展示 redacted 结果。
+Web-P17 在静态首页新增综合看板区域，消费 `dashboard_summary`、账户字段、`safety_badges`、`sections.stock_etf`、`sections.fund_nav`、`sections.observation_points` 和 `warnings`。页面继续只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求真实行情、不请求真实基金净值，不直接请求原始行情字段、原始基金净值字段、不读取真实 `user_config`，并默认展示 redacted 结果。
