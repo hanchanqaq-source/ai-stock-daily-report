@@ -32,3 +32,17 @@ web/static/index.html
 ```
 
 The page only consumes the demo `final_page_payload` shape from `web/static/demo_final_page_payload.json` or its in-page fallback. It does not request real quotes, real fund NAV values, real `user_config`, or save real account values.
+
+## Web-P2 final_page_payload rendering
+
+Web-P2 extends the static preview so `web/static/app.js` reads `web/static/demo_final_page_payload.json` and renders the current safe payload areas:
+
+- account name, `payload_status`, and `display_mode`
+- `safety_badges`
+- `sections.stock_etf`
+- `sections.fund_nav` with the note that intraday estimates are for observation only and final values depend on the fund company published NAV
+- `sections.observation_points`
+- `warnings` and `disclaimer`
+- blocked payload safety banner
+
+The page still does not request real quotes, real fund NAV values, real `user_config`, Discord, daily reports, weekly reports, or real providers.

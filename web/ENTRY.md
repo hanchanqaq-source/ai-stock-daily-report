@@ -42,3 +42,9 @@ python -m http.server 8000 -d web/static
 ```
 
 This preview only reads `demo_final_page_payload.json` or the local fallback demo payload. It does not request real market quotes, real fund NAV values, or real `user_config`.
+
+## Web-P2 rendering scope
+
+The static preview renders the safe `final_page_payload` areas from `demo_final_page_payload.json`: account header, payload status, display mode, safety badges, stock / ETF display models, fund NAV display models, personal observation points, warnings, disclaimer, and blocked payload banner.
+
+This scope is rendering-only. It does not request real market quotes, real fund NAV values, or real `user_config`, and it does not save real amount values, cost basis, account assets, Token, API Key, or Webhook values.

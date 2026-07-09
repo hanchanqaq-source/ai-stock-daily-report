@@ -59,3 +59,15 @@ h1, h2 { margin: 0; }
   .card-grid { grid-template-columns: 1fr; }
   .account-card { grid-column: span 1; }
 }
+
+.blocked-banner { background: #fff1f1; border: 1px solid #efb7b7; border-radius: 14px; color: #8a2323; margin-bottom: 18px; padding: 14px 16px; }
+.section-body { display: grid; gap: 12px; margin-top: 14px; }
+.asset-card { border: 1px solid #dce6f2; border-radius: 14px; padding: 12px; background: #f8fbff; }
+.asset-card strong { display: block; color: #21456f; margin-bottom: 4px; }
+.asset-card span { color: #667892; font-size: 13px; }
+.asset-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 12px; margin: 12px 0; }
+.asset-card dt { color: #667892; }
+.asset-card dd { margin: 0; color: #172033; }
+.compact { margin-top: 8px; }
+.empty-state { color: #667892; margin: 0; }
+.section-note { color: #6c5420; font-size: 13px; margin: 10px 0 0; }

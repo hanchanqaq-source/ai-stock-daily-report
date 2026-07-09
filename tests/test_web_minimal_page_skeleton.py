@@ -71,8 +71,9 @@ def test_demo_payload_does_not_contain_real_values_or_secrets():
     for text in FORBIDDEN_PAYLOAD_TERMS:
         assert text not in raw
     payload = json.loads(raw)
-    assert payload["sections"]["stock_etf"]["display_models"] == []
-    assert payload["sections"]["fund_nav"]["display_models"] == []
+    assert payload["sections"]["stock_etf"]["display_models"]
+    assert payload["sections"]["fund_nav"]["display_models"]
+    assert "<redacted>" in raw
 
 
 def test_demo_payload_contains_personal_observation_labels():
