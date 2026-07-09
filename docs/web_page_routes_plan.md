@@ -27,3 +27,7 @@ Web-P1 先以 `web/static/index.html` 承载本地静态首页骨架，包含左
 ## Web-P15 行情与基金净值安全看板
 
 Web-P15 在 `web/static/index.html` 中增强股票 / ETF 行情和场外基金净值卡片展示，只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求真实行情，不请求真实基金净值，并保留“不自动下单 / 不构成强制交易指令”的安全文案。
+
+## Web-P16 个人观察点位卡片
+
+当前本地静态页面已支持个人观察点位卡片展示，为 Web-P17 账户首页综合看板预留 `observation_points` 页面区域。该区域只消费 demo `final_page_payload` / 未来 P5-T `final_page_payload`，不请求真实行情、真实基金净值或真实 provider。

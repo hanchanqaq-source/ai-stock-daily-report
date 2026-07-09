@@ -26,7 +26,11 @@
             "change_pct": "<redacted>",
             "turnover": "<redacted>"
           },
-          "badges": ["已审计", "默认脱敏", "安全 payload"]
+          "badges": [
+            "已审计",
+            "默认脱敏",
+            "安全 payload"
+          ]
         },
         {
           "asset_id": "demo_etf_001",
@@ -44,7 +48,10 @@
             "change_pct": "<redacted>",
             "turnover": "<redacted>"
           },
-          "badges": ["不可用", "默认脱敏"]
+          "badges": [
+            "不可用",
+            "默认脱敏"
+          ]
         }
       ]
     },
@@ -74,7 +81,11 @@
             "estimated_change_pct": "<redacted>",
             "estimate_time": "demo-time"
           },
-          "badges": ["已审计", "默认脱敏", "估算提示"]
+          "badges": [
+            "已审计",
+            "默认脱敏",
+            "估算提示"
+          ]
         },
         {
           "asset_id": "demo_fund_002",
@@ -98,7 +109,10 @@
             "estimated_change_pct": "<redacted>",
             "estimate_time": "demo-time"
           },
-          "badges": ["安全闸门拦截", "默认脱敏"]
+          "badges": [
+            "安全闸门拦截",
+            "默认脱敏"
+          ]
         }
       ]
     },
@@ -106,17 +120,149 @@
       "enabled": true,
       "title": "个人观察点位",
       "items": [
-        { "label": "买入观察", "text": "仅作为个人观察记录，不自动下单。" },
-        { "label": "加仓观察", "text": "等待回调确认后再记录。" },
-        { "label": "减仓观察", "text": "接近目标区时评估仓位变化。" },
-        { "label": "止盈观察", "text": "接近目标区时重点观察。" },
-        { "label": "止损观察", "text": "跌破风险位时提高风险等级。" },
-        { "label": "风险位", "text": "跌破关键位置时提高风险等级，仅作为个人观察记录。" },
-        { "label": "继续持有", "text": "仅记录个人观察状态。" }
+        {
+          "id": "demo_observation_buy_001",
+          "label": "买入观察",
+          "category": "buy_watch",
+          "asset_name": "示例股票A",
+          "asset_code": "000000",
+          "asset_type": "stock",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "watching",
+          "risk_level": "medium",
+          "data_status": "demo-redacted",
+          "text": "仅作为个人观察记录，不自动下单。",
+          "disclaimer": "不构成强制交易指令。"
+        },
+        {
+          "id": "demo_observation_add_001",
+          "label": "加仓观察",
+          "category": "add_watch",
+          "asset_name": "示例ETF A",
+          "asset_code": "demo_etf_001",
+          "asset_type": "etf",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "waiting",
+          "risk_level": "medium",
+          "data_status": "demo-redacted",
+          "text": "等待回调确认后再记录。",
+          "disclaimer": "不构成强制交易指令。"
+        },
+        {
+          "id": "demo_observation_reduce_001",
+          "label": "减仓观察",
+          "category": "reduce_watch",
+          "asset_name": "示例股票A",
+          "asset_code": "000000",
+          "asset_type": "stock",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "watching",
+          "risk_level": "medium",
+          "data_status": "demo-redacted",
+          "text": "接近目标区时记录个人观察。",
+          "disclaimer": "不构成强制交易指令。"
+        },
+        {
+          "id": "demo_observation_profit_001",
+          "label": "止盈观察",
+          "category": "take_profit_watch",
+          "asset_name": "示例场外基金A",
+          "asset_code": "000001",
+          "asset_type": "fund",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "watching",
+          "risk_level": "low",
+          "data_status": "demo-redacted",
+          "text": "接近目标区时重点观察。",
+          "disclaimer": "不构成强制交易指令。"
+        },
+        {
+          "id": "demo_observation_stop_001",
+          "label": "止损观察",
+          "category": "stop_loss_watch",
+          "asset_name": "示例股票A",
+          "asset_code": "000000",
+          "asset_type": "stock",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "risk_watch",
+          "risk_level": "high",
+          "data_status": "demo-redacted",
+          "text": "跌破风险位时提高风险等级，仅作为个人观察记录。",
+          "disclaimer": "不构成强制交易指令。"
+        },
+        {
+          "id": "demo_observation_risk_001",
+          "label": "风险位",
+          "category": "risk_watch",
+          "asset_name": "示例股票A",
+          "asset_code": "000000",
+          "asset_type": "stock",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "risk_watch",
+          "risk_level": "high",
+          "data_status": "demo-redacted",
+          "text": "跌破关键位置时提高风险等级，仅作为个人观察记录。",
+          "disclaimer": "不构成强制交易指令。"
+        },
+        {
+          "id": "demo_observation_wait_001",
+          "label": "等待回调",
+          "category": "wait_pullback",
+          "asset_name": "示例ETF A",
+          "asset_code": "demo_etf_001",
+          "asset_type": "etf",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "waiting",
+          "risk_level": "medium",
+          "data_status": "demo-redacted",
+          "text": "等待回调确认后继续观察。",
+          "disclaimer": "不构成强制交易指令。"
+        },
+        {
+          "id": "demo_observation_hold_001",
+          "label": "继续持有",
+          "category": "hold_watch",
+          "asset_name": "示例场外基金A",
+          "asset_code": "000001",
+          "asset_type": "fund",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "holding_watch",
+          "risk_level": "low",
+          "data_status": "demo-redacted",
+          "text": "仅记录个人观察状态。",
+          "disclaimer": "不构成强制交易指令。"
+        },
+        {
+          "id": "demo_observation_noop_001",
+          "label": "暂不操作",
+          "category": "no_action",
+          "asset_name": "示例股票A",
+          "asset_code": "000000",
+          "asset_type": "stock",
+          "market": "CN",
+          "point_display": "<redacted>",
+          "status": "idle",
+          "risk_level": "low",
+          "data_status": "demo-redacted",
+          "text": "当前仅记录观察，不做动作。",
+          "disclaimer": "不构成强制交易指令。"
+        }
       ]
     }
   },
-  "safety_badges": ["已审计", "默认脱敏", "禁止写入真实数据"],
+  "safety_badges": [
+    "已审计",
+    "默认脱敏",
+    "禁止写入真实数据"
+  ],
   "warnings": [
     "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
