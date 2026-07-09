@@ -20,6 +20,7 @@
 - 真实金额：任何位置出现 amount、cost_price、cost、position_value、account_value、balance、real_amount、real_cost 等真实金额 / 成本价 / 账户资产字段都会阻断。
 - 场外基金措辞：场外基金不能写成“实时涨跌”“实时价格”“实时行情”或“盘中实时净值”，估算必须提示“盘中估算仅供观察，最终以基金公司公布净值为准。”。
 - 字段边界：股票 / ETF 与场外基金字段必须分区，不得把基金净值字段混入股票行情 section，也不得把股票行情字段混入基金净值 section。
+- 个人观察标签：最终安全闸门应区分“个人观察标签”和“强制交易指令”。买入观察、加仓观察、减仓观察、止盈观察、止损观察、清仓观察等可作为个人观察标签进入页面 payload；必须买入、保证收益、自动下单等强制交易、收益承诺或自动执行表达必须阻断。
 
 ## 4. 输出结果
 
@@ -31,7 +32,7 @@
 
 ## 5. 页面 Payload
 
-`final_page_payload` 只用于后续页面消费，默认 `display_mode=redacted`。即使闸门通过，也只输出脱敏后的 `stock_etf` 与 `fund_nav` 展示模型；阻断时只输出 `payload_status=blocked`、空 sections、issues 和 warnings，不输出真实价格、真实基金净值、真实金额或 secrets。
+`final_page_payload` 只用于后续页面消费，默认 `display_mode=redacted`。即使闸门通过，也只输出脱敏后的 `stock_etf` 与 `fund_nav` 展示模型；页面 payload 可以包含 `personal_observation_label`，但必须附带“本页面标签仅作为个人观察和记录，不自动下单，不构成强制交易指令。”；阻断时只输出 `payload_status=blocked`、空 sections、issues 和 warnings，不输出真实价格、真实基金净值、真实金额或 secrets。
 
 ## 6. 安全边界
 
