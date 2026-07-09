@@ -25,7 +25,7 @@ const fallbackPayload = {
     data_status: "dry_run",
     display_status: "redacted",
     counts: { stock_etf: 0, fund_nav: 0, observation_points: 4, blocked: 0, unavailable: 0, redacted: 4 },
-    quick_notes: ["当前页面为本地安全预览。", "默认展示脱敏结果。", "不保存真实行情或真实基金净值。"]
+    quick_notes: ["当前页面为本地安全预览。", "默认展示脱敏结果。", "不保存原始 provider 数据。"]
   },
   safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据", "不自动下单", "不构成强制交易指令"],
   warnings: [
@@ -80,7 +80,7 @@ function renderAssetHeader(model = {}) {
   return `<div class="asset-card-header"><div><strong>${escapeHtml(formatDisplayValue(model.name))}</strong><span>${escapeHtml(formatDisplayValue(model.code))} · ${escapeHtml(formatDisplayValue(model.market))} · ${escapeHtml(formatDisplayValue(model.type))}</span></div>${renderDataStatusBadge(model)}</div>`;
 }
 function renderBlockedCard(model = {}, type = "asset") {
-  return `<article class="asset-card blocked-card">${renderAssetHeader(model)}<p class="blocked-message">数据已被安全闸门拦截，不显示真实行情。</p><dl>${renderMetaRows(model)}</dl><div class="badge-row compact">${renderAssetBadges(model.badges)}</div></article>`;
+  return `<article class="asset-card blocked-card">${renderAssetHeader(model)}<p class="blocked-message">数据已被安全闸门拦截，不显示原始行情数据。</p><dl>${renderMetaRows(model)}</dl><div class="badge-row compact">${renderAssetBadges(model.badges)}</div></article>`;
 }
 function renderUnavailableCard(model = {}, type = "asset") {
   const message = type === "fund" ? "当前场外基金净值不可用。" : "当前行情不可用。";
@@ -162,7 +162,7 @@ function buildDashboardSummaryFromPayload(payload = {}) {
       unavailable: counts.unavailable ?? statusCounts.unavailable ?? 0,
       redacted: counts.redacted ?? statusCounts.redacted ?? 0
     },
-    quick_notes: Array.isArray(summary.quick_notes) ? summary.quick_notes : ["当前页面为本地安全预览。", "默认展示脱敏结果。", "不保存真实行情或真实基金净值。"]
+    quick_notes: Array.isArray(summary.quick_notes) ? summary.quick_notes : ["当前页面为本地安全预览。", "默认展示脱敏结果。", "不保存原始 provider 数据。"]
   };
 }
 function renderQuickLink(label, targetId) {
@@ -184,7 +184,7 @@ function renderDashboardMetricCards(payload) {
 }
 function renderDashboardSafetyPanel(payload) {
   const badges = [...(Array.isArray(payload?.safety_badges) ? payload.safety_badges : []), "不自动下单", "不构成强制交易指令"];
-  return `<div class="safety-panel"><h3>数据安全状态</h3><div class="badge-row">${renderAssetBadges([...new Set(badges)])}</div><p>本地预览禁止写入真实数据，不保存真实金额 / 成本价 / 账户资产，不保存 Token / API Key / Webhook。</p></div>`;
+  return `<div class="safety-panel"><h3>数据安全状态</h3><div class="badge-row">${renderAssetBadges([...new Set(badges)])}</div><p>本地预览禁止写入未脱敏数据，不保存原始 provider 数据、个人敏感字段或密钥字段。</p></div>`;
 }
 function renderDashboardQuickSections(payload) {
   const sections = payload?.sections || {};
