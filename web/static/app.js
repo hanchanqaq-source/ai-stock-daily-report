@@ -91,6 +91,10 @@ function renderStockEtfCards(section = {}) {
     return `<article class="asset-card stock-card">${renderAssetHeader(model)}<dl><dt>最新价</dt><dd>${val(quote.last_price)}</dd><dt>涨跌幅</dt><dd>${val(quote.change_pct)}</dd><dt>成交额</dt><dd>${val(quote.turnover)}</dd>${renderMetaRows(model)}</dl><div class="badge-row compact">${renderAssetBadges(model.badges)}</div></article>`;
   }).join("");
 }
+function renderStockEtfSection(section) {
+  return renderStockEtfCards(section);
+}
+
 function renderFundNavCards(section = {}) {
   const note = '<p class="section-note">盘中估算仅供观察，最终以基金公司公布净值为准。</p>';
   if (section.enabled === false) return '<p class="empty-state">场外基金净值区域暂未启用</p>' + note;
@@ -105,6 +109,10 @@ function renderFundNavCards(section = {}) {
     return `<article class="asset-card fund-card">${renderAssetHeader(model)}<dl><dt>单位净值</dt><dd>${val(nav.unit_nav)}</dd><dt>累计净值</dt><dd>${val(nav.accumulated_nav)}</dd><dt>日涨跌幅</dt><dd>${val(nav.daily_change_pct)}</dd><dt>净值日期</dt><dd>${escapeHtml(formatDisplayValue(nav.nav_date))}</dd><dt>估算净值</dt><dd>${val(estimate.estimated_nav)}</dd><dt>估算涨跌</dt><dd>${val(estimate.estimated_change_pct)}</dd><dt>估算更新时间</dt><dd>${escapeHtml(formatDisplayValue(estimate.estimate_time))}</dd>${renderMetaRows(model)}</dl>${note}<div class="badge-row compact">${renderAssetBadges(model.badges)}</div></article>`;
   }).join("");
 }
+function renderFundNavSection(section) {
+  return renderFundNavCards(section);
+}
+
 function renderMarketDashboard(payload) {
   const sections = payload?.sections || {};
   setSafeHtml("stock-etf-section", renderStockEtfCards(sections.stock_etf || {}));
