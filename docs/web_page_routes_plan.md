@@ -1,0 +1,20 @@
+# Web 页面路由规划
+
+Web-P0 只规划页面路由，不实现真实页面，不请求真实行情，不请求真实基金净值，不读取真实 `user_config`，不保存 secrets 或真实账户数值。
+
+## Planned routes
+
+| Route | 页面 | 用途 | Web-P0 状态 |
+| --- | --- | --- | --- |
+| `/dashboard` | 首页 | 账户总览、股票 ETF 区域、基金净值区域、风险雷达 | 仅规划 |
+| `/indices` | 指数模块 | A股、港股、美股、韩股等指数通过 tab 切换 | 仅规划 |
+| `/holdings` | 持仓页面 | 显示 holding 资产 | 仅规划 |
+| `/watchlist` | 观察页面 | 显示 watching 资产 | 仅规划 |
+| `/cleared` | 已清仓 | 显示 cleared 资产，不参与默认实时汇总 | 仅规划 |
+| `/observation-points` | 个人观察点位 | 显示买入观察、加仓观察、减仓观察、止盈观察、止损观察、清仓观察等个人标签 | 仅规划 |
+| `/cleanup` | 清理中心 | 只扫描，不默认删除；危险操作必须预览和确认 | 仅规划 |
+| `/settings` | 设置页面 | 本地设置、导入导出、备份恢复；不得保存 secrets 到 public repo | 仅规划 |
+
+## Route safety rules
+
+All routes only consume `final_page_payload`. Routes must not directly connect to quote providers, fund NAV providers, Discord, daily reports, weekly reports, or real `user_config`. Pages must keep: 本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。
