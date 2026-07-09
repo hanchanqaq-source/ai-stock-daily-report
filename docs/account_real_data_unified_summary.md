@@ -6,6 +6,8 @@
 
 该模块为后续账户页消费统一数据结构做准备：当前默认 `dry_run`、默认 `redacted`、`commit_safe=false`，输出只包含展示适配后的脱敏模型与安全状态。
 
+统一汇总进入页面前必须通过 `account_real_data_final_gate`，由最终安全闸门再次确认审计、展示适配、默认脱敏、仓库写入、secret、真实金额、场外基金措辞和字段边界。
+
 ## 2. 数据来源
 
 - A股 / ETF 走 `account_cn_quote_provider_integration`。
