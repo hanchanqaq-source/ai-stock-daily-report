@@ -8,41 +8,67 @@
   "sections": {
     "stock_etf": {
       "enabled": true,
-      "display_models": []
+      "title": "股票 / ETF 行情",
+      "display_models": [
+        {
+          "asset_id": "demo_stock_001",
+          "code": "000000",
+          "name": "示例股票A",
+          "type": "stock",
+          "market": "CN",
+          "display_status": "displayable",
+          "display_mode": "redacted",
+          "quote_display": {
+            "last_price": "<redacted>",
+            "change_pct": "<redacted>",
+            "turnover": "<redacted>"
+          },
+          "badges": ["已审计", "默认脱敏"]
+        }
+      ]
     },
     "fund_nav": {
       "enabled": true,
-      "display_models": []
+      "title": "场外基金净值",
+      "display_models": [
+        {
+          "asset_id": "demo_fund_001",
+          "code": "000001",
+          "name": "示例场外基金A",
+          "type": "fund",
+          "market": "CN",
+          "display_status": "displayable",
+          "display_mode": "redacted",
+          "nav_display": {
+            "unit_nav": "<redacted>",
+            "accumulated_nav": "<redacted>",
+            "daily_change_pct": "<redacted>",
+            "nav_date": "demo-date"
+          },
+          "estimate_display": {
+            "estimated_nav": "<redacted>",
+            "estimated_change_pct": "<redacted>",
+            "estimate_time": "demo-time"
+          },
+          "badges": ["已审计", "默认脱敏"]
+        }
+      ]
     },
     "observation_points": {
       "enabled": true,
+      "title": "个人观察点位",
       "items": [
-        {
-          "label": "买入观察",
-          "text": "仅作为个人观察记录，不自动下单。"
-        },
-        {
-          "label": "加仓观察",
-          "text": "等待回调确认后再记录。"
-        },
-        {
-          "label": "止盈观察",
-          "text": "接近目标区时重点观察。"
-        },
-        {
-          "label": "风险位",
-          "text": "跌破关键位置时提高风险等级。"
-        }
+        { "label": "买入观察", "text": "仅作为个人观察记录，不自动下单。" },
+        { "label": "加仓观察", "text": "等待回调确认后再记录。" },
+        { "label": "止盈观察", "text": "接近目标区时重点观察。" },
+        { "label": "风险位", "text": "跌破关键位置时提高风险等级。" }
       ]
     }
   },
-  "safety_badges": [
-    "已审计",
-    "默认脱敏",
-    "禁止写入真实数据"
-  ],
+  "safety_badges": ["已审计", "默认脱敏", "禁止写入真实数据"],
   "warnings": [
-    "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
+    "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
+    "场外基金盘中估算仅供观察，最终以基金公司公布净值为准。"
   ],
   "disclaimer": "本页面仅用于本地预览，不构成交易建议。"
 }

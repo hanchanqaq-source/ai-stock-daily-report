@@ -13,6 +13,18 @@ provider / account processing upstream
 
 Web 只消费 `final_page_payload`。页面默认消费 redacted / safe payload，不直接请求真实行情，不直接请求真实基金净值，不直接读取真实 `user_config`，不保存 Token / API Key / Webhook，不保存真实金额 / 成本价 / 账户资产。
 
+## Web 页面渲染流程
+
+Web-P2 页面渲染流程为：
+
+```text
+P5-T final_page_payload
+  -> web/static/demo_final_page_payload.json 或后续本地安全 payload
+  -> web/static/app.js 渲染
+```
+
+当前静态页面只消费 demo final_page_payload 或 fallback payload，不请求真实行情，不请求真实基金净值，不读取真实 `user_config`。
+
 ## Forbidden direct flow
 
 ```text

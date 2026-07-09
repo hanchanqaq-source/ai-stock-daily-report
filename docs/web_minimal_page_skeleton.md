@@ -64,3 +64,9 @@ Web-P1 保持以下安全边界：
 - Web-P15：实时行情与基金净值看板。
 - Web-P16：个人观察点位卡片页面。
 - Web-P17：账户首页综合看板。
+
+## 8. Web-P2 渲染适配
+
+Web-P2 在最小静态页面骨架上继续增强 `final_page_payload` 渲染能力。页面读取 `web/static/demo_final_page_payload.json`，并渲染账户名称、`payload_status`、`display_mode`、`safety_badges`、股票 / ETF section、场外基金净值 section、个人观察点位、warnings、disclaimer 和 blocked payload 安全提示。
+
+该适配仍然只消费 `final_page_payload`，不请求真实行情，不请求真实基金净值，不读取真实 `user_config`，不保存真实金额 / 成本价 / 账户资产，也不保存 Token / API Key / Webhook。

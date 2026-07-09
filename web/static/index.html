@@ -37,37 +37,40 @@
         <section class="notice" aria-label="数据边界">
           <strong>数据边界：</strong>本页面只消费 final_page_payload，不请求真实行情，不请求真实基金净值，不读取真实 user_config，不保存真实金额 / 成本价 / 账户资产。
         </section>
+        <section class="blocked-banner" id="blocked-banner" hidden></section>
 
         <section class="card-grid" aria-label="主内容区域">
           <article class="card account-card" id="home">
             <p class="card-label">账户概览</p>
             <h2 id="account-name">示例账户</h2>
+            <p>payload_status：<span id="payload-status">loading</span></p>
+            <p>display_mode：<span id="display-mode">loading</span></p>
             <p>当前为 redacted demo 预览，不展示真实金额、成本价或账户资产。</p>
             <div class="badge-row" id="safety-badges"></div>
           </article>
 
           <article class="card" id="holdings">
             <p class="card-label">股票 / ETF 行情</p>
-            <h2>占位卡片</h2>
-            <p>仅展示页面骨架，不请求真实行情，不连接真实 provider。</p>
+            <h2>final_page_payload 渲染</h2>
+            <div class="section-body" id="stock-etf-section"></div>
           </article>
 
           <article class="card" id="fund-nav">
             <p class="card-label">场外基金净值</p>
-            <h2>占位卡片</h2>
-            <p>仅展示页面骨架，不请求真实基金净值，不保存净值数据。</p>
+            <h2>final_page_payload 渲染</h2>
+            <div class="section-body" id="fund-nav-section"></div>
           </article>
 
           <article class="card" id="points">
             <p class="card-label">个人观察点位</p>
             <h2>观察标签</h2>
-            <div class="observation-list" id="observation-points"></div>
+            <div class="observation-list" id="observation-points-section"></div>
           </article>
 
           <article class="card warning-card">
             <p class="card-label">风险提醒</p>
             <h2>本地安全提醒</h2>
-            <ul id="warnings">
+            <ul id="warnings-section">
               <li>本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。</li>
             </ul>
           </article>
@@ -79,7 +82,7 @@
           </article>
         </section>
 
-        <footer class="footer" id="disclaimer">
+        <footer class="footer" id="disclaimer-section">
           本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。
         </footer>
       </main>
