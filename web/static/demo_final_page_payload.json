@@ -1,0 +1,48 @@
+{
+  "account_id": "demo_account",
+  "account_name": "示例账户",
+  "payload_status": "safe_for_account_page",
+  "display_mode": "redacted",
+  "data_mode": "dry_run",
+  "can_write_to_public_repo": false,
+  "sections": {
+    "stock_etf": {
+      "enabled": true,
+      "display_models": []
+    },
+    "fund_nav": {
+      "enabled": true,
+      "display_models": []
+    },
+    "observation_points": {
+      "enabled": true,
+      "items": [
+        {
+          "label": "买入观察",
+          "text": "仅作为个人观察记录，不自动下单。"
+        },
+        {
+          "label": "加仓观察",
+          "text": "等待回调确认后再记录。"
+        },
+        {
+          "label": "止盈观察",
+          "text": "接近目标区时重点观察。"
+        },
+        {
+          "label": "风险位",
+          "text": "跌破关键位置时提高风险等级。"
+        }
+      ]
+    }
+  },
+  "safety_badges": [
+    "已审计",
+    "默认脱敏",
+    "禁止写入真实数据"
+  ],
+  "warnings": [
+    "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
+  ],
+  "disclaimer": "本页面仅用于本地预览，不构成交易建议。"
+}

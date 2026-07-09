@@ -22,3 +22,13 @@ Every future page that renders personal observation labels must keep this discla
 Future pages may display personal observation wording such as 买入观察、加仓观察、减仓观察、止盈观察、止损观察、清仓观察、低吸区、目标区、风险位、等待回调、继续持有、暂不操作.
 
 These labels are personal notes only. They must not be rendered as forced trading instructions, guaranteed returns, or automatic execution actions.
+
+## Web-P1 static preview
+
+Web-P1 adds the minimal local static page skeleton at:
+
+```text
+web/static/index.html
+```
+
+The page only consumes the demo `final_page_payload` shape from `web/static/demo_final_page_payload.json` or its in-page fallback. It does not request real quotes, real fund NAV values, real `user_config`, or save real account values.

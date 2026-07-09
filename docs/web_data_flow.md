@@ -32,3 +32,7 @@ Web page -> real user_config
 ## Personal observation boundary
 
 Web 可以展示买入观察、加仓观察、减仓观察、止盈观察、止损观察、清仓观察、低吸区、目标区、风险位、等待回调、继续持有、暂不操作等个人观察标签。展示时必须保留免责声明：本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。
+
+## Web-P1 demo payload
+
+Web-P1 静态页面只读取 `web/static/demo_final_page_payload.json` 或本地 fallback demo。该 demo 用于验证页面骨架；未来正式页面必须继续只消费 P5-T `final_page_payload`，不得直接请求真实行情、真实基金净值或真实 `user_config`。

@@ -32,3 +32,13 @@ If the final gate returns a blocked payload, Web pages may show only a safe erro
 - Web does not connect to providers directly.
 - Web does not write real market or account values into the repository.
 - Web does not place orders or execute trades.
+
+## Web-P1 local preview
+
+The minimal static page can be opened at `web/static/index.html`. For browsers that block local JSON loading under `file://`, use:
+
+```bash
+python -m http.server 8000 -d web/static
+```
+
+This preview only reads `demo_final_page_payload.json` or the local fallback demo payload. It does not request real market quotes, real fund NAV values, or real `user_config`.

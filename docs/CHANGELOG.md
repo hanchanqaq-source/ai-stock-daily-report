@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] 新增 Web-P1 本地 Web 最小静态页面骨架、demo final_page_payload、入口文档和安全边界测试。
 - [文档] 新增 Web-P0 本地网页工作台入口规范、目录骨架和数据边界说明。
 
 - [新功能] 新增 P5-S1 个人观察标签与直接表达规则，允许买入观察、加仓观察、减仓观察等作为个人观察标签，并继续阻断必须买入、保证收益、自动下单等强制交易、收益承诺和自动执行表达。
