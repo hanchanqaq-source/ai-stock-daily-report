@@ -46,6 +46,8 @@ CI 测试只使用 `fake_fetcher` / monkeypatch，不请求真实网络，不请
 
 场外基金不能称为实时涨跌。盘中估算仅供观察，最终以基金公司公布净值为准。
 
+真实 fund nav provider 结果进入页面前必须先通过 `fund_nav_result_audit` 审计和 `fund_nav_display_adapter` 展示适配；默认页面展示脱敏，只有本地显式开启且安全条件满足时才允许真实展示。
+
 ## 9. 后续路线
 
 - P5-R4：场外基金净值本地手动试跑脚本。

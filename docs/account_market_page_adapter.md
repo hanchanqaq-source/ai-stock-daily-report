@@ -38,6 +38,8 @@
 
 P5-Q6 新增 `src/cn_quote_display_adapter.py`，仅负责把审计后的 A股 / ETF provider 结果转换为本地页面展示模型。当前账户页面主流程暂不直接接入真实 provider；后续 P5-Q7 会把该 display adapter 接到账户行情汇总 / 页面模型 dry-run。
 
+P5-R6 新增 `fund_nav_display_adapter`，当前账户页面主流程暂不直接接入真实 fund nav provider；后续 P5-R7 或 P5-S 会把展示适配接到账户基金净值汇总 / 页面模型 dry-run。
+
 ## 7. 后续路线
 
 - P5-P：真实 provider 接入前安全审查。
