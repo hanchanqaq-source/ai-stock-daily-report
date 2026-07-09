@@ -105,3 +105,34 @@ h1, h2 { margin: 0; }
 @media (max-width: 820px) {
   .observation-list { grid-template-columns: 1fr; }
 }
+
+.dashboard-card { background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%); border: 1px solid #dbe6f7; border-radius: 22px; box-shadow: 0 14px 32px rgba(34, 56, 88, 0.08); margin-bottom: 18px; padding: 22px; }
+.dashboard-hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(260px, 0.8fr); gap: 18px; align-items: start; }
+.dashboard-subtitle { color: #36506f; margin: 10px 0 0; }
+.dashboard-overview { display: grid; grid-template-columns: max-content 1fr; gap: 8px 12px; background: #f8fbff; border: 1px solid #dce6f2; border-radius: 16px; margin: 0; padding: 14px; }
+.dashboard-overview dt { color: #667892; }
+.dashboard-overview dd { margin: 0; font-weight: 700; color: #172033; word-break: break-word; }
+.quick-links { display: flex; flex-wrap: wrap; gap: 10px; grid-column: 1 / -1; }
+.quick-link { background: #edf2ff; border-radius: 999px; color: #315697; font-weight: 700; padding: 8px 12px; text-decoration: none; }
+.quick-link:hover { background: #dfe8ff; }
+.dashboard-notes { grid-column: 1 / -1; color: #52647a; margin: 0; padding-left: 18px; }
+.dashboard-metrics { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 18px 0; }
+.metric-card { background: #ffffff; border: 1px solid #e6edf5; border-radius: 16px; padding: 14px; }
+.metric-card span { color: #667892; display: block; font-size: 13px; margin-bottom: 8px; }
+.metric-card strong { color: #1f3b68; font-size: 26px; }
+.safety-panel { background: #f7fff9; border: 1px solid #cfe9d8; border-radius: 16px; padding: 16px; }
+.safety-panel h3 { margin: 0 0 10px; color: #24704b; }
+.safety-panel p { color: #36506f; margin-bottom: 0; }
+.dashboard-quick-grid { margin-bottom: 18px; }
+.quick-section { border-color: #dbe6f7; }
+#dashboard-warnings ul { margin-bottom: 0; }
+
+@media (max-width: 820px) {
+  .dashboard-hero { grid-template-columns: 1fr; }
+  .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .dashboard-metrics { grid-template-columns: 1fr; }
+  .dashboard-overview { grid-template-columns: 1fr; }
+}
