@@ -52,4 +52,4 @@ P5-R7 后续页面展示可消费 `account_fund_nav_provider_integration` 生成
 
 ## 8. 统一真实数据汇总衔接
 
-P5-S 新增的统一真实数据汇总可由 `account_real_data_unified_summary` 提供，输出 `stock_etf` 与 `fund_nav` 两个 section，并统一审计状态、展示适配状态和安全计数。但进入真实账户页面模型前仍需 P5-T 最终安全闸门，继续确认默认脱敏、不保存真实行情 / 净值、不输出 secrets。
+P5-S 新增的统一真实数据汇总可由 `account_real_data_unified_summary` 提供，输出 `stock_etf` 与 `fund_nav` 两个 section，并统一审计状态、展示适配状态和安全计数。但进入真实账户页面模型前仍需 P5-T 最终安全闸门，继续确认默认脱敏、不保存真实行情 / 净值、不输出 secrets。 页面模型消费真实数据前必须先通过 P5-T `account_real_data_final_gate`，blocked 时不得把任何真实值传给页面模型。
