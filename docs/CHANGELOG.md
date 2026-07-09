@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-Q7 A股 / ETF provider 接入账户行情汇总 dry-run，支持 holding / watching 分开汇总、默认脱敏展示、审计与展示安全适配；当前不联网、不请求真实行情、不保存真实价格、涨跌幅或成交额。
+
 - [新功能] 新增 P5-Q6 A股 / ETF provider 本地页面展示安全适配，支持默认脱敏、blocked 状态和显式本地真实展示策略。
 
 - [新功能] 新增 P5-Q5 A股 / ETF provider 本地真实请求结果审计模块、脱敏摘要、freshness / repository safety / secret scan 测试与说明；不联网、不请求真实行情、不保存真实价格、涨跌幅或成交额。
