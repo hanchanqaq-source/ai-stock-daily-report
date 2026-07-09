@@ -99,3 +99,5 @@ P5-R 将评估场外基金真实净值 provider 接入：
 - 明确 `fund_nav_provider` 的真实净值 / 估算净值安全边界。
 - 评估本地 gated 请求、字段审计、展示脱敏和仓库提交安全规则。
 - 与账户行情汇总保持分层：A股 / ETF quote provider 与场外基金 NAV provider 分别治理、分别审计。
+
+P5-S 统一汇总衔接：`account_real_data_unified_summary` 会复用本模块生成 `stock_etf` section，并继续要求结果先经过 `cn_quote_result_audit` 与 `cn_quote_display_adapter`；统一层不重复实现 provider 逻辑，不请求真实行情，不保存真实价格、涨跌幅或成交额。

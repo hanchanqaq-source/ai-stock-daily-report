@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-S 股票 / ETF / 基金真实数据统一汇总安全适配层，统一 stock_etf / fund_nav section、审计与展示适配状态、默认 dry-run / redacted；当前不联网、不请求真实行情或真实基金净值、不保存真实价格、净值、估算净值、涨跌幅或 secrets。
+
 - [新功能] 新增 P5-R7 场外基金净值接入账户基金汇总 dry-run 编排层，支持 holding / watching 分开汇总、CN 场外 fund 分流、审计与默认脱敏展示；当前不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
 
 - [新功能] 新增 P5-R6 场外基金净值页面展示安全适配模块、默认脱敏展示、blocked / unavailable / local_real_allowed 模式、Markdown Demo 与测试；不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。

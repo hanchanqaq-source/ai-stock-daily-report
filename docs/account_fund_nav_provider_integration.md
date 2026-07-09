@@ -50,3 +50,5 @@
 
 - P5-S：股票 / ETF / 基金真实数据统一汇总安全适配。
 - P5-T：真实数据进入账户页面模型前最终安全闸门。
+
+P5-S 统一汇总衔接：`account_real_data_unified_summary` 会复用本模块生成 `fund_nav` section，并继续要求结果先经过 `fund_nav_result_audit` 与 `fund_nav_display_adapter`；统一层不重复实现 provider 逻辑，不请求真实基金净值，不保存单位净值、累计净值、估算净值或基金涨跌幅。
