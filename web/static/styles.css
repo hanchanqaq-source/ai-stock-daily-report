@@ -81,3 +81,27 @@ h1, h2 { margin: 0; }
 .data-status { background: #edf2ff; color: #315697; white-space: nowrap; }
 .blocked-message { color: #8a2323; font-weight: 700; margin-bottom: 0; }
 .unavailable-message { color: #7a5911; font-weight: 700; margin-bottom: 0; }
+
+.observation-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+.observation-page-note { grid-column: 1 / -1; }
+.observation-card { border: 1px solid #d7e4f3; border-radius: 16px; padding: 14px; background: linear-gradient(180deg, #fbfdff 0%, #f7fbff 100%); }
+.observation-card-header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+.observation-card h3 { margin: 0; color: #1f3b68; }
+.observation-label-title { margin: 0 0 4px; color: #667892; font-size: 12px; }
+.observation-card-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.observation-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 700; background: #eef2f7; color: #52647a; white-space: nowrap; }
+.category-badge { background: #edf2ff; color: #315697; }
+.status-badge { background: #ecfdf3; color: #24704b; }
+.risk-low { background: #e8f6ef; color: #24704b; }
+.risk-medium { background: #fff8e8; color: #8a5a00; }
+.risk-high { background: #fff1f1; color: #8a2323; }
+.risk-unknown { background: #eef2f7; color: #667892; }
+.observation-meta { display: grid; grid-template-columns: max-content 1fr; gap: 8px 12px; margin: 0 0 12px; }
+.observation-meta dt { color: #667892; }
+.observation-meta dd { margin: 0; color: #172033; }
+.observation-text { margin: 0 0 10px; color: #36506f; }
+.observation-disclaimer { border-top: 1px dashed #dbe6f7; color: #6c5420; font-size: 13px; margin: 10px 0 0; padding-top: 10px; }
+
+@media (max-width: 820px) {
+  .observation-list { grid-template-columns: 1fr; }
+}

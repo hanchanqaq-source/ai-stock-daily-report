@@ -45,3 +45,7 @@ Web 页面不能绕过最终安全闸门，不能直接消费 provider 原始数
 - Web-P16：个人观察点位卡片页面。
 - Web-P17：账户首页综合看板。
 - Web-P18：指数模块页面切换。
+
+## Web-P16 衔接
+
+Web-P16 已增强 `sections.observation_points` 卡片展示，页面在同一个 demo `final_page_payload` 中渲染个人观察标签、状态 badge、风险等级 badge、脱敏观察点位、数据状态和“不自动下单 / 不构成强制交易指令”免责声明。该增强不请求真实行情、不请求真实基金净值，也不直接消费 provider 原始数据。
