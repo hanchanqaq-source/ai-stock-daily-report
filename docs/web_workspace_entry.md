@@ -8,6 +8,8 @@ Web 工作台默认只消费 `src/account_real_data_final_gate.py` 输出的 `fi
 
 Web 页面不得直接读取 provider 原始结果，不得直接请求原始行情字段，不得直接请求原始基金净值字段，不得直接读取真实 `user_config`。Web 页面不得保存 Token / API Key / Webhook，不得保存个人敏感字段 / 成本字段 / 账户字段。
 
+本地 Web 工作台不得保存真实金额 / 成本价 / 账户资产 到 public repo。
+
 blocked payload 只能显示安全错误提示或 blocked 状态，不得显示被拦截的真实值。
 
 ## 产品方向记录
