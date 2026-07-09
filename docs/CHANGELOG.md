@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 P5-R7 场外基金净值接入账户基金汇总 dry-run 编排层，支持 holding / watching 分开汇总、CN 场外 fund 分流、审计与默认脱敏展示；当前不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
+
 - [新功能] 新增 P5-R6 场外基金净值页面展示安全适配模块、默认脱敏展示、blocked / unavailable / local_real_allowed 模式、Markdown Demo 与测试；不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
 
 - [新功能] 新增 P5-R5 场外基金净值 provider 结果审计模块、脱敏摘要、freshness / repository safety / secret scan 测试与说明；不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。
