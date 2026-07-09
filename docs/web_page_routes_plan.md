@@ -22,3 +22,8 @@ All routes only consume `final_page_payload`. Routes must not directly connect t
 ## Web-P1 static skeleton
 
 Web-P1 先以 `web/static/index.html` 承载本地静态首页骨架，包含左侧导航、顶部栏、账户概览、股票 ETF、场外基金净值、个人观察点位、风险提醒和数据说明。各规划 route 仍不接真实 provider。
+
+
+## Web-P15 行情与基金净值安全看板
+
+Web-P15 在 `web/static/index.html` 中增强股票 / ETF 行情和场外基金净值卡片展示，只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求真实行情，不请求真实基金净值，并保留“不自动下单 / 不构成强制交易指令”的安全文案。

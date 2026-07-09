@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] 新增 Web-P15 行情与基金净值安全 payload 看板，支持 stock_etf / fund_nav 卡片、redacted / blocked / unavailable 状态、provider 元数据和安全提示；当前不联网、不请求真实行情或真实基金净值、不保存真实数据。
 - [新功能] 新增 Web-P2 final_page_payload 静态页面渲染适配，支持账户状态、默认脱敏、安全徽章、股票 / ETF、场外基金净值、个人观察点位、warnings、disclaimer 与 blocked payload 安全提示；当前不联网、不请求真实行情或真实基金净值、不保存真实数据。
 - [新功能] 新增 Web-P1 本地 Web 最小静态页面骨架、demo final_page_payload、入口文档和安全边界测试。
 - [文档] 新增 Web-P0 本地网页工作台入口规范、目录骨架和数据边界说明。

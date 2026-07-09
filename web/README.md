@@ -46,3 +46,8 @@ Web-P2 extends the static preview so `web/static/app.js` reads `web/static/demo_
 - blocked payload safety banner
 
 The page still does not request real quotes, real fund NAV values, real `user_config`, Discord, daily reports, weekly reports, or real providers.
+
+
+## Web-P15 market and fund NAV dashboard
+
+Web-P15 extends the static preview with safe demo cards for `sections.stock_etf` and `sections.fund_nav`. The page renders redacted, blocked, unavailable, and displayable states from `web/static/demo_final_page_payload.json`, keeps provider/source status metadata, and keeps the notice that intraday fund estimates are for observation only and final values depend on the fund company published NAV. It still does not request real quotes, real fund NAV values, real `user_config`, Discord, daily reports, weekly reports, or real providers.
