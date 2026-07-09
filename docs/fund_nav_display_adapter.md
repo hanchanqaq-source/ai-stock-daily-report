@@ -63,3 +63,5 @@ P5-R6 使用审计结果生成页面展示模型，默认脱敏；真实 provide
 
 - P5-R7：场外基金净值接入账户基金汇总 dry-run。
 - P5-S：股票 / ETF / 基金真实数据统一汇总安全适配。
+
+P5-R7 账户级场外基金净值汇总 dry-run 会复用本展示适配器生成 `display_models`。默认展示模式仍为 `redacted`，blocked / failed 结果不得展示真实基金净值。

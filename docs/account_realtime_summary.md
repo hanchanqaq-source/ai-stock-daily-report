@@ -56,3 +56,5 @@
 
 账户页面行情 / 净值展示模型见 docs/account_market_page_adapter.md。页面模型只展示结构化行情 / 净值摘要，不保存真实行情数据。场外基金不能称为实时涨跌。
 真实 provider 接入前安全规则见 `docs/provider_safety.md`。真实行情和真实基金净值默认不写入 public 仓库。真实 provider 必须显式启用网络权限，并保留来源、checked_at、source_status。
+
+P5-R7 新增账户级场外基金净值 provider dry-run 接入，说明见 [账户场外基金净值 Provider 接入汇总说明](account_fund_nav_provider_integration.md)。

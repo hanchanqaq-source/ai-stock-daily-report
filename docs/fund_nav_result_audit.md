@@ -63,3 +63,5 @@ P5-R6 使用审计结果生成页面展示模型，默认脱敏；blocked / fail
 
 - P5-R6：场外基金净值页面展示安全适配。
 - P5-S：股票 / ETF / 基金真实数据统一汇总安全适配。
+
+P5-R7 账户级场外基金净值汇总 dry-run 会对每个 provider result 调用本审计模块，确保进入展示适配前完成 repository safety、freshness 与 secret scan 检查。
