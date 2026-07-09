@@ -82,3 +82,6 @@ FUND_NAV_ENABLE_REAL_PROVIDER=1 FUND_NAV_NETWORK_ENABLED=1 FUND_NAV_ALLOW_REAL_R
 P5-R5：场外基金净值结果审计。
 
 P5-R6：场外基金净值页面展示安全适配。
+
+
+P5-R5 新增 `src/fund_nav_result_audit.py` 结果审计模块。本地手动试跑真实 fund nav provider 后，应先通过 P5-R5 结果审计，不要把原始真实结果提交到仓库；审计输出只使用脱敏摘要。
