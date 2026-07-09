@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [测试] 新增场外基金净值 provider 本地手动 smoke 脚本、文档与安全测试。
+
 - [新功能] 新增 P5-R2 场外基金净值 provider local-only 测试适配器，使用本地 fixture 验证字段映射、结果标准化和安全边界，不联网、不保存真实基金净值。
 
 - [新功能] 新增 P5-R1 场外基金净值 provider dry-run adapter，基于 registry 与 provider_safety 验证真实接入前的请求计划和安全边界；当前不联网、不请求真实基金净值、不保存真实净值、估算净值或涨跌幅。

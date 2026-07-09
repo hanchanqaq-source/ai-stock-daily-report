@@ -50,3 +50,7 @@ CI 测试只使用 `fake_fetcher` / monkeypatch，不请求真实网络，不请
 
 - P5-R4：场外基金净值本地手动试跑脚本。
 - P5-R5：场外基金净值结果审计。
+
+## P5-R4 本地手动 smoke 脚本
+
+P5-R4 提供 `scripts/run_fund_nav_provider_smoke.py` 作为本地手动 smoke 脚本。脚本默认 dry-run，不请求真实基金净值；CI / GitHub Actions 环境默认禁止真实请求。真实请求仅限本地手动执行，并必须显式设置 `--real`、`FUND_NAV_ENABLE_REAL_PROVIDER=1`、`FUND_NAV_NETWORK_ENABLED=1` 和 `FUND_NAV_ALLOW_REAL_REQUEST=1`。
