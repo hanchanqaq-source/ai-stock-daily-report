@@ -50,6 +50,8 @@ Token、API Key、Webhook、authorization、bearer、cookie、session、password
 
 场外基金不能称为实时涨跌，只能使用：单位净值、累计净值、日涨跌幅、估算净值、估算涨跌、净值日期、估算更新时间。估算净值必须提示：盘中估算仅供观察，最终以基金公司公布净值为准。`fund_nav_provider` 不能输出 `realtime_quote`。
 
+场外基金真实净值 provider 接入评估见 `docs/fund_nav_provider_evaluation.md`，候选 registry 见 `docs/fund_nav_provider_registry.md`。Registry 仅做评估，不代表已接入真实来源。
+
 ## 9. 本地手动 smoke 规则
 
 P5-Q4 新增的 A股 / ETF provider 本地手动 smoke 脚本默认 dry-run，不联网、不保存真实行情。真实 provider 路径必须同时满足 `--real`、三个环境变量开关、非 CI 环境、`allow_commit_to_repo=false` 与 `cache_scope=local_only`。输出只允许打印到控制台，并默认脱敏 Token、API Key、Webhook、cookie、authorization、bearer、password 和 secret 等敏感信息。

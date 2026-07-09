@@ -323,3 +323,4 @@ GLOBAL-R2：本地数据主权与可迁移规则。
 
 账户页面行情 / 净值展示模型见 docs/account_market_page_adapter.md。页面模型只展示结构化行情 / 净值摘要，不保存真实行情数据。场外基金不能称为实时涨跌。
 真实 provider 接入前安全规则见 `docs/provider_safety.md`。真实行情和真实基金净值默认不写入 public 仓库。真实 provider 必须显式启用网络权限，并保留来源、checked_at、source_status。
+场外基金真实净值和估算净值默认不写入 public 仓库；估算净值必须提示最终以基金公司公布净值为准。真实基金净值 provider 接入评估见 docs/fund_nav_provider_evaluation.md。
