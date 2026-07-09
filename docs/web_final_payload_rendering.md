@@ -18,8 +18,8 @@ Web-P2 让 `web/static/` 下的静态 HTML / CSS / JS 页面能够消费 `final_
 
 - 账户信息：账户名称、`payload_status`、`display_mode`。
 - `safety_badges`：展示安全审计、默认脱敏和禁止写入真实数据等标记。
-- 股票 ETF：消费 `sections.stock_etf`，只展示 payload 中已经脱敏的 display model。
-- 场外基金净值：消费 `sections.fund_nav`，只展示 payload 中已经脱敏的净值 / 估算展示字段，并保留“盘中估算仅供观察，最终以基金公司公布净值为准。”
+- 股票 / ETF 行情：Web-P15 已增强为卡片列表，消费 `sections.stock_etf`，只展示 payload 中已经脱敏的 display model，并展示 provider、checked_at、source_status、display_mode 和 badges。
+- 场外基金净值：Web-P15 已增强为卡片列表，消费 `sections.fund_nav`，只展示 payload 中已经脱敏的净值 / 估算展示字段、provider、checked_at、source_status、display_mode 和 badges，并保留“盘中估算仅供观察，最终以基金公司公布净值为准。”
 - 个人观察点位：消费 `sections.observation_points`。
 - `warnings`：展示页面风险提醒；为空时显示暂无额外风险提示。
 - `disclaimer`：展示页面免责声明。
@@ -50,6 +50,6 @@ Web-P2 保持以下边界：
 
 ## 7. 后续路线
 
-- Web-P15：实时行情与基金净值看板。
+- Web-P15：行情与基金净值安全 payload 看板。
 - Web-P16：个人观察点位卡片页面。
 - Web-P17：账户首页综合看板。

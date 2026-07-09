@@ -71,3 +71,13 @@ h1, h2 { margin: 0; }
 .compact { margin-top: 8px; }
 .empty-state { color: #667892; margin: 0; }
 .section-note { color: #6c5420; font-size: 13px; margin: 10px 0 0; }
+.asset-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.stock-card { border-color: #cfe0f5; background: #f8fbff; }
+.fund-card { border-color: #dce8d2; background: #fbfff8; }
+.blocked-card { border-color: #efb7b7; background: #fff7f7; }
+.unavailable-card { border-color: #ead9a2; background: #fffaf0; }
+.redacted-value { color: #8a5a00; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+.badge.muted { background: #eef2f7; color: #667892; }
+.data-status { background: #edf2ff; color: #315697; white-space: nowrap; }
+.blocked-message { color: #8a2323; font-weight: 700; margin-bottom: 0; }
+.unavailable-message { color: #7a5911; font-weight: 700; margin-bottom: 0; }
