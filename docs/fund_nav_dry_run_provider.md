@@ -4,6 +4,8 @@
 
 `src/fund_nav_dry_run_provider.py` 用于在真实基金净值 provider 接入前验证请求计划和安全检查。它只生成 dry-run request / result，不请求真实净值，不读取真实 `user_config`，不请求天天基金、东方财富、支付宝或基金公司官网，也不保存真实单位净值、累计净值、估算净值或涨跌幅。
 
+P5-R2 新增 `src/fund_nav_local_only_provider.py`，用于在不联网情况下验证本地 fixture provider response 的字段映射和结果标准化。local-only 不请求真实基金净值，也不保存真实净值、估算净值或涨跌幅。
+
 ## 2. 支持范围
 
 当前 dry-run adapter 仅支持 `CN` 场外 `fund`，并只规划以下数据：
