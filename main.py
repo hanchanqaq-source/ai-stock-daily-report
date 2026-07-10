@@ -264,6 +264,7 @@ def parse_arguments() -> argparse.Namespace:
   python main.py                    # 正常运行
   python main.py --debug            # 调试模式
   python main.py --dry-run          # 仅获取数据，不进行 AI 分析
+  python main.py --local-smoke      # Windows 本地安全启动检查
   python main.py --stocks 600519,000001  # 指定分析特定股票
   python main.py --no-notify        # 不发送推送通知
   python main.py --check-notify     # 检查通知配置，不发送通知
@@ -283,6 +284,12 @@ def parse_arguments() -> argparse.Namespace:
         '--dry-run',
         action='store_true',
         help='仅获取数据，不进行 AI 分析'
+    )
+
+    parser.add_argument(
+        '--local-smoke',
+        action='store_true',
+        help='Windows 本地安全启动检查：不联网、不调用模型、不发送通知、不写正式数据。'
     )
 
     parser.add_argument(
@@ -425,6 +432,38 @@ def parse_arguments() -> argparse.Namespace:
     )
 
     return parser.parse_args()
+
+
+def run_local_smoke() -> int:
+    """Run a lightweight local startup smoke check without production side effects."""
+    project_root = Path(__file__).resolve().parent
+    checks = []
+    try:
+        checks.append(("项目根目录", "ok" if project_root.exists() else "failed"))
+        for label, dirname in (("日志目录", "logs"), ("报告目录", "reports")):
+            target_dir = project_root / dirname
+            target_dir.mkdir(parents=True, exist_ok=True)
+            checks.append((label, "ok"))
+    except OSError as exc:
+        print("股票基金质量分析系统")
+        print("运行模式：local-smoke")
+        print(f"最终结果：failed ({type(exc).__name__}: {exc})")
+        return 1
+
+    status = dict(checks)
+    print("股票基金质量分析系统")
+    print("运行模式：local-smoke")
+    print("网络访问：skipped")
+    print("真实数据源：skipped")
+    print("AI 模型：skipped")
+    print("通知：skipped")
+    print("大盘复盘：skipped")
+    print("正式数据写入：skipped")
+    print(f"项目根目录：{status.get('项目根目录', 'failed')}")
+    print(f"日志目录：{status.get('日志目录', 'failed')}")
+    print(f"报告目录：{status.get('报告目录', 'failed')}")
+    print("最终结果：success")
+    return 0
 
 
 def _send_non_trading_day_skip_notice(
@@ -1297,6 +1336,9 @@ def main() -> int:
             stream=sys.stderr,
         )
         logger.warning("Bootstrap 日志初始化失败，已回退到 stderr: %s", exc)
+
+    if getattr(args, "local_smoke", False):
+        return run_local_smoke()
 
     # 加载配置（在 bootstrap logging 之后执行，确保异常有日志）
     try:

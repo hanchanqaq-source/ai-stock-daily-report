@@ -20,8 +20,10 @@ import logging
 import os
 import re
 import time
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
+from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 from enum import Enum
 
@@ -3459,20 +3461,35 @@ class NotificationService(
         Returns:
             保存的文件路径
         """
-        from pathlib import Path
-
         if filename is None:
             date_str = datetime.now().strftime('%Y-%m-%d')
             filename = f"ai-investment-daily-report-{date_str}.md"
+
+        if not str(content or "").strip():
+            raise ValueError("报告内容为空，已拒绝覆盖现有报告")
 
         # 确保 reports 目录存在（使用项目根目录下的 reports）
         reports_dir = Path(__file__).parent.parent / 'reports'
         reports_dir.mkdir(parents=True, exist_ok=True)
 
         filepath = reports_dir / filename
+        temp_path = filepath.with_name(f".report-{uuid.uuid4().hex}.tmp")
 
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(content)
+        try:
+            with open(temp_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+                f.flush()
+                try:
+                    os.fsync(f.fileno())
+                except OSError as exc:
+                    logger.debug("报告临时文件 fsync 未完成，继续原子替换: %s", type(exc).__name__)
+            temp_path.replace(filepath)
+        except Exception:
+            try:
+                temp_path.unlink(missing_ok=True)
+            except OSError as cleanup_exc:
+                logger.warning("报告临时文件清理失败: %s", type(cleanup_exc).__name__)
+            raise
 
         logger.info(f"日报已保存到: {filepath}")
         return str(filepath)
