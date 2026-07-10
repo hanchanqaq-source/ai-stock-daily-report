@@ -104,7 +104,7 @@ def test_demo_payload_contains_personal_observation_labels_and_fund_note():
     labels = {item["label"] for item in payload["sections"]["observation_points"]["items"]}
     assert {"买入观察", "加仓观察", "止盈观察", "风险位"}.issubset(labels)
     assert any("最终以基金公司公布净值为准" in warning for warning in payload["warnings"])
-    assert any("需用户自行判断" in warning for warning in payload["warnings"])
+    assert any("仅作为个人观察和记录，需用户自行判断。" in warning for warning in payload["warnings"])
 
 
 def test_docs_explain_final_payload_rendering_and_safety_boundary():

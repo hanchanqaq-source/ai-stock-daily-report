@@ -79,4 +79,4 @@ def test_demo_payload_excludes_sensitive_or_forbidden_text():
 def test_index_html_contains_observation_title_and_disclaimer():
     html = read(INDEX_HTML)
     assert "个人观察点位" in html
-    assert "需用户自行判断" in html
+    assert "仅作为个人观察和记录，需用户自行判断。" in html

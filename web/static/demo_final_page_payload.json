@@ -132,8 +132,8 @@
           "status": "watching",
           "risk_level": "medium",
           "data_status": "demo-redacted",
-          "text": "仅作为个人观察记录，需用户自行判断。",
-          "disclaimer": "需用户自行判断。"
+          "text": "仅作为个人观察和记录，需用户自行判断。",
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_add_001",
@@ -148,7 +148,7 @@
           "risk_level": "medium",
           "data_status": "demo-redacted",
           "text": "等待回调确认后再记录。",
-          "disclaimer": "需用户自行判断。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_reduce_001",
@@ -163,7 +163,7 @@
           "risk_level": "medium",
           "data_status": "demo-redacted",
           "text": "接近目标区时记录个人观察。",
-          "disclaimer": "需用户自行判断。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_profit_001",
@@ -178,7 +178,7 @@
           "risk_level": "low",
           "data_status": "demo-redacted",
           "text": "接近目标区时重点观察。",
-          "disclaimer": "需用户自行判断。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_stop_001",
@@ -193,7 +193,7 @@
           "risk_level": "high",
           "data_status": "demo-redacted",
           "text": "跌破风险位时提高风险等级，仅作为个人观察记录。",
-          "disclaimer": "需用户自行判断。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_risk_001",
@@ -208,7 +208,7 @@
           "risk_level": "high",
           "data_status": "demo-redacted",
           "text": "跌破关键位置时提高风险等级，仅作为个人观察记录。",
-          "disclaimer": "需用户自行判断。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_wait_001",
@@ -223,7 +223,7 @@
           "risk_level": "medium",
           "data_status": "demo-redacted",
           "text": "等待回调确认后继续观察。",
-          "disclaimer": "需用户自行判断。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_hold_001",
@@ -238,7 +238,7 @@
           "risk_level": "low",
           "data_status": "demo-redacted",
           "text": "仅记录个人观察状态。",
-          "disclaimer": "需用户自行判断。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_noop_001",
@@ -253,7 +253,7 @@
           "risk_level": "low",
           "data_status": "demo-redacted",
           "text": "当前仅记录观察，不做动作。",
-          "disclaimer": "需用户自行判断。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         }
       ]
     }
@@ -262,13 +262,13 @@
     "已审计",
     "默认脱敏",
     "禁止写入真实数据",
-    "需用户自行判断"
+    "仅作为个人观察和记录，需用户自行判断。"
   ],
   "warnings": [
-    "本页面仅作为个人观察和记录，需用户自行判断。",
+    "仅作为个人观察和记录，需用户自行判断。",
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
   ],
-  "disclaimer": "本页面仅作为个人观察和记录，需用户自行判断。",
+  "disclaimer": "仅作为个人观察和记录，需用户自行判断。",
   "dashboard_summary": {
     "title": "账户首页综合看板",
     "account_status": "本地安全预览",
@@ -865,7 +865,7 @@
         ]
       }
     },
-    "disclaimer": "本模块当前仅为本地 demo 展示，不请求真实行情，不保存未脱敏价格或涨跌幅；系统计算指标，非官方指数。页面只作为个人观察，需用户自行判断。"
+    "disclaimer": "本模块当前仅为本地 demo 展示，不请求真实行情，不保存未脱敏价格或涨跌幅；系统计算指标，非官方指数。仅作为个人观察和记录，需用户自行判断。"
   },
   "cleanup_center": {
     "data_mode": "dry_run",

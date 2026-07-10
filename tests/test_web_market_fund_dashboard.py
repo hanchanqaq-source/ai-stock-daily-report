@@ -43,7 +43,7 @@ def test_index_html_contains_dashboard_titles_and_required_disclaimer():
     text = read(INDEX_HTML)
     assert "股票 / ETF 行情" in text
     assert "场外基金净值" in text
-    assert "需用户自行判断" in text
+    assert "仅作为个人观察和记录，需用户自行判断。" in text
 
 
 def test_demo_payload_contains_safe_market_sections_and_states():
