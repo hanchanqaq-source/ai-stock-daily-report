@@ -25,6 +25,8 @@ def test_doc_exists_and_records_contract():
         assert word in text
     assert "观察点位默认脱敏" in text
     assert "仅作为个人观察和记录，需用户自行判断。" in text
+    assert "记录状态 / 观察记录" in text
+    assert "是否自动操作" not in text
 
 
 def test_app_js_exposes_observation_render_helpers():
@@ -87,6 +89,8 @@ def test_observation_card_uses_record_status_display_copy():
     assert "记录状态" in script
     assert "观察记录" in script
     assert "仅作为个人观察和记录，需用户自行判断。" in script
+    # auto_execute is an internal compatibility field when present in payloads;
+    # page-display assertions should only target user-visible wording.
     forbidden_display_terms = [
         "是否" + "系统" + "执" + "行",
         "系统" + "执" + "行",
