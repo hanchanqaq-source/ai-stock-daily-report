@@ -487,7 +487,7 @@ function renderObservationPointCard(item = {}) {
       <dt>当前状态</dt><dd>${renderObservationStatusBadge(item.status)}</dd>
       <dt>风险等级</dt><dd>${renderObservationRiskBadge(item.risk_level)}</dd>
       <dt>数据状态</dt><dd>${escapeHtml(formatDisplayValue(item.data_status || "demo-redacted"))}</dd>
-      <dt>是否系统执行</dt><dd>否</dd>
+      <dt>记录状态</dt><dd>观察记录</dd>
     </dl>
     <p class="observation-text">${escapeHtml(text)}</p>
     <p class="observation-disclaimer">${escapeHtml(disclaimer)} 仅作为个人观察和记录，需用户自行判断。</p>

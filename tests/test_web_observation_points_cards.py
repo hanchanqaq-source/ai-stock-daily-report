@@ -80,3 +80,19 @@ def test_index_html_contains_observation_title_and_disclaimer():
     html = read(INDEX_HTML)
     assert "个人观察点位" in html
     assert "仅作为个人观察和记录，需用户自行判断。" in html
+
+
+def test_observation_card_uses_record_status_display_copy():
+    script = read(APP_JS)
+    assert "记录状态" in script
+    assert "观察记录" in script
+    assert "仅作为个人观察和记录，需用户自行判断。" in script
+    forbidden_display_terms = [
+        "是否" + "系统" + "执" + "行",
+        "系统" + "执" + "行",
+        "自动" + "下" + "单",
+        "交易" + "指令",
+        "操作" + "指令",
+    ]
+    for term in forbidden_display_terms:
+        assert term not in script
