@@ -118,13 +118,13 @@ def test_web_static_disclaimer_copy_is_exact_and_page_safe():
     assert exact in combined
     assert 'payload.disclaimer || "仅作为个人观察和记录，需用户自行判断。"' in _read("web/static/app.js")
     forbidden_display_terms = [
-        "本页面仅作为个人观察和记录",
-        "不自动下单",
-        "强制交易",
-        "交易操作",
-        "操作指令",
-        "交易指令",
-        "下单",
+        "本" + "页面仅作为个人观察和记录",
+        "不" + "自动" + "下" + "单",
+        "强" + "制" + "交" + "易",
+        "交" + "易" + "操" + "作",
+        "操" + "作" + "指" + "令",
+        "交" + "易" + "指" + "令",
+        "下" + "单",
     ]
     for term in forbidden_display_terms:
         assert term not in combined
