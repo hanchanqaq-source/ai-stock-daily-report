@@ -127,9 +127,36 @@ h1, h2 { margin: 0; }
 .quick-section { border-color: #dbe6f7; }
 #dashboard-warnings ul { margin-bottom: 0; }
 
+.market-indices-section { margin-bottom: 18px; }
+.market-indices-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+.market-indices-tabs { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+.market-index-tab { border: 1px solid #d5dfec; border-radius: 999px; background: #fff; color: #36506f; cursor: pointer; font-weight: 700; padding: 9px 14px; }
+.market-index-tab:hover { background: #f8fbff; }
+.market-index-tab.active { background: #315697; border-color: #315697; color: #fff; }
+.market-index-detail { display: grid; gap: 14px; }
+.market-index-panel { background: #f8fbff; border: 1px solid #dce6f2; border-radius: 16px; padding: 16px; }
+.market-index-panel h3 { color: #1f3b68; margin: 0; }
+.market-index-group { margin-top: 16px; }
+.market-index-group h3 { color: #21456f; font-size: 16px; margin: 0 0 10px; }
+.market-index-card-grid { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.market-index-card { background: #fff; border: 1px solid #e6edf5; border-radius: 14px; padding: 12px; }
+.market-index-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.market-index-card strong { color: #21456f; }
+.market-index-card dl { display: grid; grid-template-columns: max-content 1fr; gap: 7px 10px; margin: 10px 0; }
+.market-index-card dt { color: #667892; }
+.market-index-card dd { margin: 0; }
+.market-index-card p { color: #52647a; font-size: 13px; margin: 0; }
+.indicator-type-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.indicator-official_index { background: #edf2ff; color: #315697; }
+.indicator-computed_breadth_indicator, .indicator-computed_sentiment_indicator { background: #fff8e8; color: #8a5a00; }
+.indicator-demo_only { background: #eef2f7; color: #52647a; }
+.market-index-disclaimer { background: #fff8e8; border: 1px solid #f0dfae; border-radius: 12px; color: #6c5420; margin: 16px 0 0; padding: 12px; }
+
 @media (max-width: 820px) {
   .dashboard-hero { grid-template-columns: 1fr; }
   .dashboard-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .market-indices-header { flex-direction: column; }
+  .market-index-card-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 560px) {

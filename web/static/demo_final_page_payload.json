@@ -288,5 +288,584 @@
       "默认展示脱敏结果。",
       "不保存原始 provider 数据。"
     ]
+  },
+  "market_indices": {
+    "data_mode": "dry_run",
+    "display_mode": "redacted",
+    "source_status": "demo_only",
+    "can_write_to_public_repo": false,
+    "markets": {
+      "global": {
+        "label": "全球总览",
+        "summary": "示例：全球市场指数模块仅展示脱敏 demo，不代表真实行情。",
+        "groups": [
+          {
+            "group_key": "cn_summary",
+            "group_label": "A股摘要",
+            "items": [
+              {
+                "name": "A股指数矩阵摘要",
+                "code": "DEMO_GLOBAL_CN",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "demo_only",
+                "note": "Demo 摘要，仅提示 A股权重核心、中小盘、成长科技和市场体感。"
+              }
+            ]
+          },
+          {
+            "group_key": "hk_summary",
+            "group_label": "港股摘要",
+            "items": [
+              {
+                "name": "港股指数矩阵摘要",
+                "code": "DEMO_GLOBAL_HK",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "demo_only",
+                "note": "Demo 摘要，仅提示港股权重核心、内地权重、科技成长和市场体感。"
+              }
+            ]
+          },
+          {
+            "group_key": "us_summary",
+            "group_label": "美股摘要",
+            "items": [
+              {
+                "name": "美股指数矩阵摘要",
+                "code": "DEMO_GLOBAL_US",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "demo_only",
+                "note": "Demo 摘要，仅提示美股权重核心、科技成长、中小盘和市场广度 / 体感。"
+              }
+            ]
+          },
+          {
+            "group_key": "kr_summary",
+            "group_label": "韩股摘要",
+            "items": [
+              {
+                "name": "韩股指数矩阵摘要",
+                "code": "DEMO_GLOBAL_KR",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "demo_only",
+                "note": "Demo 摘要，仅提示韩股权重核心、成长科技、综合指数和市场体感。"
+              }
+            ]
+          },
+          {
+            "group_key": "global_risk",
+            "group_label": "全球风险提示",
+            "items": [
+              {
+                "name": "跨市场风险提示",
+                "code": "DEMO_GLOBAL_RISK",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "demo_only",
+                "note": "Demo 风险提示，不构成交易建议。"
+              }
+            ]
+          },
+          {
+            "group_key": "data_note",
+            "group_label": "数据说明",
+            "items": [
+              {
+                "name": "数据说明",
+                "code": "DEMO_GLOBAL_NOTE",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "demo_only",
+                "note": "当前仅展示 redacted demo，不请求真实行情。"
+              }
+            ]
+          }
+        ]
+      },
+      "cn": {
+        "label": "A股",
+        "summary": "示例：A股指数矩阵包含权重核心、中小盘、成长科技和体感指标。",
+        "groups": [
+          {
+            "group_key": "core_weight",
+            "group_label": "权重核心",
+            "items": [
+              {
+                "name": "上证指数",
+                "code": "DEMO_CN_SH",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "深证成指",
+                "code": "DEMO_CN_SZ",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "沪深300",
+                "code": "DEMO_CN_300",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "中证A500",
+                "code": "DEMO_CN_A500",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "上证50",
+                "code": "DEMO_CN_50",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "small_mid",
+            "group_label": "中小盘",
+            "items": [
+              {
+                "name": "中证500",
+                "code": "DEMO_CN_500",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "中证1000",
+                "code": "DEMO_CN_1000",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "中证2000 / 国证2000",
+                "code": "DEMO_CN_2000",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "growth_tech",
+            "group_label": "成长科技",
+            "items": [
+              {
+                "name": "创业板指",
+                "code": "DEMO_CN_CHINEXT",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "创业板50",
+                "code": "DEMO_CN_CHINEXT50",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "科创50",
+                "code": "DEMO_CN_STAR50",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "科创100",
+                "code": "DEMO_CN_STAR100",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "北证50",
+                "code": "DEMO_CN_BSE50",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "market_feel",
+            "group_label": "市场体感",
+            "items": [
+              {
+                "name": "A股中位数涨跌幅",
+                "code": "DEMO_CN_MEDIAN",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "A股上涨家数占比",
+                "code": "DEMO_CN_ADV_RATIO",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "A股涨跌停差",
+                "code": "DEMO_CN_LIMIT_DIFF",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "A股成交额",
+                "code": "DEMO_CN_TURNOVER",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "全A等权涨跌",
+                "code": "DEMO_CN_EQUAL_WEIGHT",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              }
+            ]
+          }
+        ]
+      },
+      "hk": {
+        "label": "港股",
+        "summary": "示例：港股指数矩阵包含权重核心、内地权重、科技成长和市场体感。",
+        "groups": [
+          {
+            "group_key": "core_weight",
+            "group_label": "权重核心",
+            "items": [
+              {
+                "name": "恒生指数",
+                "code": "DEMO_HK_HSI",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "恒生综合指数",
+                "code": "DEMO_HK_HSCI",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "mainland_weight",
+            "group_label": "内地权重",
+            "items": [
+              {
+                "name": "恒生中国企业指数 / 国企指数",
+                "code": "DEMO_HK_HSCEI",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "growth_tech",
+            "group_label": "科技成长",
+            "items": [
+              {
+                "name": "恒生科技指数",
+                "code": "DEMO_HK_HSTECH",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "market_feel",
+            "group_label": "市场体感",
+            "items": [
+              {
+                "name": "港股中位数涨跌",
+                "code": "DEMO_HK_MEDIAN",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "港股上涨家数占比",
+                "code": "DEMO_HK_ADV_RATIO",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "港股成交额",
+                "code": "DEMO_HK_TURNOVER",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              }
+            ]
+          }
+        ]
+      },
+      "us": {
+        "label": "美股",
+        "summary": "示例：美股指数矩阵包含权重核心、科技成长、中小盘和市场广度 / 体感。",
+        "groups": [
+          {
+            "group_key": "core_weight",
+            "group_label": "权重核心",
+            "items": [
+              {
+                "name": "标普500",
+                "code": "DEMO_US_SP500",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "道琼斯",
+                "code": "DEMO_US_DOW",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "纳斯达克综合",
+                "code": "DEMO_US_NASDAQ",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "growth_tech",
+            "group_label": "科技成长",
+            "items": [
+              {
+                "name": "纳斯达克100",
+                "code": "DEMO_US_NDX",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "费城半导体指数",
+                "code": "DEMO_US_SOX",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "small_mid",
+            "group_label": "中小盘",
+            "items": [
+              {
+                "name": "罗素2000",
+                "code": "DEMO_US_RUT",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "标普400",
+                "code": "DEMO_US_SP400",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "标普600",
+                "code": "DEMO_US_SP600",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "breadth_feel",
+            "group_label": "市场广度 / 体感",
+            "items": [
+              {
+                "name": "标普500等权",
+                "code": "DEMO_US_EQUAL",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "NYSE上涨家数占比",
+                "code": "DEMO_US_NYSE_ADV",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "Nasdaq上涨家数占比",
+                "code": "DEMO_US_NASDAQ_ADV",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "美股中位数涨跌",
+                "code": "DEMO_US_MEDIAN",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              }
+            ]
+          }
+        ]
+      },
+      "kr": {
+        "label": "韩股",
+        "summary": "示例：韩股指数矩阵包含权重核心、成长科技、综合指数和市场体感。",
+        "groups": [
+          {
+            "group_key": "core_weight",
+            "group_label": "权重核心",
+            "items": [
+              {
+                "name": "KOSPI",
+                "code": "DEMO_KR_KOSPI",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "KOSPI 200",
+                "code": "DEMO_KR_KOSPI200",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "growth_tech",
+            "group_label": "成长科技",
+            "items": [
+              {
+                "name": "KOSDAQ",
+                "code": "DEMO_KR_KOSDAQ",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              },
+              {
+                "name": "KOSDAQ 150",
+                "code": "DEMO_KR_KOSDAQ150",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "composite",
+            "group_label": "综合指数",
+            "items": [
+              {
+                "name": "KRX 300",
+                "code": "DEMO_KR_KRX300",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "official_index",
+                "note": "示例官方指数，不是真实行情。"
+              }
+            ]
+          },
+          {
+            "group_key": "market_feel",
+            "group_label": "市场体感",
+            "items": [
+              {
+                "name": "韩股中位数涨跌",
+                "code": "DEMO_KR_MEDIAN",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "韩股上涨家数占比",
+                "code": "DEMO_KR_ADV_RATIO",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              },
+              {
+                "name": "韩股成交额",
+                "code": "DEMO_KR_TURNOVER",
+                "display_change_pct": "<redacted>",
+                "display_status": "redacted",
+                "indicator_type": "computed_breadth_indicator",
+                "note": "系统计算指标，非官方指数。"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "disclaimer": "本模块当前仅为本地 demo 展示，不请求真实行情，不保存未脱敏价格或涨跌幅；系统计算指标，非官方指数。页面只作为个人观察，不自动下单，不构成强制交易指令。"
   }
 }

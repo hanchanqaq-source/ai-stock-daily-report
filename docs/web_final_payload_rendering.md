@@ -63,3 +63,7 @@ Web-P16 将个人观察点位从简单列表增强为卡片列表，消费 `sect
 ## Web-P17 账户首页综合看板
 
 Web-P17 在静态首页新增综合看板区域，消费 `dashboard_summary`、账户字段、`safety_badges`、`sections.stock_etf`、`sections.fund_nav`、`sections.observation_points` 和 `warnings`。页面继续只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求真实行情、不请求真实基金净值，不直接请求原始行情字段、原始基金净值字段、不读取真实 `user_config`，并默认展示 redacted 结果。
+
+## Web-P18 全球市场指数模块
+
+Web-P18 扩展 `final_page_payload` demo，新增 `market_indices` 字段用于本地静态页面的全球市场指数模块。页面支持 全球总览 / A股 / 港股 / 美股 / 韩股 tab 切换，展示 redacted demo 指数矩阵；官方指数使用 `official_index`，系统计算指标使用 `computed_breadth_indicator` / `computed_sentiment_indicator` 并标注“系统计算指标，非官方指数”。该模块不请求真实行情、不保存真实价格、涨跌幅或成交额。

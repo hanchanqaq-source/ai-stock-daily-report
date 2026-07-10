@@ -59,3 +59,7 @@ The local static page now renders `sections.observation_points` as personal obse
 ## Web-P17 account home dashboard
 
 The local static page now supports an account home dashboard that combines account overview, safety status, metric cards, stock / ETF quick cards, fund NAV quick cards, personal observation point quick cards, warnings, and data notes. It only reads `web/static/demo_final_page_payload.json` for local preview and future official data must come from P5-T `final_page_payload`; it does not request real quotes, real fund NAV values, real `user_config`, Discord, daily reports, weekly reports, or real providers.
+
+## Web-P18 market indices tabs
+
+The local static page now includes a `全球市场指数` module with tabs for 全球总览 / A股 / 港股 / 美股 / 韩股. It consumes only the local demo `market_indices` payload or the in-page fallback, renders redacted demo matrices, and distinguishes official indices from computed breadth / sentiment indicators. It does not request real quotes, connect to real providers, store real prices, store real percentage changes, store turnover, store account values, or store Token / API Key / Webhook values.
