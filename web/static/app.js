@@ -32,6 +32,7 @@ const fallbackPayload = {
     "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
   ],
+  market_indices: buildFallbackMarketIndices(),
   disclaimer: "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
 };
 
@@ -186,6 +187,137 @@ function renderDashboardSafetyPanel(payload) {
   const badges = [...(Array.isArray(payload?.safety_badges) ? payload.safety_badges : []), "不自动下单", "不构成强制交易指令"];
   return `<div class="safety-panel"><h3>数据安全状态</h3><div class="badge-row">${renderAssetBadges([...new Set(badges)])}</div><p>本地预览禁止写入未脱敏数据，不保存原始 provider 数据、个人敏感字段或密钥字段。</p></div>`;
 }
+
+function buildFallbackMarketIndices() {
+  const makeItem = (name, code, indicatorType = "official_index") => ({
+    name,
+    code,
+    display_change_pct: "<redacted>",
+    display_status: "redacted",
+    indicator_type: indicatorType,
+    note: indicatorType === "official_index" ? "示例官方指数，不是真实行情。" : "系统计算指标，非官方指数。"
+  });
+  return {
+    data_mode: "dry_run",
+    display_mode: "redacted",
+    source_status: "demo_only",
+    can_write_to_public_repo: false,
+    markets: {
+      global: {
+        label: "全球总览",
+        summary: "示例：全球市场指数模块仅展示脱敏 demo，不代表真实行情。",
+        groups: [
+          { group_key: "cn_summary", group_label: "A股摘要", items: [makeItem("A股指数矩阵摘要", "DEMO_GLOBAL_CN", "demo_only")] },
+          { group_key: "hk_summary", group_label: "港股摘要", items: [makeItem("港股指数矩阵摘要", "DEMO_GLOBAL_HK", "demo_only")] },
+          { group_key: "us_summary", group_label: "美股摘要", items: [makeItem("美股指数矩阵摘要", "DEMO_GLOBAL_US", "demo_only")] },
+          { group_key: "kr_summary", group_label: "韩股摘要", items: [makeItem("韩股指数矩阵摘要", "DEMO_GLOBAL_KR", "demo_only")] },
+          { group_key: "global_risk", group_label: "全球风险提示", items: [makeItem("跨市场风险提示", "DEMO_GLOBAL_RISK", "demo_only")] },
+          { group_key: "data_note", group_label: "数据说明", items: [makeItem("数据说明", "DEMO_GLOBAL_NOTE", "demo_only")] }
+        ]
+      },
+      cn: { label: "A股", summary: "示例：A股指数矩阵包含权重核心、中小盘、成长科技和体感指标。", groups: [
+        { group_key: "core_weight", group_label: "权重核心", items: ["上证指数", "深证成指", "沪深300", "中证A500", "上证50"].map((name, index) => makeItem(name, `DEMO_CN_${index}`)) },
+        { group_key: "small_mid", group_label: "中小盘", items: ["中证500", "中证1000", "中证2000 / 国证2000"].map((name, index) => makeItem(name, `DEMO_CN_SM_${index}`)) },
+        { group_key: "growth_tech", group_label: "成长科技", items: ["创业板指", "创业板50", "科创50", "科创100", "北证50"].map((name, index) => makeItem(name, `DEMO_CN_GT_${index}`)) },
+        { group_key: "market_feel", group_label: "市场体感", items: ["A股中位数涨跌幅", "A股上涨家数占比", "A股涨跌停差", "A股成交额", "全A等权涨跌"].map((name, index) => makeItem(name, `DEMO_CN_FEEL_${index}`, "computed_breadth_indicator")) }
+      ] },
+      hk: { label: "港股", summary: "示例：港股指数矩阵包含权重核心、内地权重、科技成长和市场体感。", groups: [
+        { group_key: "core_weight", group_label: "权重核心", items: ["恒生指数", "恒生综合指数"].map((name, index) => makeItem(name, `DEMO_HK_${index}`)) },
+        { group_key: "mainland_weight", group_label: "内地权重", items: [makeItem("恒生中国企业指数 / 国企指数", "DEMO_HK_HSCEI")] },
+        { group_key: "growth_tech", group_label: "科技成长", items: [makeItem("恒生科技指数", "DEMO_HK_HSTECH")] },
+        { group_key: "market_feel", group_label: "市场体感", items: ["港股中位数涨跌", "港股上涨家数占比", "港股成交额"].map((name, index) => makeItem(name, `DEMO_HK_FEEL_${index}`, "computed_breadth_indicator")) }
+      ] },
+      us: { label: "美股", summary: "示例：美股指数矩阵包含权重核心、科技成长、中小盘和市场广度 / 体感。", groups: [
+        { group_key: "core_weight", group_label: "权重核心", items: ["标普500", "道琼斯", "纳斯达克综合"].map((name, index) => makeItem(name, `DEMO_US_${index}`)) },
+        { group_key: "growth_tech", group_label: "科技成长", items: ["纳斯达克100", "费城半导体指数"].map((name, index) => makeItem(name, `DEMO_US_GT_${index}`)) },
+        { group_key: "small_mid", group_label: "中小盘", items: ["罗素2000", "标普400", "标普600"].map((name, index) => makeItem(name, `DEMO_US_SM_${index}`)) },
+        { group_key: "breadth_feel", group_label: "市场广度 / 体感", items: ["标普500等权", "NYSE上涨家数占比", "Nasdaq上涨家数占比", "美股中位数涨跌"].map((name, index) => makeItem(name, `DEMO_US_FEEL_${index}`, "computed_breadth_indicator")) }
+      ] },
+      kr: { label: "韩股", summary: "示例：韩股指数矩阵包含权重核心、成长科技、综合指数和市场体感。", groups: [
+        { group_key: "core_weight", group_label: "权重核心", items: ["KOSPI", "KOSPI 200"].map((name, index) => makeItem(name, `DEMO_KR_${index}`)) },
+        { group_key: "growth_tech", group_label: "成长科技", items: ["KOSDAQ", "KOSDAQ 150"].map((name, index) => makeItem(name, `DEMO_KR_GT_${index}`)) },
+        { group_key: "composite", group_label: "综合指数", items: [makeItem("KRX 300", "DEMO_KR_KRX300")] },
+        { group_key: "market_feel", group_label: "市场体感", items: ["韩股中位数涨跌", "韩股上涨家数占比", "韩股成交额"].map((name, index) => makeItem(name, `DEMO_KR_FEEL_${index}`, "computed_breadth_indicator")) }
+      ] }
+    },
+    disclaimer: "本模块当前仅为本地 demo 展示，不请求真实行情，不保存未脱敏价格或涨跌幅；系统计算指标，非官方指数。"
+  };
+}
+function getMarketIndicesFromPayload(payload) {
+  const source = payload?.market_indices;
+  if (!source || typeof source !== "object") return buildFallbackMarketIndices();
+  return { ...buildFallbackMarketIndices(), ...source, markets: source.markets || buildFallbackMarketIndices().markets };
+}
+function normalizeMarketIndexLabel(marketKey, marketData = {}) {
+  const fallbackLabels = { global: "全球总览", cn: "A股", hk: "港股", us: "美股", kr: "韩股" };
+  return marketData.label || fallbackLabels[marketKey] || marketKey;
+}
+function renderIndicatorTypeBadge(indicatorType) {
+  const labels = {
+    official_index: "官方指数",
+    computed_breadth_indicator: "系统计算指标",
+    computed_sentiment_indicator: "系统计算指标",
+    demo_only: "Demo"
+  };
+  const label = labels[indicatorType] || "Demo";
+  return `<span class="indicator-type-badge indicator-${escapeHtml(indicatorType || "demo_only")}">${escapeHtml(label)}</span>`;
+}
+function renderMarketIndexItem(item = {}) {
+  const indicatorType = item.indicator_type || "demo_only";
+  const note = indicatorType.startsWith("computed") ? "系统计算指标，非官方指数。" : item.note;
+  return `<article class="market-index-card">
+    <div class="market-index-card-header"><strong>${escapeHtml(formatDisplayValue(item.name))}</strong>${renderIndicatorTypeBadge(indicatorType)}</div>
+    <dl><dt>代码</dt><dd>${escapeHtml(formatDisplayValue(item.code))}</dd><dt>涨跌幅</dt><dd>${renderRedactedValue(item.display_change_pct || "<redacted>")}</dd><dt>状态</dt><dd>${escapeHtml(formatDisplayValue(item.display_status || "redacted"))}</dd></dl>
+    <p>${escapeHtml(formatDisplayValue(note || "示例数据，不是真实行情。"))}</p>
+  </article>`;
+}
+function renderMarketIndexGroup(group = {}) {
+  const items = Array.isArray(group.items) ? group.items : [];
+  return `<section class="market-index-group">
+    <h3>${escapeHtml(formatDisplayValue(group.group_label))}</h3>
+    <div class="market-index-card-grid">${items.map((item) => renderMarketIndexItem(item)).join("") || '<p class="empty-state">暂无指数项目。</p>'}</div>
+  </section>`;
+}
+function renderMarketIndexPanel(marketKey, marketData = {}) {
+  const groups = Array.isArray(marketData.groups) ? marketData.groups : [];
+  return `<div class="market-index-panel-inner" data-market="${escapeHtml(marketKey)}">
+    <p class="card-label">${escapeHtml(normalizeMarketIndexLabel(marketKey, marketData))}</p>
+    <h3>${escapeHtml(normalizeMarketIndexLabel(marketKey, marketData))}指数矩阵</h3>
+    <p class="section-note">${escapeHtml(formatDisplayValue(marketData.summary))}</p>
+    ${groups.map((group) => renderMarketIndexGroup(group)).join("") || '<p class="empty-state">暂无指数矩阵。</p>'}
+  </div>`;
+}
+function setActiveMarketIndexTab(marketKey) {
+  document.querySelectorAll(".market-index-tab").forEach((tab) => {
+    const active = tab.getAttribute("data-market") === marketKey;
+    tab.classList.toggle("active", active);
+    tab.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  document.querySelectorAll(".market-index-panel").forEach((panel) => {
+    panel.hidden = panel.id !== `market-index-${marketKey === "global" ? "overview" : marketKey}`;
+  });
+}
+function renderMarketIndexTabs(markets = {}) {
+  const order = ["global", "cn", "hk", "us", "kr"];
+  return order.map((marketKey) => `<button class="market-index-tab${marketKey === "global" ? " active" : ""}" type="button" role="tab" aria-selected="${marketKey === "global" ? "true" : "false"}" data-market="${escapeHtml(marketKey)}">${escapeHtml(normalizeMarketIndexLabel(marketKey, markets[marketKey]))}</button>`).join("");
+}
+function renderMarketIndicesDashboard(payload) {
+  const marketIndices = getMarketIndicesFromPayload(payload);
+  const markets = marketIndices.markets || {};
+  setSafeHtml("market-indices-tabs", renderMarketIndexTabs(markets));
+  ["global", "cn", "hk", "us", "kr"].forEach((marketKey) => {
+    const panelId = marketKey === "global" ? "market-index-overview" : `market-index-${marketKey}`;
+    setSafeHtml(panelId, renderMarketIndexPanel(marketKey, markets[marketKey] || {}));
+  });
+  setSafeHtml("market-index-disclaimer", escapeHtml(marketIndices.disclaimer || "本模块当前仅为本地 demo 展示，不请求真实行情，不保存未脱敏价格或涨跌幅。"));
+  const tabs = byId("market-indices-tabs");
+  if (tabs) {
+    tabs.querySelectorAll(".market-index-tab").forEach((tab) => {
+      tab.addEventListener("click", () => setActiveMarketIndexTab(tab.getAttribute("data-market") || "global"));
+    });
+  }
+  setActiveMarketIndexTab("global");
+}
 function renderDashboardQuickSections(payload) {
   const sections = payload?.sections || {};
   setSafeHtml("dashboard-quick-stock-etf", renderStockEtfCards({ ...sections.stock_etf, display_models: getSectionDisplayModels(payload, "stock_etf").slice(0, 3) }));
@@ -209,6 +341,7 @@ function renderAccountHomeDashboard(payload) {
 function renderFinalPagePayload(payload) {
   const safePayload = payload || getFallbackPayload();
   renderAccountHomeDashboard(safePayload); renderAccountHeader(safePayload); renderSafetyBadges(safePayload); renderBlockedPayload(safePayload);
+  renderMarketIndicesDashboard(safePayload);
   if (safePayload.payload_status === "blocked") {
     setSafeHtml("stock-etf-section", '<p class="empty-state">安全拦截状态下不显示股票 / ETF 真实值</p>');
     setSafeHtml("fund-nav-section", '<p class="empty-state">安全拦截状态下不显示场外基金净值真实值</p><p class="section-note">盘中估算仅供观察，最终以基金公司公布净值为准。</p>');
