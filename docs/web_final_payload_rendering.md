@@ -26,16 +26,18 @@ Web-P2 让 `web/static/` 下的静态 HTML / CSS / JS 页面能够消费 `final_
 
 ## 4. blocked payload
 
-当 `payload_status=blocked` 时，页面显示安全拦截提示，说明该 payload 已被阻断，并且不显示真实值。blocked 状态下也不得展示上游 raw value、真实价格、真实基金净值、真实金额、成本价、账户资产或 secrets。
+当 `payload_status=blocked` 时，页面显示安全拦截提示，说明该 payload 已被阻断，并且不显示真实值。blocked 状态下也不得展示上游 raw value、原始价格字段、原始基金净值字段、个人敏感字段、成本字段、账户字段或 secrets。
 
 ## 5. 安全边界
 
 Web-P2 保持以下边界：
 
-- 不请求真实行情。
-- 不请求真实基金净值。
+- 不请求真实行情，不直接请求原始行情字段。
+- 不请求真实基金净值，不直接请求原始基金净值字段。
+- 不请求原始行情字段。
+- 不请求原始基金净值字段。
 - 不读取真实 `user_config`。
-- 不保存真实金额 / 成本价 / 账户资产。
+- 不保存个人敏感字段 / 成本字段 / 账户字段。
 - 不保存 Token / API Key / Webhook。
 - 不连接 Discord、日报、周报或真实 provider。
 - 不自动下单，不构成强制交易指令。
@@ -57,3 +59,7 @@ Web-P2 保持以下边界：
 ## Web-P16 个人观察点位卡片
 
 Web-P16 将个人观察点位从简单列表增强为卡片列表，消费 `sections.observation_points.items`，展示标签、关联资产、代码、类型、市场、观察点位、当前状态、风险等级、数据状态、说明和免责声明。观察点位默认显示 `<redacted>`，并保留“仅作为个人观察和记录，不自动下单，不构成强制交易指令。”边界。
+
+## Web-P17 账户首页综合看板
+
+Web-P17 在静态首页新增综合看板区域，消费 `dashboard_summary`、账户字段、`safety_badges`、`sections.stock_etf`、`sections.fund_nav`、`sections.observation_points` 和 `warnings`。页面继续只读取 `web/static/demo_final_page_payload.json` 或未来 P5-T `final_page_payload`，不请求真实行情、不请求真实基金净值，不直接请求原始行情字段、原始基金净值字段、不读取真实 `user_config`，并默认展示 redacted 结果。

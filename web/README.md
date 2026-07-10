@@ -55,3 +55,7 @@ Web-P15 extends the static preview with safe demo cards for `sections.stock_etf`
 ## Web-P16 personal observation point cards
 
 The local static page now renders `sections.observation_points` as personal observation cards with label, linked asset, code, type, market, redacted observation point, status badge, risk badge, data status, explanation, and disclaimer. It keeps the boundary that the page is only for personal observation and records, does not place orders automatically, and is not a forced trading instruction.
+
+## Web-P17 account home dashboard
+
+The local static page now supports an account home dashboard that combines account overview, safety status, metric cards, stock / ETF quick cards, fund NAV quick cards, personal observation point quick cards, warnings, and data notes. It only reads `web/static/demo_final_page_payload.json` for local preview and future official data must come from P5-T `final_page_payload`; it does not request real quotes, real fund NAV values, real `user_config`, Discord, daily reports, weekly reports, or real providers.

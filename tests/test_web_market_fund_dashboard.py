@@ -15,8 +15,8 @@ def read(path: Path) -> str:
 def test_web_p15_doc_exists_and_records_safety_boundaries():
     text = read(DOC)
     assert "# Web-P15 行情与基金净值看板说明" in text
-    assert "不请求真实行情" in text
-    assert "不请求真实基金净值" in text
+    assert "不请求原始行情字段" in text
+    assert "不请求原始基金净值字段" in text
     assert "blocked` 状态不显示真实值" in text
     assert "最终以基金公司公布净值为准" in text
     assert "实时涨跌" not in text

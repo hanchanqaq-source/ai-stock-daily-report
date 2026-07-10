@@ -19,7 +19,15 @@ const fallbackPayload = {
       ]
     }
   },
-  safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据"],
+  dashboard_summary: {
+    title: "账户首页综合看板",
+    account_status: "本地安全预览",
+    data_status: "dry_run",
+    display_status: "redacted",
+    counts: { stock_etf: 0, fund_nav: 0, observation_points: 4, blocked: 0, unavailable: 0, redacted: 4 },
+    quick_notes: ["当前页面为本地安全预览。", "默认展示脱敏结果。", "不保存原始 provider 数据。"]
+  },
+  safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据", "不自动下单", "不构成强制交易指令"],
   warnings: [
     "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
@@ -72,7 +80,7 @@ function renderAssetHeader(model = {}) {
   return `<div class="asset-card-header"><div><strong>${escapeHtml(formatDisplayValue(model.name))}</strong><span>${escapeHtml(formatDisplayValue(model.code))} · ${escapeHtml(formatDisplayValue(model.market))} · ${escapeHtml(formatDisplayValue(model.type))}</span></div>${renderDataStatusBadge(model)}</div>`;
 }
 function renderBlockedCard(model = {}, type = "asset") {
-  return `<article class="asset-card blocked-card">${renderAssetHeader(model)}<p class="blocked-message">数据已被安全闸门拦截，不显示真实行情。</p><dl>${renderMetaRows(model)}</dl><div class="badge-row compact">${renderAssetBadges(model.badges)}</div></article>`;
+  return `<article class="asset-card blocked-card">${renderAssetHeader(model)}<p class="blocked-message">数据已被安全闸门拦截，不显示原始行情数据。</p><dl>${renderMetaRows(model)}</dl><div class="badge-row compact">${renderAssetBadges(model.badges)}</div></article>`;
 }
 function renderUnavailableCard(model = {}, type = "asset") {
   const message = type === "fund" ? "当前场外基金净值不可用。" : "当前行情不可用。";
@@ -119,9 +127,88 @@ function renderMarketDashboard(payload) {
   setSafeHtml("fund-nav-section", renderFundNavCards(sections.fund_nav || {}));
 }
 
+
+function getSectionDisplayModels(payload, key) {
+  const models = payload?.sections?.[key]?.display_models;
+  return Array.isArray(models) ? models : [];
+}
+function countDisplayModelsByStatus(payload) {
+  const models = [...getSectionDisplayModels(payload, "stock_etf"), ...getSectionDisplayModels(payload, "fund_nav")];
+  return models.reduce((counts, model = {}) => {
+    const status = model.display_status || model.source_status || "unavailable";
+    counts[status] = (counts[status] || 0) + 1;
+    if (model.display_mode === "redacted") counts.redacted = (counts.redacted || 0) + 1;
+    return counts;
+  }, { blocked: 0, unavailable: 0, redacted: 0 });
+}
+function countObservationPoints(payload) {
+  const items = payload?.sections?.observation_points?.items;
+  return Array.isArray(items) ? items.length : 0;
+}
+function buildDashboardSummaryFromPayload(payload = {}) {
+  const statusCounts = countDisplayModelsByStatus(payload);
+  const summary = payload.dashboard_summary || {};
+  const counts = summary.counts || {};
+  return {
+    title: summary.title || "账户首页综合看板",
+    account_status: summary.account_status || payload.payload_status || "unknown",
+    data_status: summary.data_status || payload.data_mode || "unknown",
+    display_status: summary.display_status || payload.display_mode || "unknown",
+    counts: {
+      stock_etf: counts.stock_etf ?? getSectionDisplayModels(payload, "stock_etf").length,
+      fund_nav: counts.fund_nav ?? getSectionDisplayModels(payload, "fund_nav").length,
+      observation_points: counts.observation_points ?? countObservationPoints(payload),
+      blocked: counts.blocked ?? statusCounts.blocked ?? 0,
+      unavailable: counts.unavailable ?? statusCounts.unavailable ?? 0,
+      redacted: counts.redacted ?? statusCounts.redacted ?? 0
+    },
+    quick_notes: Array.isArray(summary.quick_notes) ? summary.quick_notes : ["当前页面为本地安全预览。", "默认展示脱敏结果。", "不保存原始 provider 数据。"]
+  };
+}
+function renderQuickLink(label, targetId) {
+  return `<a class="quick-link" href="#${escapeHtml(targetId)}">${escapeHtml(label)}</a>`;
+}
+function renderEmptyDashboardState(reason) {
+  return `<p class="empty-state">${escapeHtml(reason || "暂无综合看板数据。")}</p>`;
+}
+function renderDashboardSummary(payload) {
+  const summary = buildDashboardSummaryFromPayload(payload);
+  const notes = summary.quick_notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("");
+  const canWrite = payload?.can_write_to_public_repo === true ? "true" : "false";
+  return `<div class="dashboard-hero"><div><p class="card-label">账户首页</p><h2>${escapeHtml(summary.title)}</h2><p class="dashboard-subtitle">账户名称：${escapeHtml(formatDisplayValue(payload?.account_name))}</p></div><dl class="dashboard-overview"><dt>payload_status</dt><dd>${escapeHtml(formatDisplayValue(payload?.payload_status))}</dd><dt>display_mode</dt><dd>${escapeHtml(formatDisplayValue(payload?.display_mode))}</dd><dt>data_mode</dt><dd>${escapeHtml(formatDisplayValue(payload?.data_mode))}</dd><dt>是否可写入仓库</dt><dd>${escapeHtml(canWrite)}</dd><dt>数据安全状态</dt><dd>${escapeHtml(summary.account_status)}</dd></dl><div class="quick-links">${renderQuickLink("股票 / ETF 行情", "holdings")}${renderQuickLink("场外基金净值", "fund-nav")}${renderQuickLink("个人观察点位", "points")}${renderQuickLink("风险提醒", "risk-warnings")}</div><ul class="dashboard-notes">${notes}</ul></div>`;
+}
+function renderDashboardMetricCards(payload) {
+  const counts = buildDashboardSummaryFromPayload(payload).counts;
+  const metrics = [["股票 / ETF 数量", counts.stock_etf], ["场外基金数量", counts.fund_nav], ["个人观察点位数量", counts.observation_points], ["blocked 数量", counts.blocked], ["unavailable 数量", counts.unavailable], ["redacted 数量", counts.redacted]];
+  return metrics.map(([label, value]) => `<article class="metric-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
+}
+function renderDashboardSafetyPanel(payload) {
+  const badges = [...(Array.isArray(payload?.safety_badges) ? payload.safety_badges : []), "不自动下单", "不构成强制交易指令"];
+  return `<div class="safety-panel"><h3>数据安全状态</h3><div class="badge-row">${renderAssetBadges([...new Set(badges)])}</div><p>本地预览禁止写入未脱敏数据，不保存原始 provider 数据、个人敏感字段或密钥字段。</p></div>`;
+}
+function renderDashboardQuickSections(payload) {
+  const sections = payload?.sections || {};
+  setSafeHtml("dashboard-quick-stock-etf", renderStockEtfCards({ ...sections.stock_etf, display_models: getSectionDisplayModels(payload, "stock_etf").slice(0, 3) }));
+  setSafeHtml("dashboard-quick-fund-nav", renderFundNavCards({ ...sections.fund_nav, display_models: getSectionDisplayModels(payload, "fund_nav").slice(0, 3) }));
+  const points = payload?.sections?.observation_points?.items;
+  setSafeHtml("dashboard-quick-observation-points", renderObservationPointCards(Array.isArray(points) ? points.slice(0, 4) : []));
+}
+function renderDashboardWarnings(payload) {
+  const warnings = Array.isArray(payload?.warnings) && payload.warnings.length ? payload.warnings : ["暂无额外风险提示。"];
+  return `<ul>${warnings.map((text) => `<li>${escapeHtml(text)}</li>`).join("")}</ul>`;
+}
+function renderAccountHomeDashboard(payload) {
+  if (!payload) { setSafeHtml("dashboard-summary", renderEmptyDashboardState("无法读取综合看板 payload。")); return; }
+  setSafeHtml("dashboard-summary", renderDashboardSummary(payload));
+  setSafeHtml("dashboard-metrics", renderDashboardMetricCards(payload));
+  setSafeHtml("dashboard-safety-panel", renderDashboardSafetyPanel(payload));
+  renderDashboardQuickSections(payload);
+  setSafeHtml("dashboard-warnings", renderDashboardWarnings(payload));
+}
+
 function renderFinalPagePayload(payload) {
   const safePayload = payload || getFallbackPayload();
-  renderAccountHeader(safePayload); renderSafetyBadges(safePayload); renderBlockedPayload(safePayload);
+  renderAccountHomeDashboard(safePayload); renderAccountHeader(safePayload); renderSafetyBadges(safePayload); renderBlockedPayload(safePayload);
   if (safePayload.payload_status === "blocked") {
     setSafeHtml("stock-etf-section", '<p class="empty-state">安全拦截状态下不显示股票 / ETF 真实值</p>');
     setSafeHtml("fund-nav-section", '<p class="empty-state">安全拦截状态下不显示场外基金净值真实值</p><p class="section-note">盘中估算仅供观察，最终以基金公司公布净值为准。</p>');

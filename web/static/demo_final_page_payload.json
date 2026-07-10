@@ -261,11 +261,32 @@
   "safety_badges": [
     "已审计",
     "默认脱敏",
-    "禁止写入真实数据"
+    "禁止写入真实数据",
+    "不自动下单",
+    "不构成强制交易指令"
   ],
   "warnings": [
     "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
   ],
-  "disclaimer": "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
+  "disclaimer": "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
+  "dashboard_summary": {
+    "title": "账户首页综合看板",
+    "account_status": "本地安全预览",
+    "data_status": "dry_run",
+    "display_status": "redacted",
+    "counts": {
+      "stock_etf": 2,
+      "fund_nav": 2,
+      "observation_points": 4,
+      "blocked": 1,
+      "unavailable": 1,
+      "redacted": 4
+    },
+    "quick_notes": [
+      "当前页面为本地安全预览。",
+      "默认展示脱敏结果。",
+      "不保存原始 provider 数据。"
+    ]
+  }
 }
