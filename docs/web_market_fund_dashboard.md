@@ -40,7 +40,7 @@ Web 页面不能绕过最终安全闸门，不能直接消费 provider 原始数
 - 不保存 Token / API Key / Webhook。
 - 不连接 Discord、日报、周报或真实 provider。
 - `blocked` 状态不显示真实值。
-- 页面必须保留：本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。
+- 页面必须保留：本页面仅作为个人观察和记录，需用户自行判断。
 
 ## 7. 后续路线
 
@@ -50,7 +50,7 @@ Web 页面不能绕过最终安全闸门，不能直接消费 provider 原始数
 
 ## Web-P16 衔接
 
-Web-P16 已增强 `sections.observation_points` 卡片展示，页面在同一个 demo `final_page_payload` 中渲染个人观察标签、状态 badge、风险等级 badge、脱敏观察点位、数据状态和“不自动下单 / 不构成强制交易指令”免责声明。该增强不请求原始行情字段、不请求真实基金净值，不直接请求原始基金净值字段，也不直接消费 provider 原始数据。
+Web-P16 已增强 `sections.observation_points` 卡片展示，页面在同一个 demo `final_page_payload` 中渲染个人观察标签、状态 badge、风险等级 badge、脱敏观察点位、数据状态和“需用户自行判断”免责声明。该增强不请求原始行情字段、不请求真实基金净值，不直接请求原始基金净值字段，也不直接消费 provider 原始数据。
 
 ## Web-P17 衔接
 
