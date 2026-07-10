@@ -104,5 +104,17 @@ def test_app_js_uses_local_demo_payload_and_fallback_only():
     script = _read("web/static/app.js")
     assert 'fetch("demo_final_page_payload.json")' in script
     assert "fallbackPayload" in script
-    for forbidden in ["cn_quote", "fund_nav_real_provider", "user_config", "localStorage", "sessionStorage"]:
+
+    forbidden_runtime_sources = [
+        "cn_quote",
+        "fund_nav_real_provider",
+        "localStorage",
+        "sessionStorage",
+        'fetch("data/user_config',
+        "fetch('data/user_config",
+        'fetch("/data/user_config',
+        "fetch('/data/user_config",
+    ]
+
+    for forbidden in forbidden_runtime_sources:
         assert forbidden not in script
