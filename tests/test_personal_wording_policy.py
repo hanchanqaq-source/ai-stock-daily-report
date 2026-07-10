@@ -16,6 +16,7 @@ def test_policy_modes_document_public_safe_and_personal_local_boundaries():
     assert public["allow_fund_realtime_wording"] is False
     assert public["require_redacted_demo_values"] is True
     assert local["require_redacted_demo_values"] is False
+    assert public["disclaimer"] == "仅作为个人观察和记录，需用户自行判断。"
 
 
 @pytest.mark.parametrize("text", ["买入观察", "加仓观察", "减仓观察", "卖出观察", "清仓观察", "止盈观察", "止损观察"])
@@ -26,7 +27,7 @@ def test_personal_observation_labels_are_allowed(text):
     assert result["disclaimer_required"] is True
 
 
-@pytest.mark.parametrize("text", ["资金看板", "账户首页资金看板", "仓位观察", "成本观察", "盈亏观察"])
+@pytest.mark.parametrize("text", ["资金看板", "账户首页资金看板", "仓位看板", "仓位观察", "成本观察", "盈亏观察", "交易记录", "操作记录"])
 def test_personal_workspace_page_labels_are_allowed(text):
     assert is_allowed_personal_wording(text)
 
@@ -49,7 +50,7 @@ def test_off_exchange_fund_alternative_wording_is_allowed(text):
     assert classify_personal_wording(text)["allowed"] is True
 
 
-@pytest.mark.parametrize("text", ["必须买入", "必须卖出", "保证收益", "自动下单", "稳赚", "必涨", "替我买入"])
+@pytest.mark.parametrize("text", ["必须买入", "必须卖出", "立刻买入", "立刻卖出", "全仓买入", "梭哈", "自动下单执行", "替我买入", "替我卖出", "保证收益", "必赚", "稳赚", "必涨", "无风险收益"])
 def test_forced_trading_and_guaranteed_return_wording_is_blocked(text):
     assert classify_personal_wording(text)["blocked"] is True
 
@@ -67,3 +68,4 @@ def test_rendered_markdown_contains_required_sections():
     assert "股票 / ETF / 指数可以写实时涨跌" in markdown
     assert "场外基金不能写实时涨跌" in markdown
     assert "资金看板" in markdown
+    assert "仅作为个人观察和记录，需用户自行判断。" in markdown

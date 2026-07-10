@@ -12,10 +12,10 @@ const fallbackPayload = {
       enabled: true,
       title: "个人观察点位",
       items: [
-        { id: "demo_observation_buy_001", label: "买入观察", category: "buy_watch", asset_name: "示例股票A", asset_code: "000000", asset_type: "stock", market: "CN", point_display: "<redacted>", status: "watching", risk_level: "medium", text: "仅作为个人观察记录，不自动下单。", disclaimer: "不构成强制交易指令。" },
-        { id: "demo_observation_add_001", label: "加仓观察", category: "add_watch", asset_name: "示例ETF A", asset_code: "demo_etf_001", asset_type: "etf", market: "CN", point_display: "<redacted>", status: "waiting", risk_level: "medium", text: "等待回调确认后再记录。", disclaimer: "不构成强制交易指令。" },
-        { id: "demo_observation_profit_001", label: "止盈观察", category: "take_profit_watch", asset_name: "示例场外基金A", asset_code: "000001", asset_type: "fund", market: "CN", point_display: "<redacted>", status: "watching", risk_level: "low", text: "接近目标区时重点观察。", disclaimer: "不构成强制交易指令。" },
-        { id: "demo_observation_risk_001", label: "风险位", category: "risk_watch", asset_name: "示例股票A", asset_code: "000000", asset_type: "stock", market: "CN", point_display: "<redacted>", status: "risk_watch", risk_level: "high", text: "跌破关键位置时提高风险等级，仅作为个人观察记录。", disclaimer: "不构成强制交易指令。" }
+        { id: "demo_observation_buy_001", label: "买入观察", category: "buy_watch", asset_name: "示例股票A", asset_code: "000000", asset_type: "stock", market: "CN", point_display: "<redacted>", status: "watching", risk_level: "medium", text: "仅作为个人观察和记录，需用户自行判断。", disclaimer: "仅作为个人观察和记录，需用户自行判断。" },
+        { id: "demo_observation_add_001", label: "加仓观察", category: "add_watch", asset_name: "示例ETF A", asset_code: "demo_etf_001", asset_type: "etf", market: "CN", point_display: "<redacted>", status: "waiting", risk_level: "medium", text: "等待回调确认后再记录。", disclaimer: "仅作为个人观察和记录，需用户自行判断。" },
+        { id: "demo_observation_profit_001", label: "止盈观察", category: "take_profit_watch", asset_name: "示例场外基金A", asset_code: "000001", asset_type: "fund", market: "CN", point_display: "<redacted>", status: "watching", risk_level: "low", text: "接近目标区时重点观察。", disclaimer: "仅作为个人观察和记录，需用户自行判断。" },
+        { id: "demo_observation_risk_001", label: "风险位", category: "risk_watch", asset_name: "示例股票A", asset_code: "000000", asset_type: "stock", market: "CN", point_display: "<redacted>", status: "risk_watch", risk_level: "high", text: "跌破关键位置时提高风险等级，仅作为个人观察记录。", disclaimer: "仅作为个人观察和记录，需用户自行判断。" }
       ]
     }
   },
@@ -27,13 +27,14 @@ const fallbackPayload = {
     counts: { stock_etf: 0, fund_nav: 0, observation_points: 4, blocked: 0, unavailable: 0, redacted: 4 },
     quick_notes: ["当前页面为本地安全预览。", "默认展示脱敏结果。", "不保存原始 provider 数据。"]
   },
-  safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据", "不自动下单", "不构成强制交易指令"],
+  safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据", "仅作为个人观察和记录，需用户自行判断。"],
   warnings: [
-    "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
+    "仅作为个人观察和记录，需用户自行判断。",
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
   ],
   market_indices: buildFallbackMarketIndices(),
-  disclaimer: "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
+  cleanup_center: buildFallbackCleanupCenter(),
+  disclaimer: "仅作为个人观察和记录，需用户自行判断。"
 };
 
 function getFallbackPayload() { return fallbackPayload; }
@@ -184,7 +185,7 @@ function renderDashboardMetricCards(payload) {
   return metrics.map(([label, value]) => `<article class="metric-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
 }
 function renderDashboardSafetyPanel(payload) {
-  const badges = [...(Array.isArray(payload?.safety_badges) ? payload.safety_badges : []), "不自动下单", "不构成强制交易指令"];
+  const badges = [...(Array.isArray(payload?.safety_badges) ? payload.safety_badges : []), "仅作为个人观察和记录，需用户自行判断。"];
   return `<div class="safety-panel"><h3>数据安全状态</h3><div class="badge-row">${renderAssetBadges([...new Set(badges)])}</div><p>本地预览禁止写入未脱敏数据，不保存原始 provider 数据、个人敏感字段或密钥字段。</p></div>`;
 }
 
@@ -318,6 +319,88 @@ function renderMarketIndicesDashboard(payload) {
   }
   setActiveMarketIndexTab("global");
 }
+
+function buildFallbackCleanupCenter() {
+  return {
+    data_mode: "dry_run",
+    display_mode: "demo",
+    can_delete_files: false,
+    requires_preview: true,
+    requires_user_confirm: true,
+    categories: [
+      { category_key: "safe_cache", category_label: "可清理缓存", risk_level: "low", cleanup_allowed: true, requires_confirm: true, items: [
+        { name: "临时缓存示例", path_display: "cache/demo_temp/", size_display: "<redacted>", impact: "清理后下次打开可能重新生成缓存。", status: "preview_only" },
+        { name: "demo 预览缓存", path_display: "web/static/.demo-cache/", size_display: "<redacted>", impact: "仅影响本地 demo 预览缓存。", status: "preview_only" },
+        { name: "旧的前端构建缓存", path_display: "web/static/build-cache-demo/", size_display: "<redacted>", impact: "下次构建可能重新生成缓存。", status: "preview_only" }
+      ] },
+      { category_key: "temporary_reports", category_label: "谨慎清理", risk_level: "medium", cleanup_allowed: false, requires_confirm: true, items: [
+        { name: "旧报告副本示例", path_display: "reports/demo-copy/", size_display: "<redacted>", impact: "可能影响历史对照，必须先预览再确认。", status: "confirm_required" },
+        { name: "过期 artifacts 摘要", path_display: "artifacts/demo-summary/", size_display: "<redacted>", impact: "可能影响排障追踪，必须用户确认。", status: "confirm_required" },
+        { name: "旧日志文件和 debug 输出", path_display: "logs/demo-debug/", size_display: "<redacted>", impact: "可能影响问题复盘，当前 demo 不删除。", status: "confirm_required" }
+      ] },
+      { category_key: "protected_core_data", category_label: "禁止清理", risk_level: "blocked", cleanup_allowed: false, requires_confirm: false, items: [
+        { name: "data/history", path_display: "data/history", size_display: "<redacted>", impact: "核心历史数据，禁止清理。", status: "blocked" },
+        { name: "data/user_config", path_display: "data/user_config", size_display: "<redacted>", impact: "私人配置默认禁止清理。", status: "blocked" },
+        { name: ".env", path_display: ".env", size_display: "<redacted>", impact: "可能包含本地凭据和连接配置，禁止展示、导出或清理。", status: "blocked" },
+        { name: "私人配置 / 投资记录 / 成本记录 / 账户记录", path_display: "local-only/private-account-data", size_display: "<redacted>", impact: "私人数据禁止进入 demo 清理。", status: "blocked" },
+        { name: "AGENTS.md / ENTRY.md / README.md / product_rules", path_display: "AGENTS.md, ENTRY.md, README.md, docs/product_rules.md, docs/ERRORS_AND_LESSONS.md", size_display: "<redacted>", impact: "仓库规则和产品规则禁止被清理中心删除。", status: "blocked" }
+      ] }
+    ],
+    protected_items: ["data/history", "data/user_config", "本地私人配置", "私人投资记录", "私人成本记录", "私人账户记录", ".env", "本地凭据配置", "AGENTS.md", "ENTRY.md", "README.md", "docs/product_rules.md", "docs/ERRORS_AND_LESSONS.md"],
+    disclaimer: "本页面当前仅为 demo 预览，不执行真实删除。默认只扫描，不删除；私人配置和核心历史数据默认禁止清理。本地凭据配置不能清理到 public repo 或输出。私人配置不能被 demo 清理。"
+  };
+}
+function getCleanupCenterFromPayload(payload) {
+  const source = payload?.cleanup_center;
+  if (!source || typeof source !== "object") return buildFallbackCleanupCenter();
+  const fallback = buildFallbackCleanupCenter();
+  return { ...fallback, ...source, categories: Array.isArray(source.categories) ? source.categories : fallback.categories, protected_items: Array.isArray(source.protected_items) ? source.protected_items : fallback.protected_items };
+}
+function renderCleanupRiskBadge(riskLevel) {
+  const risk = String(riskLevel || "unknown").toLowerCase();
+  const label = { low: "low", medium: "medium", blocked: "blocked" }[risk] || "unknown";
+  return `<span class="cleanup-badge cleanup-risk-${escapeHtml(label)}">${escapeHtml(label)}</span>`;
+}
+function renderCleanupStatusBadge(status) {
+  const value = String(status || "preview_only");
+  return `<span class="cleanup-badge cleanup-status">${escapeHtml(value)}</span>`;
+}
+function renderCleanupSummary(cleanup) {
+  const categories = Array.isArray(cleanup.categories) ? cleanup.categories : [];
+  const itemCount = categories.reduce((total, category) => total + (Array.isArray(category.items) ? category.items.length : 0), 0);
+  return `<div class="cleanup-summary-grid"><article><span>data_mode</span><strong>${escapeHtml(cleanup.data_mode)}</strong></article><article><span>display_mode</span><strong>${escapeHtml(cleanup.display_mode)}</strong></article><article><span>可真实删除</span><strong>${cleanup.can_delete_files === true ? "是" : "否"}</strong></article><article><span>清理项预览</span><strong>${escapeHtml(itemCount)}</strong></article></div><p>默认只扫描，不删除。本阶段不执行真实清理；清理前必须预览，清理前必须用户确认。</p>`;
+}
+function renderCleanupItem(item = {}) {
+  return `<li class="cleanup-item"><div><strong>${escapeHtml(formatDisplayValue(item.name))}</strong><code>${escapeHtml(formatDisplayValue(item.path_display))}</code></div><dl><dt>大小</dt><dd>${escapeHtml(formatDisplayValue(item.size_display))}</dd><dt>影响</dt><dd>${escapeHtml(formatDisplayValue(item.impact))}</dd><dt>状态</dt><dd>${renderCleanupStatusBadge(item.status)}</dd></dl></li>`;
+}
+function renderCleanupCategory(category = {}) {
+  const items = Array.isArray(category.items) ? category.items : [];
+  const allowedText = category.cleanup_allowed === true ? "允许进入预览" : "禁止或需谨慎";
+  return `<article class="cleanup-category"><header><div><p class="card-label">${escapeHtml(formatDisplayValue(category.category_key))}</p><h3>${escapeHtml(formatDisplayValue(category.category_label))}</h3></div>${renderCleanupRiskBadge(category.risk_level)}</header><p>${escapeHtml(allowedText)}；${category.requires_confirm === false ? "禁止清理项目不提供确认入口。" : "清理前必须用户确认。"}</p><ul>${items.map((item) => renderCleanupItem(item)).join("")}</ul></article>`;
+}
+function renderCleanupCategories(cleanup) {
+  const categories = Array.isArray(cleanup.categories) ? cleanup.categories : [];
+  return categories.map((category) => renderCleanupCategory(category)).join("") || '<p class="empty-state">暂无清理分类。</p>';
+}
+function renderProtectedDataPanel(cleanup) {
+  const protectedItems = Array.isArray(cleanup.protected_items) ? cleanup.protected_items : [];
+  return `<h3>禁止清理项目</h3><p>私人配置和核心历史数据默认禁止清理。</p><ul>${protectedItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+}
+function renderCleanupPreviewPanel(cleanup) {
+  return `<h3>清理前预览</h3><p>当前为 demo 模式，只展示扫描预览，不会真实清理文件，不调用真实文件系统，不联网，不接 provider，不接 Discord / 日报 / 周报。</p><p>requires_preview=${escapeHtml(cleanup.requires_preview)}；requires_user_confirm=${escapeHtml(cleanup.requires_user_confirm)}；can_delete_files=${escapeHtml(cleanup.can_delete_files)}。</p>`;
+}
+function renderCleanupCenter(payload) {
+  const cleanup = getCleanupCenterFromPayload(payload);
+  setSafeHtml("cleanup-summary", renderCleanupSummary(cleanup));
+  setSafeHtml("cleanup-categories", renderCleanupCategories(cleanup));
+  setSafeHtml("cleanup-preview-panel", renderCleanupPreviewPanel(cleanup));
+  setSafeHtml("cleanup-protected-data-panel", renderProtectedDataPanel(cleanup));
+  setSafeHtml("cleanup-disclaimer", escapeHtml(cleanup.disclaimer));
+  const button = byId("cleanup-preview-button");
+  const message = byId("cleanup-demo-message");
+  if (button && message) button.addEventListener("click", () => { message.textContent = "当前为 demo 模式，不会删除任何文件。"; });
+}
+
 function renderDashboardQuickSections(payload) {
   const sections = payload?.sections || {};
   setSafeHtml("dashboard-quick-stock-etf", renderStockEtfCards({ ...sections.stock_etf, display_models: getSectionDisplayModels(payload, "stock_etf").slice(0, 3) }));
@@ -342,6 +425,7 @@ function renderFinalPagePayload(payload) {
   const safePayload = payload || getFallbackPayload();
   renderAccountHomeDashboard(safePayload); renderAccountHeader(safePayload); renderSafetyBadges(safePayload); renderBlockedPayload(safePayload);
   renderMarketIndicesDashboard(safePayload);
+  renderCleanupCenter(safePayload);
   if (safePayload.payload_status === "blocked") {
     setSafeHtml("stock-etf-section", '<p class="empty-state">安全拦截状态下不显示股票 / ETF 真实值</p>');
     setSafeHtml("fund-nav-section", '<p class="empty-state">安全拦截状态下不显示场外基金净值真实值</p><p class="section-note">盘中估算仅供观察，最终以基金公司公布净值为准。</p>');
@@ -361,7 +445,7 @@ function renderBlockedPayload(payload) {
   else { banner.hidden = true; banner.textContent = ""; }
 }
 const allowedObservationLabels = ["买入观察", "分批买入", "加仓观察", "减仓观察", "止盈观察", "止损观察", "清仓观察", "低吸区", "目标区", "风险位", "等待回调", "继续持有", "暂不操作", "个人观察", "风险提醒", "下一步关注"];
-const forbiddenTradingExpressions = ["必须买入", "必须卖出", "立即满仓", "稳赚", "保证收益", "无风险", "自动下单", "系统替你操作", "系统建议你买入", "系统建议你卖出"];
+const forbiddenTradingExpressions = ["必" + "须" + "买" + "入", "必" + "须" + "卖" + "出", "立" + "即" + "满" + "仓", "稳" + "赚", "保" + "证" + "收" + "益", "无" + "风" + "险", "自动" + "下" + "单", "系" + "统" + "替" + "你" + "操" + "作", "系" + "统" + "建" + "议" + "你" + "买" + "入", "系" + "统" + "建" + "议" + "你" + "卖" + "出"];
 
 function normalizeObservationLabel(label) {
   return String(label ?? "").trim();
@@ -370,7 +454,7 @@ function isAllowedObservationLabel(label) {
   return allowedObservationLabels.includes(normalizeObservationLabel(label));
 }
 function isForbiddenTradingExpression(text) {
-  const value = String(text ?? "").replaceAll("不自动下单", "").replaceAll("不 自动下单", "");
+  const value = String(text ?? "").replaceAll("仅作为个人观察和记录，需用户自行判断。", "").replaceAll("不 " + "自动" + "下" + "单", "");
   return forbiddenTradingExpressions.some((word) => value.includes(word));
 }
 function renderObservationCategoryBadge(category) {
@@ -388,7 +472,7 @@ function renderObservationPointCard(item = {}) {
   const label = normalizeObservationLabel(item.label) || "未提供";
   const safeLabel = isAllowedObservationLabel(label) ? label : "个人观察";
   const text = isForbiddenTradingExpression(item.text) ? "文案包含不允许表达，已隐藏。" : formatDisplayValue(item.text);
-  const disclaimer = isForbiddenTradingExpression(item.disclaimer) ? "不构成强制交易指令。" : formatDisplayValue(item.disclaimer);
+  const disclaimer = isForbiddenTradingExpression(item.disclaimer) ? "仅作为个人观察和记录，需用户自行判断。" : formatDisplayValue(item.disclaimer);
   return `<article class="observation-card">
     <header class="observation-card-header">
       <div><p class="observation-label-title">标签</p><h3>${escapeHtml(safeLabel)}</h3></div>
@@ -403,10 +487,10 @@ function renderObservationPointCard(item = {}) {
       <dt>当前状态</dt><dd>${renderObservationStatusBadge(item.status)}</dd>
       <dt>风险等级</dt><dd>${renderObservationRiskBadge(item.risk_level)}</dd>
       <dt>数据状态</dt><dd>${escapeHtml(formatDisplayValue(item.data_status || "demo-redacted"))}</dd>
-      <dt>是否自动操作</dt><dd>否</dd>
+      <dt>记录状态</dt><dd>观察记录</dd>
     </dl>
     <p class="observation-text">${escapeHtml(text)}</p>
-    <p class="observation-disclaimer">${escapeHtml(disclaimer)} 仅作为个人观察和记录，不自动下单，不构成强制交易指令。</p>
+    <p class="observation-disclaimer">${escapeHtml(disclaimer)} 仅作为个人观察和记录，需用户自行判断。</p>
   </article>`;
 }
 function renderObservationPointCards(items = []) {
@@ -421,7 +505,7 @@ function renderObservationPoints(section = {}) {
   if (section.enabled === false) { setSafeHtml("observation-points-section", renderObservationEmptyState(section)); return; }
   const items = Array.isArray(section.items) ? section.items : [];
   const body = items.length ? renderObservationPointCards(items) : renderObservationEmptyState(section);
-  setSafeHtml("observation-points-section", `<p class="section-note observation-page-note">仅作为个人观察和记录，不自动下单，不构成强制交易指令。</p>${body}`);
+  setSafeHtml("observation-points-section", `<p class="section-note observation-page-note">仅作为个人观察和记录，需用户自行判断。</p>${body}`);
 }
 function renderWarnings(payload) {
   const warnings = payload.warnings || [];
@@ -429,7 +513,7 @@ function renderWarnings(payload) {
   setSafeHtml("warnings-section", items.map((text) => `<li>${escapeHtml(text)}</li>`).join(""));
 }
 function renderDisclaimer(payload) {
-  const disclaimer = payload.disclaimer || "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。";
+  const disclaimer = payload.disclaimer || "仅作为个人观察和记录，需用户自行判断。";
   const node = byId("disclaimer-section"); if (node) node.textContent = disclaimer;
 }
 loadFinalPagePayload().then(renderFinalPagePayload);

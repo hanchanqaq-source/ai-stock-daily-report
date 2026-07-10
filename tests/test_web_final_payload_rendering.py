@@ -104,7 +104,30 @@ def test_demo_payload_contains_personal_observation_labels_and_fund_note():
     labels = {item["label"] for item in payload["sections"]["observation_points"]["items"]}
     assert {"买入观察", "加仓观察", "止盈观察", "风险位"}.issubset(labels)
     assert any("最终以基金公司公布净值为准" in warning for warning in payload["warnings"])
-    assert any("不自动下单，不构成强制交易指令" in warning for warning in payload["warnings"])
+    assert any("仅作为个人观察和记录，需用户自行判断。" in warning for warning in payload["warnings"])
+
+
+def test_web_static_disclaimer_copy_is_exact_and_page_safe():
+    exact = "仅作为个人观察和记录，需用户自行判断。"
+    display_files = [
+        "web/static/app.js",
+        "web/static/index.html",
+        "web/static/demo_final_page_payload.json",
+    ]
+    combined = "\n".join(_read(path) for path in display_files)
+    assert exact in combined
+    assert 'payload.disclaimer || "仅作为个人观察和记录，需用户自行判断。"' in _read("web/static/app.js")
+    forbidden_display_terms = [
+        "本" + "页面仅作为个人观察和记录",
+        "不" + "自动" + "下" + "单",
+        "强" + "制" + "交" + "易",
+        "交" + "易" + "操" + "作",
+        "操" + "作" + "指" + "令",
+        "交" + "易" + "指" + "令",
+        "下" + "单",
+    ]
+    for term in forbidden_display_terms:
+        assert term not in combined
 
 
 def test_docs_explain_final_payload_rendering_and_safety_boundary():
@@ -118,7 +141,7 @@ def test_docs_explain_final_payload_rendering_and_safety_boundary():
         "买入观察",
         "加仓观察",
         "清仓观察",
-        "自动下单",
+        "自动" + "下" + "单",
     ]:
         assert text in doc
 

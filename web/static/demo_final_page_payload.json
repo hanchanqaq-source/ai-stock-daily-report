@@ -132,8 +132,8 @@
           "status": "watching",
           "risk_level": "medium",
           "data_status": "demo-redacted",
-          "text": "仅作为个人观察记录，不自动下单。",
-          "disclaimer": "不构成强制交易指令。"
+          "text": "仅作为个人观察和记录，需用户自行判断。",
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_add_001",
@@ -148,7 +148,7 @@
           "risk_level": "medium",
           "data_status": "demo-redacted",
           "text": "等待回调确认后再记录。",
-          "disclaimer": "不构成强制交易指令。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_reduce_001",
@@ -163,7 +163,7 @@
           "risk_level": "medium",
           "data_status": "demo-redacted",
           "text": "接近目标区时记录个人观察。",
-          "disclaimer": "不构成强制交易指令。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_profit_001",
@@ -178,7 +178,7 @@
           "risk_level": "low",
           "data_status": "demo-redacted",
           "text": "接近目标区时重点观察。",
-          "disclaimer": "不构成强制交易指令。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_stop_001",
@@ -193,7 +193,7 @@
           "risk_level": "high",
           "data_status": "demo-redacted",
           "text": "跌破风险位时提高风险等级，仅作为个人观察记录。",
-          "disclaimer": "不构成强制交易指令。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_risk_001",
@@ -208,7 +208,7 @@
           "risk_level": "high",
           "data_status": "demo-redacted",
           "text": "跌破关键位置时提高风险等级，仅作为个人观察记录。",
-          "disclaimer": "不构成强制交易指令。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_wait_001",
@@ -223,7 +223,7 @@
           "risk_level": "medium",
           "data_status": "demo-redacted",
           "text": "等待回调确认后继续观察。",
-          "disclaimer": "不构成强制交易指令。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_hold_001",
@@ -238,7 +238,7 @@
           "risk_level": "low",
           "data_status": "demo-redacted",
           "text": "仅记录个人观察状态。",
-          "disclaimer": "不构成强制交易指令。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         },
         {
           "id": "demo_observation_noop_001",
@@ -253,7 +253,7 @@
           "risk_level": "low",
           "data_status": "demo-redacted",
           "text": "当前仅记录观察，不做动作。",
-          "disclaimer": "不构成强制交易指令。"
+          "disclaimer": "仅作为个人观察和记录，需用户自行判断。"
         }
       ]
     }
@@ -262,14 +262,13 @@
     "已审计",
     "默认脱敏",
     "禁止写入真实数据",
-    "不自动下单",
-    "不构成强制交易指令"
+    "仅作为个人观察和记录，需用户自行判断。"
   ],
   "warnings": [
-    "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
+    "仅作为个人观察和记录，需用户自行判断。",
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
   ],
-  "disclaimer": "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
+  "disclaimer": "仅作为个人观察和记录，需用户自行判断。",
   "dashboard_summary": {
     "title": "账户首页综合看板",
     "account_status": "本地安全预览",
@@ -866,6 +865,163 @@
         ]
       }
     },
-    "disclaimer": "本模块当前仅为本地 demo 展示，不请求真实行情，不保存未脱敏价格或涨跌幅；系统计算指标，非官方指数。页面只作为个人观察，不自动下单，不构成强制交易指令。"
+    "disclaimer": "本模块当前仅为本地 demo 展示，不请求真实行情，不保存未脱敏价格或涨跌幅；系统计算指标，非官方指数。仅作为个人观察和记录，需用户自行判断。"
+  },
+  "cleanup_center": {
+    "data_mode": "dry_run",
+    "display_mode": "demo",
+    "can_delete_files": false,
+    "requires_preview": true,
+    "requires_user_confirm": true,
+    "categories": [
+      {
+        "category_key": "safe_cache",
+        "category_label": "可清理缓存",
+        "risk_level": "low",
+        "cleanup_allowed": true,
+        "requires_confirm": true,
+        "items": [
+          {
+            "name": "临时缓存示例",
+            "path_display": "cache/demo_temp/",
+            "size_display": "<redacted>",
+            "impact": "清理后下次打开可能重新生成缓存。",
+            "status": "preview_only"
+          },
+          {
+            "name": "临时测试输出",
+            "path_display": "tmp/demo-test-output/",
+            "size_display": "<redacted>",
+            "impact": "仅影响本地测试临时输出。",
+            "status": "preview_only"
+          },
+          {
+            "name": "demo 预览缓存",
+            "path_display": "web/static/.demo-cache/",
+            "size_display": "<redacted>",
+            "impact": "仅影响本地 demo 预览缓存。",
+            "status": "preview_only"
+          },
+          {
+            "name": "旧的前端构建缓存",
+            "path_display": "web/static/build-cache-demo/",
+            "size_display": "<redacted>",
+            "impact": "下次构建可能重新生成缓存。",
+            "status": "preview_only"
+          }
+        ]
+      },
+      {
+        "category_key": "careful_cleanup",
+        "category_label": "谨慎清理",
+        "risk_level": "medium",
+        "cleanup_allowed": false,
+        "requires_confirm": true,
+        "items": [
+          {
+            "name": "旧报告副本",
+            "path_display": "reports/demo-copy/",
+            "size_display": "<redacted>",
+            "impact": "可能影响历史对照，必须先预览再确认。",
+            "status": "confirm_required"
+          },
+          {
+            "name": "过期 artifacts 摘要",
+            "path_display": "artifacts/demo-summary/",
+            "size_display": "<redacted>",
+            "impact": "可能影响排障追踪，必须用户确认。",
+            "status": "confirm_required"
+          },
+          {
+            "name": "旧日志文件",
+            "path_display": "logs/demo-old/",
+            "size_display": "<redacted>",
+            "impact": "可能影响问题复盘，当前 demo 不删除。",
+            "status": "confirm_required"
+          },
+          {
+            "name": "debug 输出",
+            "path_display": "debug/demo-output/",
+            "size_display": "<redacted>",
+            "impact": "可能影响排障复盘，当前 demo 不删除。",
+            "status": "confirm_required"
+          }
+        ]
+      },
+      {
+        "category_key": "protected_core_data",
+        "category_label": "禁止清理",
+        "risk_level": "blocked",
+        "cleanup_allowed": false,
+        "requires_confirm": false,
+        "items": [
+          {
+            "name": "data/history",
+            "path_display": "data/history",
+            "size_display": "<redacted>",
+            "impact": "核心历史数据，禁止清理 data/history。",
+            "status": "blocked"
+          },
+          {
+            "name": "data/user_config",
+            "path_display": "data/user_config",
+            "size_display": "<redacted>",
+            "impact": "私人配置默认禁止清理 data/user_config。",
+            "status": "blocked"
+          },
+          {
+            "name": "本地私人配置",
+            "path_display": "local-only/user-account-config",
+            "size_display": "<redacted>",
+            "impact": "私人配置不能被 demo 清理。",
+            "status": "blocked"
+          },
+          {
+            "name": "私人投资记录 / 私人成本记录 / 私人账户记录",
+            "path_display": "local-only/private-account-data",
+            "size_display": "<redacted>",
+            "impact": "私人数据禁止进入 demo 清理。",
+            "status": "blocked"
+          },
+          {
+            "name": ".env",
+            "path_display": ".env",
+            "size_display": "<redacted>",
+            "impact": "可能包含本地凭据和连接配置，禁止展示、导出或清理。",
+            "status": "blocked"
+          },
+          {
+            "name": "AGENTS.md / ENTRY.md / README.md",
+            "path_display": "AGENTS.md, ENTRY.md, README.md",
+            "size_display": "<redacted>",
+            "impact": "仓库规则和入口文档禁止清理。",
+            "status": "blocked"
+          },
+          {
+            "name": "product_rules 和 lessons 文档",
+            "path_display": "docs/product_rules.md, docs/ERRORS_AND_LESSONS.md",
+            "size_display": "<redacted>",
+            "impact": "产品规则和经验文档禁止清理。",
+            "status": "blocked"
+          }
+        ]
+      }
+    ],
+    "protected_items": [
+      "data/history",
+      "data/user_config",
+      "本地私人配置",
+      "私人投资记录",
+      "私人成本记录",
+      "私人账户记录",
+      ".env",
+      "本地凭据配置",
+      "AGENTS.md",
+      "ENTRY.md",
+      "README.md",
+      "docs/product_rules.md",
+      "docs/ERRORS_AND_LESSONS.md"
+    ],
+    "disclaimer": "本页面当前仅为 demo 预览，不执行真实删除。默认只扫描，不删除；清理前必须预览，清理前必须用户确认。私人配置和核心历史数据默认禁止清理。本地凭据配置不能清理到 public repo 或输出。私人配置不能被 demo 清理。"
   }
 }

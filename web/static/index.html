@@ -65,6 +65,29 @@
           <p class="market-index-disclaimer" id="market-index-disclaimer">本模块当前仅为本地 demo 展示，不请求真实行情，不保存真实价格或涨跌幅。</p>
         </section>
 
+
+        <section class="dashboard-card cleanup-center-section" id="cleanup" aria-label="清理中心">
+          <div class="cleanup-header">
+            <div>
+              <p class="card-label">Web-P19 清理中心</p>
+              <h2>清理中心</h2>
+              <p class="section-note">默认只扫描，不删除；本阶段只展示 demo，不会真实清理文件。</p>
+            </div>
+            <span class="status-pill">dry-run demo</span>
+          </div>
+          <div class="cleanup-summary" id="cleanup-summary">清理中心加载中...</div>
+          <div class="cleanup-categories" id="cleanup-categories"></div>
+          <div class="cleanup-preview-panel" id="cleanup-preview-panel"></div>
+          <div class="cleanup-protected-data-panel" id="cleanup-protected-data-panel"></div>
+          <div class="cleanup-action-preview" id="cleanup-action-preview">
+            <button type="button" class="cleanup-demo-button" id="cleanup-preview-button">预览清理</button>
+            <button type="button" class="cleanup-demo-button" disabled>需要确认</button>
+            <button type="button" class="cleanup-demo-button" disabled>Demo：不会删除</button>
+            <p id="cleanup-demo-message" class="section-note">清理前必须预览，清理前必须用户确认。</p>
+          </div>
+          <div class="cleanup-disclaimer" id="cleanup-disclaimer">私人配置和核心历史数据默认禁止清理。</div>
+        </section>
+
         <section class="card-grid dashboard-quick-grid" aria-label="首页快览区域">
           <article class="card quick-section">
             <p class="card-label">股票 / ETF 快览</p>
@@ -115,7 +138,7 @@
           <article class="card" id="points">
             <p class="card-label">个人观察点位</p>
             <h2>个人观察点位</h2>
-            <p class="section-note">仅作为个人观察和记录，不自动下单，不构成强制交易指令。</p>
+            <p class="section-note">仅作为个人观察和记录，需用户自行判断。</p>
             <div class="observation-list" id="observation-points-section"></div>
           </article>
 
@@ -123,19 +146,19 @@
             <p class="card-label">风险提醒</p>
             <h2>本地安全提醒</h2>
             <ul id="warnings-section">
-              <li>本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。</li>
+              <li>仅作为个人观察和记录，需用户自行判断。</li>
             </ul>
           </article>
 
           <article class="card" id="data-note">
             <p class="card-label">数据说明</p>
             <h2>final_page_payload only</h2>
-            <p>未来正式页面必须来自 P5-T final_page_payload；当前只读取 demo_final_page_payload.json 或本地 fallback demo。</p><p>本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。</p><p>场外基金盘中估算仅供观察，最终以基金公司公布净值为准。</p><p>本页面仅用于本地预览，不构成交易建议。</p>
+            <p>未来正式页面必须来自 P5-T final_page_payload；当前只读取 demo_final_page_payload.json 或本地 fallback demo。</p><p>仅作为个人观察和记录，需用户自行判断。</p><p>场外基金盘中估算仅供观察，最终以基金公司公布净值为准。</p><p>本页面仅用于本地预览，不构成交易建议。</p>
           </article>
         </section>
 
         <footer class="footer" id="disclaimer-section">
-          本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。
+          仅作为个人观察和记录，需用户自行判断。
         </footer>
       </main>
     </div>
