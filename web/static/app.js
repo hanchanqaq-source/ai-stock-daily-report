@@ -33,6 +33,7 @@ const fallbackPayload = {
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
   ],
   market_indices: buildFallbackMarketIndices(),
+  cleanup_center: buildFallbackCleanupCenter(),
   disclaimer: "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
 };
 
@@ -318,6 +319,88 @@ function renderMarketIndicesDashboard(payload) {
   }
   setActiveMarketIndexTab("global");
 }
+
+function buildFallbackCleanupCenter() {
+  return {
+    data_mode: "dry_run",
+    display_mode: "demo",
+    can_delete_files: false,
+    requires_preview: true,
+    requires_user_confirm: true,
+    categories: [
+      { category_key: "safe_cache", category_label: "可清理缓存", risk_level: "low", cleanup_allowed: true, requires_confirm: true, items: [
+        { name: "临时缓存示例", path_display: "cache/demo_temp/", size_display: "<redacted>", impact: "清理后下次打开可能重新生成缓存。", status: "preview_only" },
+        { name: "demo 预览缓存", path_display: "web/static/.demo-cache/", size_display: "<redacted>", impact: "仅影响本地 demo 预览缓存。", status: "preview_only" },
+        { name: "旧的前端构建缓存", path_display: "web/static/build-cache-demo/", size_display: "<redacted>", impact: "下次构建可能重新生成缓存。", status: "preview_only" }
+      ] },
+      { category_key: "temporary_reports", category_label: "谨慎清理", risk_level: "medium", cleanup_allowed: false, requires_confirm: true, items: [
+        { name: "旧报告副本示例", path_display: "reports/demo-copy/", size_display: "<redacted>", impact: "可能影响历史对照，必须先预览再确认。", status: "confirm_required" },
+        { name: "过期 artifacts 摘要", path_display: "artifacts/demo-summary/", size_display: "<redacted>", impact: "可能影响排障追踪，必须用户确认。", status: "confirm_required" },
+        { name: "旧日志文件和 debug 输出", path_display: "logs/demo-debug/", size_display: "<redacted>", impact: "可能影响问题复盘，当前 demo 不删除。", status: "confirm_required" }
+      ] },
+      { category_key: "protected_core_data", category_label: "禁止清理", risk_level: "blocked", cleanup_allowed: false, requires_confirm: false, items: [
+        { name: "data/history", path_display: "data/history", size_display: "<redacted>", impact: "核心历史数据，禁止清理。", status: "blocked" },
+        { name: "data/user_config", path_display: "data/user_config", size_display: "<redacted>", impact: "私人配置默认禁止清理。", status: "blocked" },
+        { name: ".env", path_display: ".env", size_display: "<redacted>", impact: "可能包含 Token / API Key / Webhook，禁止输出或清理。", status: "blocked" },
+        { name: "真实账户配置 / 持仓 / 成本价 / 账户资产", path_display: "local-only/private-account-data", size_display: "<redacted>", impact: "真实账户数据、真实金额、成本价和账户资产禁止进入 demo 清理。", status: "blocked" },
+        { name: "AGENTS.md / ENTRY.md / README.md / product_rules", path_display: "AGENTS.md, ENTRY.md, README.md, docs/product_rules.md, docs/ERRORS_AND_LESSONS.md", size_display: "<redacted>", impact: "仓库规则和产品规则禁止被清理中心删除。", status: "blocked" }
+      ] }
+    ],
+    protected_items: ["data/history", "data/user_config", "本地真实账户配置", "真实持仓数据", "真实成本价数据", "真实账户资产数据", ".env", "Token / API Key / Webhook", "AGENTS.md", "ENTRY.md", "README.md", "docs/product_rules.md", "docs/ERRORS_AND_LESSONS.md"],
+    disclaimer: "本页面当前仅为 demo 预览，不执行真实删除。默认只扫描，不删除；私人配置和核心历史数据默认禁止清理。Token / API Key / Webhook 永远不能清理到 public repo 或输出。真实账户配置不能被 demo 清理。"
+  };
+}
+function getCleanupCenterFromPayload(payload) {
+  const source = payload?.cleanup_center;
+  if (!source || typeof source !== "object") return buildFallbackCleanupCenter();
+  const fallback = buildFallbackCleanupCenter();
+  return { ...fallback, ...source, categories: Array.isArray(source.categories) ? source.categories : fallback.categories, protected_items: Array.isArray(source.protected_items) ? source.protected_items : fallback.protected_items };
+}
+function renderCleanupRiskBadge(riskLevel) {
+  const risk = String(riskLevel || "unknown").toLowerCase();
+  const label = { low: "low", medium: "medium", blocked: "blocked" }[risk] || "unknown";
+  return `<span class="cleanup-badge cleanup-risk-${escapeHtml(label)}">${escapeHtml(label)}</span>`;
+}
+function renderCleanupStatusBadge(status) {
+  const value = String(status || "preview_only");
+  return `<span class="cleanup-badge cleanup-status">${escapeHtml(value)}</span>`;
+}
+function renderCleanupSummary(cleanup) {
+  const categories = Array.isArray(cleanup.categories) ? cleanup.categories : [];
+  const itemCount = categories.reduce((total, category) => total + (Array.isArray(category.items) ? category.items.length : 0), 0);
+  return `<div class="cleanup-summary-grid"><article><span>data_mode</span><strong>${escapeHtml(cleanup.data_mode)}</strong></article><article><span>display_mode</span><strong>${escapeHtml(cleanup.display_mode)}</strong></article><article><span>可真实删除</span><strong>${cleanup.can_delete_files === true ? "是" : "否"}</strong></article><article><span>清理项预览</span><strong>${escapeHtml(itemCount)}</strong></article></div><p>默认只扫描，不删除。本阶段不执行真实清理；清理前必须预览，清理前必须用户确认。</p>`;
+}
+function renderCleanupItem(item = {}) {
+  return `<li class="cleanup-item"><div><strong>${escapeHtml(formatDisplayValue(item.name))}</strong><code>${escapeHtml(formatDisplayValue(item.path_display))}</code></div><dl><dt>大小</dt><dd>${escapeHtml(formatDisplayValue(item.size_display))}</dd><dt>影响</dt><dd>${escapeHtml(formatDisplayValue(item.impact))}</dd><dt>状态</dt><dd>${renderCleanupStatusBadge(item.status)}</dd></dl></li>`;
+}
+function renderCleanupCategory(category = {}) {
+  const items = Array.isArray(category.items) ? category.items : [];
+  const allowedText = category.cleanup_allowed === true ? "允许进入预览" : "禁止或需谨慎";
+  return `<article class="cleanup-category"><header><div><p class="card-label">${escapeHtml(formatDisplayValue(category.category_key))}</p><h3>${escapeHtml(formatDisplayValue(category.category_label))}</h3></div>${renderCleanupRiskBadge(category.risk_level)}</header><p>${escapeHtml(allowedText)}；${category.requires_confirm === false ? "禁止清理项目不提供确认入口。" : "清理前必须用户确认。"}</p><ul>${items.map((item) => renderCleanupItem(item)).join("")}</ul></article>`;
+}
+function renderCleanupCategories(cleanup) {
+  const categories = Array.isArray(cleanup.categories) ? cleanup.categories : [];
+  return categories.map((category) => renderCleanupCategory(category)).join("") || '<p class="empty-state">暂无清理分类。</p>';
+}
+function renderProtectedDataPanel(cleanup) {
+  const protectedItems = Array.isArray(cleanup.protected_items) ? cleanup.protected_items : [];
+  return `<h3>禁止清理项目</h3><p>私人配置和核心历史数据默认禁止清理。</p><ul>${protectedItems.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
+}
+function renderCleanupPreviewPanel(cleanup) {
+  return `<h3>清理前预览</h3><p>当前为 demo 模式，只展示扫描预览，不会真实清理文件，不调用真实文件系统，不联网，不接 provider，不接 Discord / 日报 / 周报。</p><p>requires_preview=${escapeHtml(cleanup.requires_preview)}；requires_user_confirm=${escapeHtml(cleanup.requires_user_confirm)}；can_delete_files=${escapeHtml(cleanup.can_delete_files)}。</p>`;
+}
+function renderCleanupCenter(payload) {
+  const cleanup = getCleanupCenterFromPayload(payload);
+  setSafeHtml("cleanup-summary", renderCleanupSummary(cleanup));
+  setSafeHtml("cleanup-categories", renderCleanupCategories(cleanup));
+  setSafeHtml("cleanup-preview-panel", renderCleanupPreviewPanel(cleanup));
+  setSafeHtml("cleanup-protected-data-panel", renderProtectedDataPanel(cleanup));
+  setSafeHtml("cleanup-disclaimer", escapeHtml(cleanup.disclaimer));
+  const button = byId("cleanup-preview-button");
+  const message = byId("cleanup-demo-message");
+  if (button && message) button.addEventListener("click", () => { message.textContent = "当前为 demo 模式，不会删除任何文件。"; });
+}
+
 function renderDashboardQuickSections(payload) {
   const sections = payload?.sections || {};
   setSafeHtml("dashboard-quick-stock-etf", renderStockEtfCards({ ...sections.stock_etf, display_models: getSectionDisplayModels(payload, "stock_etf").slice(0, 3) }));
@@ -342,6 +425,7 @@ function renderFinalPagePayload(payload) {
   const safePayload = payload || getFallbackPayload();
   renderAccountHomeDashboard(safePayload); renderAccountHeader(safePayload); renderSafetyBadges(safePayload); renderBlockedPayload(safePayload);
   renderMarketIndicesDashboard(safePayload);
+  renderCleanupCenter(safePayload);
   if (safePayload.payload_status === "blocked") {
     setSafeHtml("stock-etf-section", '<p class="empty-state">安全拦截状态下不显示股票 / ETF 真实值</p>');
     setSafeHtml("fund-nav-section", '<p class="empty-state">安全拦截状态下不显示场外基金净值真实值</p><p class="section-note">盘中估算仅供观察，最终以基金公司公布净值为准。</p>');

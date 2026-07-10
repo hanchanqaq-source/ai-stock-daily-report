@@ -63,3 +63,7 @@ The local static page now supports an account home dashboard that combines accou
 ## Web-P18 market indices tabs
 
 The local static page now includes a `全球市场指数` module with tabs for 全球总览 / A股 / 港股 / 美股 / 韩股. It consumes only the local demo `market_indices` payload or the in-page fallback, renders redacted demo matrices, and distinguishes official indices from computed breadth / sentiment indicators. It does not request real quotes, connect to real providers, store real prices, store real percentage changes, store turnover, store account values, or store Token / API Key / Webhook values.
+
+## Web-P19 cleanup center
+
+The local static page now includes a `清理中心` demo area. It renders only local `cleanup_center` demo payload or fallback data, shows safe cache cleanup candidates, careful cleanup candidates, and protected data. It is dry-run only: default scan only, no deletion, preview before confirmation, no real filesystem scan, no provider, no Discord, no daily or weekly report integration, and no Token / API Key / Webhook or real account data storage.
