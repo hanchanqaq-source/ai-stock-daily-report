@@ -23,6 +23,11 @@ scripts\windows_local_verify.bat
 3. 请在包含 `main.py` 和 `requirements.txt` 的项目根目录运行脚本。
 4. 不需要填写真实密钥、访问令牌、回调地址或股票列表。
 
+
+## 中文乱码或命令解析异常
+
+如果双击或在 `cmd` 中运行脚本时出现中文乱码，或看到“不是内部或外部命令，也不是可运行的程序或批处理文件”，通常是 Windows 终端编码与 UTF-8 `.bat` 文件不兼容导致的，不是用户操作错误。请使用修复后的 `scripts\windows_local_verify.bat`；脚本开头已切换到 UTF-8 代码页。
+
 ## 脚本会做什么
 
 脚本会按顺序执行：

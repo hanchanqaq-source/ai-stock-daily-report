@@ -1,8 +1,9 @@
 @echo off
+chcp 65001 >nul
 setlocal EnableExtensions EnableDelayedExpansion
 
 set "FAIL_COUNT=0"
-set "DEPENDENCIES_STATUS=未安装/未更新（用户跳过或安装失败时验证可能受影响）"
+set "DEPENDENCIES_STATUS=未安装或未更新 - 用户跳过或安装失败时验证可能受影响"
 set "PYTHON_CMD="
 set "VENV_PYTHON=.venv\Scripts\python.exe"
 
@@ -90,7 +91,7 @@ if not defined PYTHON_VERSION (
     set /a FAIL_COUNT+=1
     exit /b 1
 )
-echo [提示] 当前 Python 版本：%PYTHON_VERSION%
+echo [提示] 当前 Python 版本: %PYTHON_VERSION%
 echo %PYTHON_VERSION% | findstr /r "^3\.11\." >nul
 if errorlevel 1 (
     echo [失败] 当前 Python 版本不是 3.11.x
@@ -147,12 +148,12 @@ exit /b 0
 
 :prompt_requirements
 echo [检查] requirements.txt 安装/更新
-echo 是否安装/更新 requirements.txt？输入 Y 执行，其他输入跳过
+echo 是否安装或更新 requirements.txt? 输入 Y 执行, 其他输入跳过
 set /p INSTALL_REQ="请输入选择 [Y/N]: "
 if /i not "%INSTALL_REQ%"=="Y" (
     echo [提示] 已跳过 requirements.txt 安装/更新
     echo [提示] 后续验证仍会继续，但最终结果会标记依赖可能未安装
-    set "DEPENDENCIES_STATUS=可能未安装/未更新（用户选择跳过）"
+    set "DEPENDENCIES_STATUS=可能未安装或未更新 - 用户选择跳过"
     echo.
     exit /b 0
 )
@@ -163,7 +164,7 @@ if errorlevel 1 (
     echo [失败] requirements.txt 安装/更新失败
     echo [提示] 网络问题不等于程序代码错误，可能是代理、GitHub 访问或 PyPI 镜像问题
     echo [提示] 可以稍后重试；不要因此修改项目代码；不要关闭安全检查
-    set "DEPENDENCIES_STATUS=安装/更新失败（可能是网络或代理问题）"
+    set "DEPENDENCIES_STATUS=安装或更新失败 - 可能是网络或代理问题"
     set /a FAIL_COUNT+=1
     echo.
     exit /b 1
@@ -232,13 +233,13 @@ exit /b 0
 :summary
 echo ========================================
 echo [总体结果]
-echo 依赖状态：%DEPENDENCIES_STATUS%
+echo 依赖状态: %DEPENDENCIES_STATUS%
 if "%FAIL_COUNT%"=="0" (
-    echo 结果：通过
+    echo 结果: 通过
     echo 所有 Windows 本地验证步骤已完成。
 ) else (
-    echo 结果：未通过
-    echo 失败步骤数量：%FAIL_COUNT%
+    echo 结果: 未通过
+    echo 失败步骤数量: %FAIL_COUNT%
     echo 请先查看上方 [失败] 和 [提示] 内容。
     echo 如果是网络或依赖安装问题，不等于程序代码错误。
 )
