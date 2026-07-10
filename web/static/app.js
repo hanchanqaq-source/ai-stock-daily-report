@@ -341,13 +341,13 @@ function buildFallbackCleanupCenter() {
       { category_key: "protected_core_data", category_label: "禁止清理", risk_level: "blocked", cleanup_allowed: false, requires_confirm: false, items: [
         { name: "data/history", path_display: "data/history", size_display: "<redacted>", impact: "核心历史数据，禁止清理。", status: "blocked" },
         { name: "data/user_config", path_display: "data/user_config", size_display: "<redacted>", impact: "私人配置默认禁止清理。", status: "blocked" },
-        { name: ".env", path_display: ".env", size_display: "<redacted>", impact: "可能包含 Token / API Key / Webhook，禁止输出或清理。", status: "blocked" },
-        { name: "真实账户配置 / 持仓 / 成本价 / 账户资产", path_display: "local-only/private-account-data", size_display: "<redacted>", impact: "真实账户数据、真实金额、成本价和账户资产禁止进入 demo 清理。", status: "blocked" },
+        { name: ".env", path_display: ".env", size_display: "<redacted>", impact: "可能包含本地凭据和连接配置，禁止展示、导出或清理。", status: "blocked" },
+        { name: "私人配置 / 投资记录 / 成本记录 / 账户记录", path_display: "local-only/private-account-data", size_display: "<redacted>", impact: "私人数据禁止进入 demo 清理。", status: "blocked" },
         { name: "AGENTS.md / ENTRY.md / README.md / product_rules", path_display: "AGENTS.md, ENTRY.md, README.md, docs/product_rules.md, docs/ERRORS_AND_LESSONS.md", size_display: "<redacted>", impact: "仓库规则和产品规则禁止被清理中心删除。", status: "blocked" }
       ] }
     ],
-    protected_items: ["data/history", "data/user_config", "本地真实账户配置", "真实持仓数据", "真实成本价数据", "真实账户资产数据", ".env", "Token / API Key / Webhook", "AGENTS.md", "ENTRY.md", "README.md", "docs/product_rules.md", "docs/ERRORS_AND_LESSONS.md"],
-    disclaimer: "本页面当前仅为 demo 预览，不执行真实删除。默认只扫描，不删除；私人配置和核心历史数据默认禁止清理。Token / API Key / Webhook 永远不能清理到 public repo 或输出。真实账户配置不能被 demo 清理。"
+    protected_items: ["data/history", "data/user_config", "本地私人配置", "私人投资记录", "私人成本记录", "私人账户记录", ".env", "本地凭据配置", "AGENTS.md", "ENTRY.md", "README.md", "docs/product_rules.md", "docs/ERRORS_AND_LESSONS.md"],
+    disclaimer: "本页面当前仅为 demo 预览，不执行真实删除。默认只扫描，不删除；私人配置和核心历史数据默认禁止清理。本地凭据配置不能清理到 public repo 或输出。私人配置不能被 demo 清理。"
   };
 }
 function getCleanupCenterFromPayload(payload) {

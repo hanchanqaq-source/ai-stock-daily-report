@@ -86,9 +86,13 @@ def test_cleanup_center_payload_does_not_store_real_private_values():
     text = read(PAYLOAD)
     assert "<redacted>" in text
     forbidden_private_values = [
-        "真实金额：",
-        "成本价：",
-        "账户资产：",
+        "Token",
+        "API Key",
+        "Webhook",
+        "真实金额",
+        "成本价",
+        "账户资产",
+        "真实持仓",
         "sk-",
         "xoxb-",
         "discord.com/api/webhooks/",
@@ -96,7 +100,17 @@ def test_cleanup_center_payload_does_not_store_real_private_values():
     ]
     for token in forbidden_private_values:
         assert token not in text
+    required_public_safe_labels = ["本地凭据配置", "私人配置", "私人投资记录", "私人成本记录", "私人账户记录"]
+    for label in required_public_safe_labels:
+        assert label in text
+
+
+def test_cleanup_center_doc_keeps_full_security_boundary():
+    text = read(DOC)
     assert "Token / API Key / Webhook" in text
+    assert "真实金额" in text
+    assert "成本价" in text
+    assert "账户资产" in text
 
 
 def test_cleanup_center_does_not_add_delete_api_or_filesystem_logic():
