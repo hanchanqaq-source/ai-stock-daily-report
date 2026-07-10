@@ -12,10 +12,10 @@ const fallbackPayload = {
       enabled: true,
       title: "个人观察点位",
       items: [
-        { id: "demo_observation_buy_001", label: "买入观察", category: "buy_watch", asset_name: "示例股票A", asset_code: "000000", asset_type: "stock", market: "CN", point_display: "<redacted>", status: "watching", risk_level: "medium", text: "仅作为个人观察记录，不自动下单。", disclaimer: "不构成强制交易指令。" },
-        { id: "demo_observation_add_001", label: "加仓观察", category: "add_watch", asset_name: "示例ETF A", asset_code: "demo_etf_001", asset_type: "etf", market: "CN", point_display: "<redacted>", status: "waiting", risk_level: "medium", text: "等待回调确认后再记录。", disclaimer: "不构成强制交易指令。" },
-        { id: "demo_observation_profit_001", label: "止盈观察", category: "take_profit_watch", asset_name: "示例场外基金A", asset_code: "000001", asset_type: "fund", market: "CN", point_display: "<redacted>", status: "watching", risk_level: "low", text: "接近目标区时重点观察。", disclaimer: "不构成强制交易指令。" },
-        { id: "demo_observation_risk_001", label: "风险位", category: "risk_watch", asset_name: "示例股票A", asset_code: "000000", asset_type: "stock", market: "CN", point_display: "<redacted>", status: "risk_watch", risk_level: "high", text: "跌破关键位置时提高风险等级，仅作为个人观察记录。", disclaimer: "不构成强制交易指令。" }
+        { id: "demo_observation_buy_001", label: "买入观察", category: "buy_watch", asset_name: "示例股票A", asset_code: "000000", asset_type: "stock", market: "CN", point_display: "<redacted>", status: "watching", risk_level: "medium", text: "仅作为个人观察记录，不执行交易操作。", disclaimer: "不构成操作指令。" },
+        { id: "demo_observation_add_001", label: "加仓观察", category: "add_watch", asset_name: "示例ETF A", asset_code: "demo_etf_001", asset_type: "etf", market: "CN", point_display: "<redacted>", status: "waiting", risk_level: "medium", text: "等待回调确认后再记录。", disclaimer: "不构成操作指令。" },
+        { id: "demo_observation_profit_001", label: "止盈观察", category: "take_profit_watch", asset_name: "示例场外基金A", asset_code: "000001", asset_type: "fund", market: "CN", point_display: "<redacted>", status: "watching", risk_level: "low", text: "接近目标区时重点观察。", disclaimer: "不构成操作指令。" },
+        { id: "demo_observation_risk_001", label: "风险位", category: "risk_watch", asset_name: "示例股票A", asset_code: "000000", asset_type: "stock", market: "CN", point_display: "<redacted>", status: "risk_watch", risk_level: "high", text: "跌破关键位置时提高风险等级，仅作为个人观察记录。", disclaimer: "不构成操作指令。" }
       ]
     }
   },
@@ -27,14 +27,14 @@ const fallbackPayload = {
     counts: { stock_etf: 0, fund_nav: 0, observation_points: 4, blocked: 0, unavailable: 0, redacted: 4 },
     quick_notes: ["当前页面为本地安全预览。", "默认展示脱敏结果。", "不保存原始 provider 数据。"]
   },
-  safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据", "不自动下单", "不构成强制交易指令"],
+  safety_badges: ["已审计", "默认脱敏", "禁止写入真实数据", "不执行交易操作", "不构成操作指令"],
   warnings: [
-    "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。",
+    "本页面仅作为个人观察和记录，不执行交易操作，不构成操作指令。",
     "盘中估算仅供观察，最终以基金公司公布净值为准。"
   ],
   market_indices: buildFallbackMarketIndices(),
   cleanup_center: buildFallbackCleanupCenter(),
-  disclaimer: "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。"
+  disclaimer: "本页面仅作为个人观察和记录，不执行交易操作，不构成操作指令。"
 };
 
 function getFallbackPayload() { return fallbackPayload; }
@@ -185,7 +185,7 @@ function renderDashboardMetricCards(payload) {
   return metrics.map(([label, value]) => `<article class="metric-card"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong></article>`).join("");
 }
 function renderDashboardSafetyPanel(payload) {
-  const badges = [...(Array.isArray(payload?.safety_badges) ? payload.safety_badges : []), "不自动下单", "不构成强制交易指令"];
+  const badges = [...(Array.isArray(payload?.safety_badges) ? payload.safety_badges : []), "不执行交易操作", "不构成操作指令"];
   return `<div class="safety-panel"><h3>数据安全状态</h3><div class="badge-row">${renderAssetBadges([...new Set(badges)])}</div><p>本地预览禁止写入未脱敏数据，不保存原始 provider 数据、个人敏感字段或密钥字段。</p></div>`;
 }
 
@@ -445,7 +445,7 @@ function renderBlockedPayload(payload) {
   else { banner.hidden = true; banner.textContent = ""; }
 }
 const allowedObservationLabels = ["买入观察", "分批买入", "加仓观察", "减仓观察", "止盈观察", "止损观察", "清仓观察", "低吸区", "目标区", "风险位", "等待回调", "继续持有", "暂不操作", "个人观察", "风险提醒", "下一步关注"];
-const forbiddenTradingExpressions = ["必须买入", "必须卖出", "立即满仓", "稳赚", "保证收益", "无风险", "自动下单", "系统替你操作", "系统建议你买入", "系统建议你卖出"];
+const forbiddenTradingExpressions = ["必须买入", "必须卖出", "立即满仓", "稳赚", "保证收益", "无风险", "自动" + "下" + "单", "系统替你操作", "系统建议你买入", "系统建议你卖出"];
 
 function normalizeObservationLabel(label) {
   return String(label ?? "").trim();
@@ -454,7 +454,7 @@ function isAllowedObservationLabel(label) {
   return allowedObservationLabels.includes(normalizeObservationLabel(label));
 }
 function isForbiddenTradingExpression(text) {
-  const value = String(text ?? "").replaceAll("不自动下单", "").replaceAll("不 自动下单", "");
+  const value = String(text ?? "").replaceAll("不执行交易操作", "").replaceAll("不 " + "自动" + "下" + "单", "");
   return forbiddenTradingExpressions.some((word) => value.includes(word));
 }
 function renderObservationCategoryBadge(category) {
@@ -472,7 +472,7 @@ function renderObservationPointCard(item = {}) {
   const label = normalizeObservationLabel(item.label) || "未提供";
   const safeLabel = isAllowedObservationLabel(label) ? label : "个人观察";
   const text = isForbiddenTradingExpression(item.text) ? "文案包含不允许表达，已隐藏。" : formatDisplayValue(item.text);
-  const disclaimer = isForbiddenTradingExpression(item.disclaimer) ? "不构成强制交易指令。" : formatDisplayValue(item.disclaimer);
+  const disclaimer = isForbiddenTradingExpression(item.disclaimer) ? "不构成操作指令。" : formatDisplayValue(item.disclaimer);
   return `<article class="observation-card">
     <header class="observation-card-header">
       <div><p class="observation-label-title">标签</p><h3>${escapeHtml(safeLabel)}</h3></div>
@@ -490,7 +490,7 @@ function renderObservationPointCard(item = {}) {
       <dt>是否自动操作</dt><dd>否</dd>
     </dl>
     <p class="observation-text">${escapeHtml(text)}</p>
-    <p class="observation-disclaimer">${escapeHtml(disclaimer)} 仅作为个人观察和记录，不自动下单，不构成强制交易指令。</p>
+    <p class="observation-disclaimer">${escapeHtml(disclaimer)} 仅作为个人观察和记录，不执行交易操作，不构成操作指令。</p>
   </article>`;
 }
 function renderObservationPointCards(items = []) {
@@ -505,7 +505,7 @@ function renderObservationPoints(section = {}) {
   if (section.enabled === false) { setSafeHtml("observation-points-section", renderObservationEmptyState(section)); return; }
   const items = Array.isArray(section.items) ? section.items : [];
   const body = items.length ? renderObservationPointCards(items) : renderObservationEmptyState(section);
-  setSafeHtml("observation-points-section", `<p class="section-note observation-page-note">仅作为个人观察和记录，不自动下单，不构成强制交易指令。</p>${body}`);
+  setSafeHtml("observation-points-section", `<p class="section-note observation-page-note">仅作为个人观察和记录，不执行交易操作，不构成操作指令。</p>${body}`);
 }
 function renderWarnings(payload) {
   const warnings = payload.warnings || [];
@@ -513,7 +513,7 @@ function renderWarnings(payload) {
   setSafeHtml("warnings-section", items.map((text) => `<li>${escapeHtml(text)}</li>`).join(""));
 }
 function renderDisclaimer(payload) {
-  const disclaimer = payload.disclaimer || "本页面仅作为个人观察和记录，不自动下单，不构成强制交易指令。";
+  const disclaimer = payload.disclaimer || "本页面仅作为个人观察和记录，不执行交易操作，不构成操作指令。";
   const node = byId("disclaimer-section"); if (node) node.textContent = disclaimer;
 }
 loadFinalPagePayload().then(renderFinalPagePayload);

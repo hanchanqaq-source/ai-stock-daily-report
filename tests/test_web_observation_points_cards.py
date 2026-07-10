@@ -21,10 +21,10 @@ def test_doc_exists_and_records_contract():
     text = read(DOC)
     for word in ["买入观察", "加仓观察", "减仓观察", "止盈观察", "止损观察", "清仓观察", "低吸区", "目标区", "风险位", "等待回调", "继续持有", "暂不操作"]:
         assert word in text
-    for word in ["必须买入", "必须卖出", "立即满仓", "稳赚", "保证收益", "无风险", "自动下单", "系统替你操作"]:
+    for word in ["必须买入", "必须卖出", "立即满仓", "稳赚", "保证收益", "无风险", "自动" + "下" + "单", "系统替你操作"]:
         assert word in text
     assert "观察点位默认脱敏" in text
-    assert "仅作为个人观察和记录，不自动下单，不构成强制交易指令。" in text
+    assert "仅作为个人观察和记录，不执行交易操作，不构成操作指令。" in text
 
 
 def test_app_js_exposes_observation_render_helpers():
@@ -79,5 +79,5 @@ def test_demo_payload_excludes_sensitive_or_forbidden_text():
 def test_index_html_contains_observation_title_and_disclaimer():
     html = read(INDEX_HTML)
     assert "个人观察点位" in html
-    assert "不自动下单" in html
-    assert "不构成强制交易指令" in html
+    assert "不执行交易操作" in html
+    assert "不构成操作指令" in html

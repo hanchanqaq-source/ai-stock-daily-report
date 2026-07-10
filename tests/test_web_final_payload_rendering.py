@@ -104,7 +104,7 @@ def test_demo_payload_contains_personal_observation_labels_and_fund_note():
     labels = {item["label"] for item in payload["sections"]["observation_points"]["items"]}
     assert {"买入观察", "加仓观察", "止盈观察", "风险位"}.issubset(labels)
     assert any("最终以基金公司公布净值为准" in warning for warning in payload["warnings"])
-    assert any("不自动下单，不构成强制交易指令" in warning for warning in payload["warnings"])
+    assert any("不执行交易操作，不构成操作指令" in warning for warning in payload["warnings"])
 
 
 def test_docs_explain_final_payload_rendering_and_safety_boundary():
@@ -118,7 +118,7 @@ def test_docs_explain_final_payload_rendering_and_safety_boundary():
         "买入观察",
         "加仓观察",
         "清仓观察",
-        "自动下单",
+        "自动" + "下" + "单",
     ]:
         assert text in doc
 

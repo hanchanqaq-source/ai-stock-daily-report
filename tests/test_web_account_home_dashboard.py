@@ -62,8 +62,8 @@ def test_index_html_contains_dashboard_containers_and_required_copy():
         "个人观察点位",
         "风险提醒",
         "数据说明",
-        "不自动下单",
-        "不构成强制交易指令",
+        "不执行交易操作",
+        "不构成操作指令",
         "最终以基金公司公布净值为准",
     ]:
         assert text in html
