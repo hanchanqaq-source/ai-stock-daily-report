@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+
+- [改进] 新增个人使用场景文案策略，按上下文允许个人观察标签、资金看板和股票 / ETF / 指数实时涨跌表达，同时继续阻断场外基金实时涨跌、强制交易、收益承诺和隐私数据泄露。
 - [新功能] 新增 Web-P17 账户首页综合看板，整合账户总览、安全状态、数据概览、股票 / ETF 快览、场外基金快览、个人观察点位快览和风险提醒；当前不联网、不请求原始行情字段或原始基金净值字段、不保存真实数据。
 - [新功能] 新增 Web-P16 个人观察点位卡片页面，支持 observation_points 标签、状态 badge、风险等级 badge、脱敏观察点位和安全免责声明；当前不联网、不请求原始行情字段或原始基金净值字段、不保存真实数据。
 - [新功能] 新增 Web-P15 行情与基金净值安全 payload 看板，支持 stock_etf / fund_nav 卡片、redacted / blocked / unavailable 状态、provider 元数据和安全提示；当前不联网、不请求原始行情字段或原始基金净值字段、不保存真实数据。

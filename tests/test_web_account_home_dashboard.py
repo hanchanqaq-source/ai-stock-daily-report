@@ -91,7 +91,9 @@ def test_demo_payload_does_not_contain_real_values_or_secrets():
         "token",
         "api_key",
         "webhook",
-        "实时涨跌",
+        "场外基金实时涨跌",
+        "基金实时价格",
+        "实时净值",
     ]
     for word in forbidden:
         assert word not in raw

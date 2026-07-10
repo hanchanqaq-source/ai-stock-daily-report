@@ -19,7 +19,7 @@ def test_web_p15_doc_exists_and_records_safety_boundaries():
     assert "不请求原始基金净值字段" in text
     assert "blocked` 状态不显示真实值" in text
     assert "最终以基金公司公布净值为准" in text
-    assert "实时涨跌" not in text
+    assert "场外基金不能写场外基金实时涨跌" in text
 
 
 def test_app_js_exposes_market_dashboard_render_helpers():
