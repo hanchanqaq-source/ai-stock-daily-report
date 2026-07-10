@@ -51,8 +51,7 @@ def test_index_contains_required_layout_and_safety_text():
         "个人观察点位",
         "风险提醒",
         "数据说明",
-        "不自动下单",
-        "不构成强制交易指令",
+        "仅作为个人观察和记录，需用户自行判断。",
         "final_page_payload",
     ]:
         assert text in html
@@ -92,8 +91,7 @@ def test_docs_document_final_payload_and_safety_boundary():
         "不请求原始行情字段",
         "不请求原始基金净值字段",
         "不保存 Token / API Key / Webhook",
-        "不自动下单",
-        "不构成强制交易指令",
+        "仅作为个人观察和记录，需用户自行判断。",
         "买入观察",
         "加仓观察",
         "止盈观察",

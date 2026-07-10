@@ -37,8 +37,7 @@ def test_personal_observation_and_disclaimer_are_documented():
     docs = _combined_docs()
     for label in ["买入观察", "加仓观察", "减仓观察", "止盈观察", "止损观察", "清仓观察", "低吸区", "目标区", "风险位", "等待回调", "继续持有", "暂不操作"]:
         assert label in docs
-    assert "不自动下单" in docs
-    assert "不构成强制交易指令" in docs
+    assert "仅作为个人观察和记录，需用户自行判断。" in docs
 
 
 def test_route_plan_contains_required_pages():
