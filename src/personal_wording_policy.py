@@ -9,7 +9,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 POLICY_NAME = "personal_wording_policy"
-PERSONAL_WORDING_DISCLAIMER = "仅作为个人观察，不构成交易建议，不自动下单。"
+PERSONAL_WORDING_DISCLAIMER = "仅作为个人观察和记录，需用户自行判断。"
 FUND_ESTIMATE_WORDING = "最终以基金公司公布净值为准"
 
 WORDING_MODES = {
@@ -40,7 +40,7 @@ WORDING_MODES = {
 ALLOWED_PERSONAL_OBSERVATION_LABELS = [
     "买入观察", "加仓观察", "减仓观察", "卖出观察", "清仓观察", "止盈观察", "止损观察", "持有观察", "关注观察", "风险观察",
 ]
-ALLOWED_PAGE_LABELS = ["资金看板", "账户首页资金看板", "仓位看板", "成本看板", "盈亏看板", "实时涨跌看板", "行情看板", "仓位观察", "成本观察", "盈亏观察"]
+ALLOWED_PAGE_LABELS = ["资金看板", "账户首页资金看板", "仓位看板", "成本看板", "盈亏看板", "实时涨跌看板", "行情看板", "仓位观察", "成本观察", "盈亏观察", "交易记录", "操作记录"]
 ALLOWED_STOCK_REALTIME_CONTEXTS = ["股票实时涨跌", "ETF 实时涨跌", "ETF实时涨跌", "指数实时涨跌", "A股实时涨跌", "港股实时涨跌", "美股实时涨跌", "韩股实时涨跌"]
 ALLOWED_MARKET_WORDING = ["实时行情", "最新价", "涨跌幅", "涨跌额"]
 FORBIDDEN_FUND_REALTIME_WORDING = ["场外基金实时涨跌", "普通基金实时涨跌", "基金实时价格", "场外基金实时价格", "实时净值"]
