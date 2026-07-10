@@ -2,7 +2,7 @@
 
 本文说明如何在真实 Windows 电脑上验证“股票基金质量分析系统”的本地程序运行状态。
 
-本验证对应的报告/推送名称为“AI股票基金每日信息报告”。当前阶段只做 Windows 本地程序运行验证，不部署本地模型、不部署 NAS、不建设模型网关、不做 Docker 正式部署、不接真实数据、不发送真实通知、不自动交易。
+本验证对应的报告/推送名称为“AI股票基金每日信息报告”。当前阶段只做 Windows 本地程序运行验证，不部署本地模型、不部署 NAS、不建设模型网关、不做容器正式部署、不接真实数据、不发送真实通知、不自动交易。
 
 ## 脚本位置
 
@@ -21,7 +21,7 @@ scripts\windows_local_verify.bat
 1. 请安装 Python 3.11.x。
 2. 如果使用 python.org 安装包，请勾选 `Add python.exe to PATH`。
 3. 请在包含 `main.py` 和 `requirements.txt` 的项目根目录运行脚本。
-4. 不需要填写真实 API Key、Token、Webhook 或股票列表。
+4. 不需要填写真实密钥、访问令牌、回调地址或股票列表。
 
 ## 脚本会做什么
 
@@ -41,10 +41,12 @@ scripts\windows_local_verify.bat
 
 ## 脚本不会做什么
 
+说明：`main.py` 启动阶段可能会将本地 `.env` 加载到当前 Python 进程环境，但 local-smoke 不会输出密钥、不调用真实 provider、不调用模型、不发送通知、不写正式数据。
+
 脚本不会：
 
-- 读取或打印 `.env` 内容。
-- 要求输入真实 API Key、Token 或 Webhook。
+- 打印、修改、上传或要求填写 `.env` 内容。
+- 要求输入真实密钥、访问令牌或回调地址。
 - 创建真实 `STOCK_LIST`。
 - 调用真实 provider。
 - 调用模型。
@@ -52,9 +54,9 @@ scripts\windows_local_verify.bat
 - 写正式日报。
 - 删除文件。
 - 修改 Git 配置。
-- 执行 `git commit` 或 `git push`。
+- 提交或推送 Git 变更。
 - 修改 `requirements.txt`。
-- 自动安装 Python、模型、CUDA 或 Docker。
+- 自动安装 Python、本地模型文件、GPU 运行环境或容器工具。
 
 ## 依赖安装说明
 

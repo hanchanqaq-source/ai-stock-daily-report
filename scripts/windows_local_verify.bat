@@ -11,9 +11,9 @@ echo ========================================
 echo 股票基金质量分析系统 - Windows 本地验证
 echo ========================================
 echo 本脚本只做本地安全检查。
-echo 不会读取或打印 .env 内容。
-echo 不会要求输入真实 API Key、Token 或 Webhook。
-echo 不会调用真实 provider、模型或通知。
+echo 脚本不会打印、修改、上传或要求填写 .env 内容。
+echo main.py 启动阶段可能会将本地 .env 加载到当前进程环境。
+echo local-smoke 不会输出密钥、不调用真实 provider、模型或通知。
 echo 不会生成正式日报、删除文件、修改 Git 配置、提交或推送。
 echo.
 
@@ -28,10 +28,10 @@ if errorlevel 1 goto summary
 call :check_venv_python
 if errorlevel 1 goto summary
 call :prompt_requirements
-call :run_step "main.py --help" "%VENV_PYTHON%" main.py --help
-call :run_step "local-smoke" "%VENV_PYTHON%" main.py --local-smoke
-call :run_step "pytest windows local smoke" "%VENV_PYTHON%" -m pytest tests/test_windows_local_smoke.py -q
-call :run_step "py_compile" "%VENV_PYTHON%" -m py_compile main.py src/notification.py tests/test_windows_local_smoke.py
+call :run_help
+call :run_local_smoke
+call :run_pytest
+call :run_py_compile
 
 goto summary
 
@@ -173,19 +173,59 @@ set "DEPENDENCIES_STATUS=已安装/更新"
 echo.
 exit /b 0
 
-:run_step
-set "STEP_NAME=%~1"
-echo [检查] %STEP_NAME%
-shift
-%*
+:run_help
+echo [检查] main.py --help
+"%VENV_PYTHON%" main.py --help
 if errorlevel 1 (
-    echo [失败] %STEP_NAME%
+    echo [失败] main.py --help
     echo [提示] 请查看上方原始命令输出；如提示缺少模块，请先安装 requirements.txt
     set /a FAIL_COUNT+=1
     echo.
     exit /b 1
 )
-echo [通过] %STEP_NAME%
+echo [通过] main.py --help
+echo.
+exit /b 0
+
+:run_local_smoke
+echo [检查] local-smoke
+"%VENV_PYTHON%" main.py --local-smoke
+if errorlevel 1 (
+    echo [失败] local-smoke
+    echo [提示] 请查看上方原始命令输出；如提示缺少模块，请先安装 requirements.txt
+    set /a FAIL_COUNT+=1
+    echo.
+    exit /b 1
+)
+echo [通过] local-smoke
+echo.
+exit /b 0
+
+:run_pytest
+echo [检查] pytest windows local smoke
+"%VENV_PYTHON%" -m pytest tests/test_windows_local_smoke.py -q
+if errorlevel 1 (
+    echo [失败] pytest windows local smoke
+    echo [提示] 请查看上方原始命令输出；如提示缺少模块，请先安装 requirements.txt
+    set /a FAIL_COUNT+=1
+    echo.
+    exit /b 1
+)
+echo [通过] pytest windows local smoke
+echo.
+exit /b 0
+
+:run_py_compile
+echo [检查] py_compile
+"%VENV_PYTHON%" -m py_compile main.py src/notification.py tests/test_windows_local_smoke.py
+if errorlevel 1 (
+    echo [失败] py_compile
+    echo [提示] 请查看上方原始命令输出；如提示缺少模块，请先安装 requirements.txt
+    set /a FAIL_COUNT+=1
+    echo.
+    exit /b 1
+)
+echo [通过] py_compile
 echo.
 exit /b 0
 
