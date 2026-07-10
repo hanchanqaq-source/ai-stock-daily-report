@@ -107,6 +107,29 @@ def test_demo_payload_contains_personal_observation_labels_and_fund_note():
     assert any("仅作为个人观察和记录，需用户自行判断。" in warning for warning in payload["warnings"])
 
 
+def test_web_static_disclaimer_copy_is_exact_and_page_safe():
+    exact = "仅作为个人观察和记录，需用户自行判断。"
+    display_files = [
+        "web/static/app.js",
+        "web/static/index.html",
+        "web/static/demo_final_page_payload.json",
+    ]
+    combined = "\n".join(_read(path) for path in display_files)
+    assert exact in combined
+    assert 'payload.disclaimer || "仅作为个人观察和记录，需用户自行判断。"' in _read("web/static/app.js")
+    forbidden_display_terms = [
+        "本页面仅作为个人观察和记录",
+        "不自动下单",
+        "强制交易",
+        "交易操作",
+        "操作指令",
+        "交易指令",
+        "下单",
+    ]
+    for term in forbidden_display_terms:
+        assert term not in combined
+
+
 def test_docs_explain_final_payload_rendering_and_safety_boundary():
     doc = _read("docs/web_final_payload_rendering.md")
     for text in [
