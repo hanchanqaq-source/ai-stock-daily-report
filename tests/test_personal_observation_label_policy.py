@@ -21,7 +21,7 @@ def test_policy_can_be_built_and_validated():
 import pytest
 
 
-@pytest.mark.parametrize("label", ["买入观察", "分批买入", "加仓观察", "减仓观察", "止盈观察", "止损观察", "清仓观察", "低吸区", "目标区", "风险位", "继续持有", "暂不操作"])
+@pytest.mark.parametrize("label", ["买入观察", "分批买入", "加仓观察", "减仓观察", "卖出观察", "止盈观察", "止损观察", "清仓观察", "持有观察", "关注观察", "风险观察", "低吸区", "目标区", "风险位", "继续持有", "暂不操作"])
 def test_allowed_personal_observation_labels(label):
     result = classify_observation_label_text(label)
     assert result["classification"] == "allowed_personal_observation_label"
@@ -33,7 +33,7 @@ def test_allowed_personal_observation_labels(label):
     assert is_allowed_personal_observation_label(label)
 
 
-@pytest.mark.parametrize("text", ["必须买入", "必须卖出", "立即满仓", "稳赚", "保证收益", "无风险", "自动下单", "系统替你下单"])
+@pytest.mark.parametrize("text", ["必须买入", "必须卖出", "立刻买入", "立即满仓", "稳赚", "保证收益", "必涨", "无风险", "自动下单", "替我买入", "系统替你下单"])
 def test_forbidden_expressions_are_blocked_with_high_or_blocker_severity(text):
     result = classify_observation_label_text(text)
     assert result["allowed"] is False
