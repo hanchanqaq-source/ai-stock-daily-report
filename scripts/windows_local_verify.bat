@@ -3,19 +3,21 @@ chcp 65001 >nul
 setlocal EnableExtensions EnableDelayedExpansion
 
 set "FAIL_COUNT=0"
-set "DEPENDENCIES_STATUS=未安装或未更新 - 用户跳过或安装失败时验证可能受影响"
+set "DEPENDENCIES_STATUS=Not installed or not updated - validation may be affected if skipped or failed"
 set "PYTHON_CMD="
+set "PYTHON_VERSION="
+set "INSTALL_REQ="
 set "VENV_PYTHON=.venv\Scripts\python.exe"
 
 cls
 echo ========================================
-echo 股票基金质量分析系统 - Windows 本地验证
+echo Daily Stock Analysis - Windows Local Verify
 echo ========================================
-echo 本脚本只做本地安全检查。
-echo 脚本不会打印、修改、上传或要求填写 .env 内容。
-echo main.py 启动阶段可能会将本地 .env 加载到当前进程环境。
-echo local-smoke 不会输出密钥、不调用真实 provider、模型或通知。
-echo 不会生成正式日报、删除文件、修改 Git 配置、提交或推送。
+echo This script only runs local safe checks.
+echo It will not print, edit, upload, or ask you to fill .env content.
+echo main.py startup may load local .env into the current Python process environment.
+echo local-smoke will not print secrets, call real providers, call models, or send notifications.
+echo It will not generate official daily reports, delete files, change Git config, commit, or push.
 echo.
 
 call :check_root
@@ -37,213 +39,213 @@ call :run_py_compile
 goto summary
 
 :check_root
-echo [检查] 项目根目录
+echo [CHECK] Repository root
 if not exist "main.py" goto root_fail
 if not exist "requirements.txt" goto root_fail
 if not exist "tests\test_windows_local_smoke.py" goto root_fail
 if not exist "src\notification.py" goto root_fail
-echo [通过] 已位于项目根目录
+echo [OK] Repository root found
 echo.
 exit /b 0
 
 :root_fail
-echo [失败] 当前目录不是项目根目录，或缺少必要文件
-echo [提示] 请在包含 main.py、requirements.txt、tests\test_windows_local_smoke.py 的项目根目录中运行本脚本
+echo [FAIL] Repository root not found or required files are missing
+echo [TIP] Run this script from the repository root that contains main.py, requirements.txt, and tests\test_windows_local_smoke.py
 echo.
 set /a FAIL_COUNT+=1
 exit /b 1
 
 :select_python
-echo [检查] Python 解释器
+echo [CHECK] Python interpreter
 py -3.11 --version >nul 2>&1
 if not errorlevel 1 (
     set "PYTHON_CMD=py -3.11"
-    echo [通过] 已找到 py -3.11
+    echo [OK] py -3.11 found
     py -3.11 --version
     echo.
     exit /b 0
 )
 
-echo [提示] py -3.11 不可用，继续检查 python
+echo [TIP] py -3.11 is not available; checking python
 python --version >nul 2>&1
 if not errorlevel 1 (
     set "PYTHON_CMD=python"
-    echo [通过] 已找到 python
+    echo [OK] python found
     python --version
     echo.
     exit /b 0
 )
 
-echo [失败] 未找到 Python
-echo [提示] 请安装 Python 3.11.x，并确保安装时勾选 Add python.exe to PATH
-echo [提示] 本脚本不会自动安装 Python
+echo [FAIL] Python 3.11 not found
+echo [TIP] Please install Python 3.11.x and enable Add python.exe to PATH during installation
+echo [TIP] This script will not install Python automatically
 echo.
 set /a FAIL_COUNT+=1
 exit /b 1
 
 :check_python_version
-echo [检查] Python 版本是否为 3.11.x
+echo [CHECK] Python 3.11.x
 for /f "usebackq delims=" %%V in (`%PYTHON_CMD% -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')" 2^>nul`) do set "PYTHON_VERSION=%%V"
 if not defined PYTHON_VERSION (
-    echo [失败] 无法读取 Python 版本
-    echo [提示] 请确认 Python 可正常运行
+    echo [FAIL] Could not read Python version
+    echo [TIP] Make sure Python can run normally
     echo.
     set /a FAIL_COUNT+=1
     exit /b 1
 )
-echo [提示] 当前 Python 版本: %PYTHON_VERSION%
+echo [TIP] Current Python version: %PYTHON_VERSION%
 echo %PYTHON_VERSION% | findstr /r "^3\.11\." >nul
 if errorlevel 1 (
-    echo [失败] 当前 Python 版本不是 3.11.x
-    echo [提示] 请切换到 Python 3.11.x 后重试
+    echo [FAIL] Current Python version is not 3.11.x
+    echo [TIP] Switch to Python 3.11.x and retry
     echo.
     set /a FAIL_COUNT+=1
     exit /b 1
 )
-echo [通过] Python 3.11.x
+echo [OK] Python 3.11.x
 echo.
 exit /b 0
 
 :ensure_venv
-echo [检查] 本地虚拟环境 .venv
+echo [CHECK] Local virtual environment .venv
 if exist "%VENV_PYTHON%" (
-    echo [通过] 已发现 .venv
+    echo [OK] .venv found
     echo.
     exit /b 0
 )
 
-echo [提示] 未发现 .venv，正在创建
+echo [TIP] .venv not found; creating it now
 %PYTHON_CMD% -m venv .venv
 if errorlevel 1 (
-    echo [失败] 创建 .venv 失败
-    echo [提示] 请确认 Python venv 模块可用，并保留上方原始输出
+    echo [FAIL] Failed to create .venv
+    echo [TIP] Make sure the Python venv module is available and keep the raw output above
     echo.
     set /a FAIL_COUNT+=1
     exit /b 1
 )
-echo [通过] 已创建 .venv
+echo [OK] .venv created
 echo.
 exit /b 0
 
 :check_venv_python
-echo [检查] .venv\Scripts\python.exe
+echo [CHECK] .venv\Scripts\python.exe
 if not exist "%VENV_PYTHON%" (
-    echo [失败] 未找到 %VENV_PYTHON%
-    echo [提示] 虚拟环境可能创建失败，请保留本窗口截图发给复核员
+    echo [FAIL] %VENV_PYTHON% not found
+    echo [TIP] The virtual environment may have failed to create; keep a screenshot of this window for review
     echo.
     set /a FAIL_COUNT+=1
     exit /b 1
 )
 "%VENV_PYTHON%" --version
 if errorlevel 1 (
-    echo [失败] .venv 中的 Python 无法运行
-    echo [提示] 请保留上方原始输出
+    echo [FAIL] Python inside .venv cannot run
+    echo [TIP] Keep the raw output above
     echo.
     set /a FAIL_COUNT+=1
     exit /b 1
 )
-echo [通过] .venv Python 可用
+echo [OK] .venv Python is available
 echo.
 exit /b 0
 
 :prompt_requirements
-echo [检查] requirements.txt 安装/更新
-echo 是否安装或更新 requirements.txt? 输入 Y 执行, 其他输入跳过
-set /p INSTALL_REQ="请输入选择 [Y/N]: "
+echo [CHECK] requirements.txt install or update
+echo Install or update requirements.txt? Type Y to run it; any other input skips it.
+set /p INSTALL_REQ="Enter choice [Y/N]: "
 if /i not "%INSTALL_REQ%"=="Y" (
-    echo [提示] 已跳过 requirements.txt 安装/更新
-    echo [提示] 后续验证仍会继续，但最终结果会标记依赖可能未安装
-    set "DEPENDENCIES_STATUS=可能未安装或未更新 - 用户选择跳过"
+    echo [TIP] Skipped requirements.txt install or update
+    echo [TIP] Later checks will continue, but the final result will note that dependencies may be missing
+    set "DEPENDENCIES_STATUS=May be missing or outdated - user skipped install or update"
     echo.
     exit /b 0
 )
 
-echo [检查] 安装/更新 requirements.txt
+echo [CHECK] pip install -r requirements.txt
 "%VENV_PYTHON%" -m pip install -r requirements.txt
 if errorlevel 1 (
-    echo [失败] requirements.txt 安装/更新失败
-    echo [提示] 网络问题不等于程序代码错误，可能是代理、GitHub 访问或 PyPI 镜像问题
-    echo [提示] 可以稍后重试；不要因此修改项目代码；不要关闭安全检查
-    set "DEPENDENCIES_STATUS=安装或更新失败 - 可能是网络或代理问题"
+    echo [FAIL] requirements.txt install or update failed
+    echo [TIP] Network issues do not necessarily mean a code problem; check proxy, GitHub access, or PyPI mirror settings
+    echo [TIP] Retry later if needed; do not change project code or disable safety checks for this
+    set "DEPENDENCIES_STATUS=Install or update failed - possible network or proxy issue"
     set /a FAIL_COUNT+=1
     echo.
     exit /b 1
 )
-echo [通过] requirements.txt 已安装/更新
-set "DEPENDENCIES_STATUS=已安装/更新"
+echo [OK] requirements.txt installed or updated
+set "DEPENDENCIES_STATUS=Installed or updated"
 echo.
 exit /b 0
 
 :run_help
-echo [检查] main.py --help
+echo [CHECK] main.py --help
 "%VENV_PYTHON%" main.py --help
 if errorlevel 1 (
-    echo [失败] main.py --help
-    echo [提示] 请查看上方原始命令输出；如提示缺少模块，请先安装 requirements.txt
+    echo [FAIL] main.py --help
+    echo [TIP] Check the raw output above; if modules are missing, install requirements.txt first
     set /a FAIL_COUNT+=1
     echo.
     exit /b 1
 )
-echo [通过] main.py --help
+echo [OK] main.py --help
 echo.
 exit /b 0
 
 :run_local_smoke
-echo [检查] local-smoke
+echo [CHECK] local-smoke
 "%VENV_PYTHON%" main.py --local-smoke
 if errorlevel 1 (
-    echo [失败] local-smoke
-    echo [提示] 请查看上方原始命令输出；如提示缺少模块，请先安装 requirements.txt
+    echo [FAIL] local-smoke
+    echo [TIP] Check the raw output above; if modules are missing, install requirements.txt first
     set /a FAIL_COUNT+=1
     echo.
     exit /b 1
 )
-echo [通过] local-smoke
+echo [OK] local-smoke
 echo.
 exit /b 0
 
 :run_pytest
-echo [检查] pytest windows local smoke
+echo [CHECK] pytest windows local smoke
 "%VENV_PYTHON%" -m pytest tests/test_windows_local_smoke.py -q
 if errorlevel 1 (
-    echo [失败] pytest windows local smoke
-    echo [提示] 请查看上方原始命令输出；如提示缺少模块，请先安装 requirements.txt
+    echo [FAIL] pytest windows local smoke
+    echo [TIP] Check the raw output above; if modules are missing, install requirements.txt first
     set /a FAIL_COUNT+=1
     echo.
     exit /b 1
 )
-echo [通过] pytest windows local smoke
+echo [OK] pytest windows local smoke
 echo.
 exit /b 0
 
 :run_py_compile
-echo [检查] py_compile
+echo [CHECK] py_compile
 "%VENV_PYTHON%" -m py_compile main.py src/notification.py tests/test_windows_local_smoke.py
 if errorlevel 1 (
-    echo [失败] py_compile
-    echo [提示] 请查看上方原始命令输出；如提示缺少模块，请先安装 requirements.txt
+    echo [FAIL] py_compile
+    echo [TIP] Check the raw output above; if modules are missing, install requirements.txt first
     set /a FAIL_COUNT+=1
     echo.
     exit /b 1
 )
-echo [通过] py_compile
+echo [OK] py_compile
 echo.
 exit /b 0
 
 :summary
 echo ========================================
-echo [总体结果]
-echo 依赖状态: %DEPENDENCIES_STATUS%
+echo [SUMMARY]
+echo Dependencies: %DEPENDENCIES_STATUS%
 if "%FAIL_COUNT%"=="0" (
-    echo 结果: 通过
-    echo 所有 Windows 本地验证步骤已完成。
+    echo Result: PASS
+    echo All Windows local verification steps completed.
 ) else (
-    echo 结果: 未通过
-    echo 失败步骤数量: %FAIL_COUNT%
-    echo 请先查看上方 [失败] 和 [提示] 内容。
-    echo 如果是网络或依赖安装问题，不等于程序代码错误。
+    echo Result: FAIL
+    echo Failed steps: %FAIL_COUNT%
+    echo Review the [FAIL] and [TIP] messages above first.
+    echo Network or dependency install issues do not necessarily mean a code problem.
 )
-echo 请截图本窗口，发送给复核员。
+echo Take a screenshot of this window and send it to the reviewer.
 echo ========================================
 pause
 exit /b %FAIL_COUNT%
