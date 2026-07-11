@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [修复] 将前端 mock API adapter 测试移出 Web App src 构建范围，并修正 catalog 生成的模块名类型推断，避免 web-gate build 扫入测试依赖。
+- [文档] 新增前端 mock API adapter 设计与 non-runtime scaffold，统一 L2E fixture 读取映射并补充静态网络阻断测试；本轮不接入真实 Web App、不新增启动脚本、不请求真实网络。
 - [新功能] 新增前端 mock fixture 数据目录、redacted JSON 样例、目录 README 和 fixture catalog，为后续 mock API adapter 做准备；本轮不接入 Web 运行代码、不新增启动脚本、不请求真实网络。
 - [文档] 新增前端 mock-only 数据层设计，梳理 dsa-web API 模块、页面/store 调用关系、fixture 分类、网络阻断要求与敏感信息边界；本轮不新增 Web 启动脚本、不改前端运行代码。
 - [文档] 新增 Windows 本地 Web 安全预览设计，确认当前 Vite/React 前端仍依赖真实 API 路径与后端联调，暂不新增 Web 启动脚本。
