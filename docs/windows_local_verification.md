@@ -26,7 +26,9 @@ scripts\windows_local_verify.bat
 
 ## 中文乱码或命令解析异常
 
-如果双击或在 `cmd` 中运行脚本时出现中文乱码，或看到“不是内部或外部命令，也不是可运行的程序或批处理文件”，通常是 Windows 终端编码与 UTF-8 `.bat` 文件不兼容导致的，不是用户操作错误。请使用修复后的 `scripts\windows_local_verify.bat`；脚本开头已切换到 UTF-8 代码页。
+如果双击或在 `cmd` 中运行脚本时出现中文乱码，或看到“不是内部或外部命令，也不是可运行的程序或批处理文件”，通常是 Windows 终端编码与 `.bat` 文件解析兼容性导致的，不是用户操作错误。
+
+Windows `cmd` 对包含中文文案的 `.bat` 脚本编码兼容性较差，因此 `scripts\windows_local_verify.bat` 脚本本体已改为纯 ASCII 英文提示；中文说明以本文档为准。脚本开头仍会切换到 UTF-8 代码页。
 
 ## 脚本会做什么
 
