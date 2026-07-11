@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [文档] 新增前端 mock-only 安全开关与网络阻断测试设计、non-runtime safety scaffold 和测试，证明 mock-only 默认关闭、真实网络目标会被阻断且本轮不接入真实 Web App。
 - [修复] 将前端 mock API adapter 测试移出 Web App src 构建范围，并修正 catalog 生成的模块名类型推断，避免 web-gate build 扫入测试依赖。
 - [文档] 新增前端 mock API adapter 设计与 non-runtime scaffold，统一 L2E fixture 读取映射并补充静态网络阻断测试；本轮不接入真实 Web App、不新增启动脚本、不请求真实网络。
 - [新功能] 新增前端 mock fixture 数据目录、redacted JSON 样例、目录 README 和 fixture catalog，为后续 mock API adapter 做准备；本轮不接入 Web 运行代码、不新增启动脚本、不请求真实网络。
