@@ -59,12 +59,12 @@ if errorlevel 1 (
 )
 for /f "delims=" %%V in ('node --version') do echo PASS Node version: %%V
 
-npm --version >nul 2>nul
+call npm --version >nul 2>nul
 if errorlevel 1 (
   set "FAIL_REASON=npm is not available. Install npm manually, then rerun."
   goto :fatal_exit
 )
-for /f "delims=" %%V in ('npm --version') do echo PASS npm version: %%V
+for /f "delims=" %%V in ('call npm --version') do echo PASS npm version: %%V
 
 if not exist "apps\dsa-web\node_modules" (
   set "FAIL_REASON=apps\dsa-web\node_modules is missing. Install dependencies manually before dry-run."
@@ -80,28 +80,28 @@ if errorlevel 1 (
 set "DRY_RUN_PUSHED_WEB=1"
 
 echo Running mock-only preview-entry test...
-npm run test -- tests/mocks/preview-entry/mockOnlyPreviewEntry.test.ts
+call npm run test -- tests/mocks/preview-entry/mockOnlyPreviewEntry.test.ts
 if errorlevel 1 (
   set "FAIL_REASON=mockOnlyPreviewEntry.test.ts failed."
   goto :fatal_exit
 )
 
 echo Running mock-only network-boundary test...
-npm run test -- tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts
+call npm run test -- tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts
 if errorlevel 1 (
   set "FAIL_REASON=mockOnlyPreviewNetworkBoundary.test.ts failed."
   goto :fatal_exit
 )
 
 echo Running mock-only preview model test...
-npm run test -- tests/mocks/preview/mockOnlyPreview.test.ts
+call npm run test -- tests/mocks/preview/mockOnlyPreview.test.ts
 if errorlevel 1 (
   set "FAIL_REASON=mockOnlyPreview.test.ts failed."
   goto :fatal_exit
 )
 
 echo Running web build dry-run check...
-npm run build
+call npm run build
 if errorlevel 1 (
   set "FAIL_REASON=web build dry-run check failed."
   goto :fatal_exit
