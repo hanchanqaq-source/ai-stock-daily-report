@@ -114,7 +114,7 @@ def test_start_script_fail_fast_checks_local_vite_js_entry() -> None:
     local_vite_index = lower_text.index('set "local_vite=apps\\dsa-web\\node_modules\\vite\\bin\\vite.js"')
     check_vite_index = lower_text.index('call :check_file "%local_vite%" "local vite js entry"')
     dry_run_index = lower_text.index('call "%dry_run_script%"')
-    vite_start_index = lower_text.index('call node node_modules\\vite\\bin\\vite.js ^')
+    vite_start_index = lower_text.index('call "%node_exe%" node_modules\\vite\\bin\\vite.js ^')
 
     assert local_vite_index < check_vite_index < dry_run_index < vite_start_index
 
