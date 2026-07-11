@@ -13,6 +13,7 @@
 - 禁止为了修复依赖问题执行 `npm audit fix`。
 - 禁止为了修复脚本问题执行 `npm approve-scripts`。
 - 禁止为了修复 npm 版本问题执行 `npm install -g npm`。
+- 快速禁令：禁止 npm audit fix；禁止 npm approve-scripts；禁止 npm install -g npm。
 
 ## 1. Node is not available
 
