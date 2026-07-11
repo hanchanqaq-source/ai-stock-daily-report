@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 mock-only preview 独立 Web entry 设计、独立 HTML 入口、TypeScript entry 和静态边界测试；本轮不接入真实 Web App、不修改 main.tsx / App.tsx / 路由 / apiClient、不新增启动脚本、不启动 Web / 后端、不请求真实网络。
 - [文档] 新增 Windows localhost-only Web safe preview 脚本设计，明确未来脚本必须 mock-only、仅绑定 127.0.0.1、先跑安全测试再启动，且本轮不新增真实启动脚本、不启动 Web / 后端、不读取真实 .env。
 - [测试] 新增前端 mock-only preview 网络穿透测试与网络边界文档，静态扫描 preview/service/adapter/safety 的网络 API、真实 URL、运行时导入，并验证创建 preview model 不触发全局网络函数；本轮不接入真实 Web App、不修改真实入口、不新增启动脚本。
 - [新功能] 新增前端 mock-only preview entry 设计、non-runtime preview scaffold 和单元测试，演示后续 preview 如何消费 L2I mockService；本轮不接入真实 Web App、不修改 main.tsx / App.tsx / 路由 / apiClient、不新增启动脚本、不请求真实网络。
