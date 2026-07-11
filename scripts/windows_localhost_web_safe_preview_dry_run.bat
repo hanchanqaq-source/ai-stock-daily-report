@@ -103,7 +103,7 @@ if errorlevel 1 (
 echo Running web build dry-run check...
 npm run build
 if errorlevel 1 (
-  set "FAIL_REASON=npm run build failed."
+  set "FAIL_REASON=web build dry-run check failed."
   goto :fatal_exit
 )
 

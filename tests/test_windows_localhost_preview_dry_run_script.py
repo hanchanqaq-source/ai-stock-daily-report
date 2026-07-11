@@ -137,14 +137,33 @@ def test_success_banner_exists_only_after_build_success_gate() -> None:
 
     passed_index = text.index("dry run passed")
     build_index = text.index("npm run build")
-    build_failure_gate_index = text.index("fail_reason=npm run build failed", build_index)
+    build_failure_gate_index = text.index("fail_reason=web build dry-run check failed", build_index)
     fatal_after_build_index = text.index("goto :fatal_exit", build_failure_gate_index)
 
     assert build_index < build_failure_gate_index < fatal_after_build_index < passed_index
 
 
+def _command_block_after_exact_line(
+    text: str, command: str, stop_commands: list[str]
+) -> str:
+    lines = text.lower().splitlines()
+    start = next(
+        index for index, line in enumerate(lines)
+        if line.strip() == command
+    )
+
+    end = len(lines)
+    for index in range(start + 1, len(lines)):
+        stripped = lines[index].strip()
+        if stripped in stop_commands or stripped == "echo dry run passed":
+            end = index
+            break
+
+    return "\n".join(lines[start:end])
+
+
 def test_npm_test_and_build_commands_fail_fast_to_fatal_exit() -> None:
-    text = script_text().lower()
+    text = script_text()
 
     commands = [
         "npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts",
@@ -154,11 +173,7 @@ def test_npm_test_and_build_commands_fail_fast_to_fatal_exit() -> None:
     ]
 
     for command in commands:
-        command_index = text.index(command)
-        next_command_indexes = [text.find(other, command_index + len(command)) for other in commands]
-        next_command_indexes = [index for index in next_command_indexes if index != -1]
-        block_end = min(next_command_indexes) if next_command_indexes else text.index("dry run passed")
-        command_block = text[command_index:block_end]
+        command_block = _command_block_after_exact_line(text, command, commands)
         assert "if errorlevel 1" in command_block
         assert "goto :fatal_exit" in command_block
 
