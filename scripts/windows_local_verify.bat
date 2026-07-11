@@ -172,7 +172,21 @@ if errorlevel 1 (
     exit /b 1
 )
 echo [OK] requirements.txt installed or updated
-set "DEPENDENCIES_STATUS=Installed or updated"
+echo.
+
+echo [CHECK] pytest install or update
+"%VENV_PYTHON%" -m pip install pytest
+if errorlevel 1 (
+    echo [FAIL] pytest install or update failed
+    echo [TIP] Network issues do not necessarily mean a code problem; check proxy, GitHub access, or PyPI mirror settings
+    echo [TIP] Retry later if needed; pytest is required for the windows local smoke test
+    set "DEPENDENCIES_STATUS=pytest install or update failed - possible network or proxy issue"
+    set /a FAIL_COUNT+=1
+    echo.
+    exit /b 1
+)
+echo [OK] pytest installed or updated
+set "DEPENDENCIES_STATUS=Installed or updated, including pytest"
 echo.
 exit /b 0
 
