@@ -1,0 +1,56 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "tasks": [
+    {
+      "id": "task-accepted-mock",
+      "status": "accepted",
+      "stockCode": "MOCK-A"
+    },
+    {
+      "id": "task-running-mock",
+      "status": "running",
+      "progress": "MOCK_PERCENT"
+    },
+    {
+      "id": "task-completed-mock",
+      "status": "completed",
+      "reportId": "report-mock-001"
+    },
+    {
+      "id": "task-failed-mock",
+      "status": "failed",
+      "error": "mock analysis failure"
+    },
+    {
+      "id": "task-duplicate-mock",
+      "status": "duplicate",
+      "existingTaskId": "task-running-mock"
+    }
+  ],
+  "marketReview": {
+    "id": "market-review-mock",
+    "status": "completed",
+    "summary": "mock market review summary"
+  },
+  "runFlow": {
+    "steps": [
+      "accepted",
+      "queued",
+      "running",
+      "completed"
+    ],
+    "source": "mock"
+  }
+}

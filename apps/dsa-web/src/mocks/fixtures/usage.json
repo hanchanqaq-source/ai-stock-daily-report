@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "dashboard": {
+    "period": "demo",
+    "totalTokens": "MOCK_TOKENS",
+    "estimatedCost": "DEMO_AMOUNT"
+  },
+  "byModel": [
+    {
+      "model": "REDACTED_MODEL_BINDING",
+      "tokens": "MOCK_TOKENS"
+    }
+  ],
+  "byCallType": [
+    {
+      "type": "mock_analysis",
+      "tokens": "MOCK_TOKENS"
+    }
+  ],
+  "recentCalls": [
+    {
+      "id": "usage-mock",
+      "tokens": "MOCK_TOKENS",
+      "status": "mock_success"
+    }
+  ],
+  "empty": {
+    "totalTokens": "0 MOCK",
+    "recentCalls": []
+  }
+}

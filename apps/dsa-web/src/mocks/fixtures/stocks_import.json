@@ -1,0 +1,45 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "textImport": {
+    "input": "MOCK_TEXT_ONLY",
+    "parsed": [
+      {
+        "symbol": "MOCK-A",
+        "confidence": "MOCK_PERCENT"
+      }
+    ]
+  },
+  "imageExtract": {
+    "image": "NO_EXTERNAL_IMAGE_FIXTURE",
+    "items": [
+      {
+        "symbol": "MOCK-B",
+        "confidence": "MOCK_PERCENT"
+      }
+    ]
+  },
+  "lowConfidence": {
+    "items": [
+      {
+        "symbol": "MOCK-UNKNOWN",
+        "confidence": "LOW_MOCK_PERCENT"
+      }
+    ]
+  },
+  "error": {
+    "code": "MOCK_PARSE_ERROR",
+    "message": "mock import parse error"
+  }
+}

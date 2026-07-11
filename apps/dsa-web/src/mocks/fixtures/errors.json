@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "networkError": {
+    "code": "MOCK_NETWORK_BLOCKED",
+    "message": "mock network blocked"
+  },
+  "validationError": {
+    "status": 400,
+    "code": "MOCK_VALIDATION_ERROR"
+  },
+  "unauthorized": {
+    "status": 401,
+    "code": "MOCK_UNAUTHORIZED"
+  },
+  "forbidden": {
+    "status": 403,
+    "code": "MOCK_FORBIDDEN"
+  },
+  "conflict": {
+    "status": 409,
+    "code": "MOCK_CONFLICT"
+  },
+  "rateLimited": {
+    "status": 429,
+    "code": "MOCK_RATE_LIMITED"
+  },
+  "serverError": {
+    "status": 500,
+    "code": "MOCK_SERVER_ERROR"
+  }
+}

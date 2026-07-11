@@ -1,0 +1,58 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "accounts": [
+    {
+      "id": "account-redacted",
+      "name": "Demo Account",
+      "accountNumber": "REDACTED_ACCOUNT",
+      "totalValue": "DEMO_AMOUNT",
+      "cash": "0.00 MOCK"
+    }
+  ],
+  "holdings": [
+    {
+      "symbol": "MOCK-A",
+      "quantity": "DEMO_QUANTITY",
+      "marketValue": "DEMO_AMOUNT",
+      "returnRate": "MOCK_PERCENT"
+    }
+  ],
+  "risk": {
+    "level": "mock_low",
+    "notes": [
+      "redacted risk fixture"
+    ]
+  },
+  "cashFlows": [
+    {
+      "id": "cash-mock-001",
+      "amount": "DEMO_AMOUNT",
+      "type": "mock_deposit"
+    }
+  ],
+  "trades": [
+    {
+      "id": "trade-mock-001",
+      "symbol": "MOCK-A",
+      "side": "mock_buy",
+      "amount": "DEMO_AMOUNT",
+      "price": "REDACTED_PRICE"
+    }
+  ],
+  "empty": {
+    "accounts": [],
+    "holdings": []
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "signals": [
+    {
+      "id": "signal-mock",
+      "symbol": "MOCK-A",
+      "action": "mock_watch",
+      "confidence": "MOCK_PERCENT"
+    }
+  ],
+  "latest": {
+    "id": "signal-latest-mock",
+    "summary": "mock latest signal"
+  },
+  "outcomeStats": {
+    "winRate": "MOCK_PERCENT",
+    "sampleSize": "MOCK_COUNT"
+  },
+  "timeline": [
+    {
+      "id": "timeline-mock",
+      "event": "mock signal created"
+    }
+  ],
+  "feedback": {
+    "id": "feedback-mock",
+    "rating": "mock_helpful",
+    "comment": "redacted demo feedback"
+  }
+}

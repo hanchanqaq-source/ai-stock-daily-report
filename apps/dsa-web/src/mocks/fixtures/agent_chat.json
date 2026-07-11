@@ -1,0 +1,60 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "skills": [
+    {
+      "id": "skill-mock",
+      "name": "Mock research skill"
+    }
+  ],
+  "sessions": [
+    {
+      "id": "session-mock",
+      "title": "Demo chat session"
+    }
+  ],
+  "messages": [
+    {
+      "id": "msg-user-mock",
+      "role": "user",
+      "content": "demo question"
+    },
+    {
+      "id": "msg-assistant-mock",
+      "role": "assistant",
+      "content": "mock redacted answer"
+    }
+  ],
+  "streamChunks": [
+    {
+      "event": "chunk",
+      "content": "mock "
+    },
+    {
+      "event": "chunk",
+      "content": "stream"
+    },
+    {
+      "event": "done"
+    }
+  ],
+  "abort": {
+    "status": "aborted",
+    "reason": "mock user abort"
+  },
+  "error": {
+    "status": "error",
+    "message": "mock chat error"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "runResult": {
+    "id": "backtest-run-mock",
+    "status": "completed"
+  },
+  "results": [
+    {
+      "id": "backtest-result-mock",
+      "strategy": "Demo strategy",
+      "returnRate": "MOCK_PERCENT"
+    }
+  ],
+  "overallPerformance": {
+    "totalReturn": "MOCK_PERCENT",
+    "maxDrawdown": "MOCK_PERCENT",
+    "equity": "DEMO_AMOUNT"
+  },
+  "stockPerformance": [
+    {
+      "symbol": "MOCK-A",
+      "returnRate": "MOCK_PERCENT"
+    }
+  ],
+  "failed": {
+    "status": "failed",
+    "message": "mock backtest failure"
+  },
+  "empty": {
+    "results": []
+  }
+}
