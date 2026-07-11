@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] 新增 Windows 本地 demo 报告离线预览脚本、说明文档和静态 HTML 示例，用于不接真实数据源、不调用 AI、不发送通知、不生成正式日报的安全展示。
 - [新功能] 新增 Windows 本地安全预览启动脚本与说明文档，复用 `main.py --local-smoke` 提供不安装依赖、不运行 pytest、不启动真实服务的一键安全预览入口。
 - [新功能] 新增 Web-P19 清理中心 demo 页面，展示可清理 / 谨慎清理 / 禁止清理分类、清理影响、预览确认和安全边界；当前默认只扫描不删除，不联网，不调用真实清理接口，不清理 data/history、data/user_config、真实账户数据或 Token / API Key / Webhook。
 - [新功能] 新增 Web-P18 全球市场指数模块页面切换，支持 全球总览 / A股 / 港股 / 美股 / 韩股 redacted demo 指数矩阵，并区分官方指数和系统计算指标；当前不联网、不请求真实行情、不保存真实价格、涨跌幅、成交额、账户数据或 secrets。
