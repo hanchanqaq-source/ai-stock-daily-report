@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [文档] 新增前端 mock-only 数据层设计，梳理 dsa-web API 模块、页面/store 调用关系、fixture 分类、网络阻断要求与敏感信息边界；本轮不新增 Web 启动脚本、不改前端运行代码。
 - [文档] 新增 Windows 本地 Web 安全预览设计，确认当前 Vite/React 前端仍依赖真实 API 路径与后端联调，暂不新增 Web 启动脚本。
 - [新功能] 新增 Windows 本地 demo 报告离线预览脚本、说明文档和静态 HTML 示例，用于不接真实数据源、不调用 AI、不发送通知、不生成正式日报的安全展示。
 - [新功能] 新增 Windows 本地安全预览启动脚本与说明文档，复用 `main.py --local-smoke` 提供不安装依赖、不运行 pytest、不启动真实服务的一键安全预览入口。
