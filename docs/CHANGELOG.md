@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [修复] 修复 Windows localhost-only safe preview dry-run 脚本 fail-fast 退出路径，确保任意失败立即停止后续测试与 build、不打印成功提示，并在 CI 下失败不 pause。
 - [新功能] 新增 Windows localhost-only safe preview dry-run 脚本、说明文档和静态测试，用于检查 mock-only preview entry、.env 安全边界、Node/npm、node_modules、mock-only tests 与 Web build；脚本不启动 Web / 后端、不打开浏览器、不读取 .env、不请求真实网络。
 - [新功能] 新增 mock-only preview 独立 Web entry 设计、独立 HTML 入口、TypeScript entry 和静态边界测试；本轮不接入真实 Web App、不修改 main.tsx / App.tsx / 路由 / apiClient、不新增启动脚本、不启动 Web / 后端、不请求真实网络。
 - [文档] 新增 Windows localhost-only Web safe preview 脚本设计，明确未来脚本必须 mock-only、仅绑定 127.0.0.1、先跑安全测试再启动，且本轮不新增真实启动脚本、不启动 Web / 后端、不读取真实 .env。
