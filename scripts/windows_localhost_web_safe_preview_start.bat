@@ -10,7 +10,7 @@ set "START_PUSHED_WEB="
 set "FAIL_REASON=Unexpected start failure."
 set "DRY_RUN_SCRIPT=scripts\windows_localhost_web_safe_preview_dry_run.bat"
 set "PREVIEW_CONFIG=apps\dsa-web\mock-only-preview\vite.config.ts"
-set "LOCAL_VITE=apps\dsa-web\node_modules\.bin\vite.cmd"
+set "LOCAL_VITE=apps\dsa-web\node_modules\vite\bin\vite.js"
 
 echo ============================================================
 echo Windows localhost web safe preview start
@@ -45,7 +45,7 @@ call :pass "Port is fixed to 5174."
 
 call :check_file "%DRY_RUN_SCRIPT%" "L2N dry-run script" || goto :fatal_exit
 call :check_file "%PREVIEW_CONFIG%" "mock-only preview Vite config" || goto :fatal_exit
-call :check_file "%LOCAL_VITE%" "local Vite command" || goto :fatal_exit
+call :check_file "%LOCAL_VITE%" "local Vite JS entry" || goto :fatal_exit
 call :pass "Required local files found."
 
 echo Running L2N dry-run before starting preview...
@@ -71,7 +71,7 @@ echo.
 echo Stop with Ctrl+C.
 echo ============================================================
 
-call npm exec --offline -- vite ^
+call node node_modules\vite\bin\vite.js ^
   --config mock-only-preview\vite.config.ts ^
   --host 127.0.0.1 ^
   --port 5174 ^

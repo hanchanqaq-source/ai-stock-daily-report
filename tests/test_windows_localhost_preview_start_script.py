@@ -46,34 +46,43 @@ def test_start_script_calls_dry_run_before_vite() -> None:
     dry_run_index = lower_text.index('call "%dry_run_script%"')
     dry_run_failure_gate_index = lower_text.index("l2n dry-run failed. web preview was not started.", dry_run_index)
     fatal_after_dry_run_index = lower_text.index("goto :fatal_exit", dry_run_failure_gate_index)
-    vite_start_index = lower_text.index("call npm exec --offline -- vite ^")
+    vite_start_index = lower_text.index("call node node_modules\\vite\\bin\\vite.js ^")
 
     assert dry_run_index < dry_run_failure_gate_index < fatal_after_dry_run_index < vite_start_index
 
 
-def test_start_script_uses_npm_exec_local_vite_without_cmd_shim_startup() -> None:
+def test_start_script_uses_node_vite_js_entry_without_npm_or_cmd_shim_startup() -> None:
     lines = [line.strip().lower() for line in start_script_text().splitlines()]
+    lower_text = start_script_text().lower()
 
-    assert "call npm exec --offline -- vite ^" in lines
-    assert "npm exec --offline -- vite ^" not in lines
-    assert "call npx vite" not in lines
+    assert "call node node_modules\\vite\\bin\\vite.js ^" in lines
 
-    forbidden_invocations = [
-        "call node_modules\\.bin\\vite.cmd",
+    for forbidden in [
+        "npm exec",
+        "npx vite",
         "node_modules\\.bin\\vite.cmd",
-        "call node_modules\\.bin\\vite",
         "node_modules\\.bin\\vite",
-        "call vite.cmd",
         "vite.cmd",
-        "call vite ",
-        "vite ",
-    ]
+    ]:
+        assert forbidden not in lower_text
+
     for line in lines:
-        if any(line.startswith(invocation) for invocation in forbidden_invocations):
+        if line.startswith("call vite ") or line.startswith("vite "):
             raise AssertionError(
-                "Vite must be launched via npm exec in the current CMD, "
-                f"not a cmd shim/direct vite call: {line}"
+                "Vite must be launched via the local Vite JS entry in the current CMD, "
+                f"not a direct vite command: {line}"
             )
+
+
+def test_start_script_fail_fast_checks_local_vite_js_entry() -> None:
+    lower_text = start_script_text().lower()
+
+    local_vite_index = lower_text.index('set "local_vite=apps\\dsa-web\\node_modules\\vite\\bin\\vite.js"')
+    check_vite_index = lower_text.index('call :check_file "%local_vite%" "local vite js entry"')
+    dry_run_index = lower_text.index('call "%dry_run_script%"')
+    vite_start_index = lower_text.index('call node node_modules\\vite\\bin\\vite.js ^')
+
+    assert local_vite_index < check_vite_index < dry_run_index < vite_start_index
 
 
 def test_start_script_uses_dedicated_config_and_loopback_command() -> None:
@@ -95,6 +104,10 @@ def test_start_script_forbidden_commands_are_absent() -> None:
         "npm run dev",
         "npm run preview",
         "npx vite",
+        "npm exec",
+        "node_modules\\.bin\\vite.cmd",
+        "node_modules\\.bin\\vite",
+        "vite.cmd",
         "apps/dsa-web/vite.config.ts",
         "--open",
         "start http",
