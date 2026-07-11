@@ -6,40 +6,97 @@ const PREVIEW_OPTIONS = {
   source: 'local_preview_only',
 } as const
 
+const SAFETY_NOTES = Object.freeze([
+  '仅供模拟',
+  '仅限本地预览',
+  '不读取 .env',
+  '不连接真实 API',
+  '不启动后端',
+  '不发送通知',
+])
+
 export interface MockOnlyPreviewEntryRenderResult {
   readonly safetyBannerCount: number
+  readonly safetyNoteCount: number
   readonly sectionCount: number
 }
 
-const appendTextElement = (parent: HTMLElement, tagName: string, text: string): HTMLElement => {
+const appendTextElement = (parent: HTMLElement, tagName: string, text: string, className?: string): HTMLElement => {
   const element = document.createElement(tagName)
   element.textContent = text
+  if (className) element.className = className
   parent.appendChild(element)
   return element
+}
+
+const appendList = (parent: HTMLElement, tagName: 'ul' | 'ol', items: readonly string[], className: string): HTMLElement => {
+  const list = document.createElement(tagName)
+  list.className = className
+  for (const item of items) {
+    appendTextElement(list, 'li', item)
+  }
+  parent.appendChild(list)
+  return list
 }
 
 export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEntryRenderResult => {
   const model = createMockOnlyPreviewModel(PREVIEW_OPTIONS)
 
   const container = document.createElement('section')
-  appendTextElement(container, 'h2', 'MOCK ONLY PREVIEW ENTRY')
+  container.className = 'mock-preview-shell'
+  container.setAttribute('aria-labelledby', 'mock-only-preview-entry-title')
 
-  const bannerList = document.createElement('ul')
-  for (const banner of model.safetyBanner) {
-    appendTextElement(bannerList, 'li', banner)
-  }
-  container.appendChild(bannerList)
+  const hero = document.createElement('div')
+  hero.className = 'mock-preview-hero'
+  appendTextElement(hero, 'p', 'Windows localhost-only safe preview', 'mock-preview-eyebrow')
+  appendTextElement(hero, 'h2', 'AI股票基金每日信息报告', 'mock-preview-title').id = 'mock-only-preview-entry-title'
+  appendTextElement(hero, 'p', '股票基金质量分析系统 mock-only 本地安全预览', 'mock-preview-subtitle')
+  container.appendChild(hero)
 
+  const safetyPanel = document.createElement('section')
+  safetyPanel.className = 'mock-preview-card mock-preview-safety-card'
+  appendTextElement(safetyPanel, 'h3', '安全边界确认')
+  appendTextElement(safetyPanel, 'p', '此页面只渲染脱敏 fixture 与静态 mock 模型，用于本机安全预览体验检查。')
+  appendList(safetyPanel, 'ul', SAFETY_NOTES, 'mock-preview-badge-list')
+  appendList(safetyPanel, 'ul', model.safetyBanner, 'mock-preview-safety-list')
+  container.appendChild(safetyPanel)
+
+  const metadataPanel = document.createElement('section')
+  metadataPanel.className = 'mock-preview-card'
+  appendTextElement(metadataPanel, 'h3', '预览元数据')
+  appendList(
+    metadataPanel,
+    'ul',
+    [
+      `mode: ${model.metadata.mode}`,
+      `source: ${model.metadata.source}`,
+      `containsRealData: ${String(model.metadata.containsRealData)}`,
+      `containsSecrets: ${String(model.metadata.containsSecrets)}`,
+      `safeForWindowsPreview: ${String(model.metadata.safeForWindowsPreview)}`,
+    ],
+    'mock-preview-metadata-list',
+  )
+  container.appendChild(metadataPanel)
+
+  const sectionsPanel = document.createElement('section')
+  sectionsPanel.className = 'mock-preview-card'
+  appendTextElement(sectionsPanel, 'h3', 'Mock 模块预览范围')
   const sectionList = document.createElement('ol')
+  sectionList.className = 'mock-preview-section-list'
   for (const section of model.sections) {
-    appendTextElement(sectionList, 'li', section.title)
+    const item = document.createElement('li')
+    appendTextElement(item, 'strong', section.title)
+    appendTextElement(item, 'span', section.description)
+    sectionList.appendChild(item)
   }
-  container.appendChild(sectionList)
+  sectionsPanel.appendChild(sectionList)
+  container.appendChild(sectionsPanel)
 
   root.appendChild(container)
 
   return {
     safetyBannerCount: model.safetyBanner.length,
+    safetyNoteCount: SAFETY_NOTES.length,
     sectionCount: model.sections.length,
   }
 }

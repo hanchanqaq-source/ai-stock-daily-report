@@ -31,12 +31,14 @@ describe('mock-only preview independent web entry', () => {
     const source = readSource(indexPath)
 
     for (const label of [
-      'MOCK ONLY',
-      'LOCAL PREVIEW ONLY',
-      'REDACTED FIXTURE DATA',
-      'NO REAL NETWORK',
-      'NO REAL ACCOUNT',
-      'NO OUTBOUND DELIVERY',
+      'AI股票基金每日信息报告',
+      '股票基金质量分析系统 mock-only 本地安全预览',
+      '仅供模拟',
+      '仅限本地预览',
+      '不读取 .env',
+      '不连接真实 API',
+      '不启动后端',
+      '不发送通知',
     ]) {
       expect(source).toContain(label)
     }
@@ -52,14 +54,40 @@ describe('mock-only preview independent web entry', () => {
     for (const forbidden of ['cdn', 'http://', 'https://', '/api/v1', 'VITE_API_URL']) {
       expect(source).not.toContain(forbidden)
     }
+
+    for (const forbiddenPattern of [
+      /\bfetch\b/,
+      /\bXMLHttpRequest\b/,
+      /\bWebSocket\b/,
+      /\blocalStorage\b/,
+      /\bsessionStorage\b/,
+      /\binnerHTML\b/,
+    ]) {
+      expect(source).not.toMatch(forbiddenPattern)
+    }
   })
 
-  it('keeps the TypeScript entry present and limited to the preview model import', () => {
+  it('keeps the TypeScript entry present, readable, and limited to the preview model import', () => {
     expect(existsSync(entryPath)).toBe(true)
     const source = readSource(entryPath)
     const importLines = source.split('\n').filter((line) => line.trim().startsWith('import '))
 
     expect(importLines).toEqual(["import { createMockOnlyPreviewModel } from '../preview/mockOnlyPreviewModel'"])
+    for (const requiredText of [
+      'AI股票基金每日信息报告',
+      '股票基金质量分析系统 mock-only 本地安全预览',
+      '仅供模拟',
+      '仅限本地预览',
+      '不读取 .env',
+      '不连接真实 API',
+      '不启动后端',
+      '不发送通知',
+      'createElement',
+      'textContent',
+      'appendChild',
+    ]) {
+      expect(source).toContain(requiredText)
+    }
     for (const forbiddenImport of ['src/api', '/api/', '/pages', '/stores', '/components', '/contexts', '/utils', 'App', 'main', 'router']) {
       expect(source).not.toContain(forbiddenImport)
     }

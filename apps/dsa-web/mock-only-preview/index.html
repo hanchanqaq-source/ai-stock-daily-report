@@ -1,18 +1,170 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mock-only Local Preview</title>
+    <title>AI股票基金每日信息报告</title>
+    <style>
+      :root {
+        color: #182033;
+        background: #eef4ff;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          radial-gradient(circle at top left, rgba(54, 102, 245, 0.2), transparent 32rem),
+          linear-gradient(135deg, #f7fbff 0%, #eef4ff 52%, #f9fbff 100%);
+      }
+
+      main {
+        box-sizing: border-box;
+        width: min(1080px, 100%);
+        margin: 0 auto;
+        padding: 48px 20px 56px;
+      }
+
+      .page-hero,
+      .mock-preview-card,
+      .mock-preview-hero {
+        border: 1px solid rgba(85, 108, 160, 0.18);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.86);
+        box-shadow: 0 20px 70px rgba(46, 67, 113, 0.12);
+      }
+
+      .page-hero {
+        padding: 32px;
+        margin-bottom: 24px;
+      }
+
+      .page-kicker,
+      .mock-preview-eyebrow {
+        margin: 0 0 12px;
+        color: #3156d4;
+        font-size: 0.82rem;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1,
+      .mock-preview-title {
+        margin: 0;
+        color: #111827;
+        font-size: clamp(2rem, 5vw, 3.6rem);
+        line-height: 1.08;
+      }
+
+      .page-subtitle,
+      .mock-preview-subtitle {
+        margin: 14px 0 0;
+        color: #42526e;
+        font-size: 1.08rem;
+        line-height: 1.7;
+      }
+
+      .page-safety-list,
+      .mock-preview-badge-list,
+      .mock-preview-safety-list,
+      .mock-preview-metadata-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 0;
+        margin: 22px 0 0;
+        list-style: none;
+      }
+
+      .page-safety-list li,
+      .mock-preview-badge-list li,
+      .mock-preview-safety-list li,
+      .mock-preview-metadata-list li {
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: #edf4ff;
+        color: #243b7a;
+        font-size: 0.92rem;
+        font-weight: 700;
+      }
+
+      .mock-preview-shell {
+        display: grid;
+        gap: 18px;
+      }
+
+      .mock-preview-hero,
+      .mock-preview-card {
+        padding: 24px;
+      }
+
+      .mock-preview-card h3 {
+        margin: 0 0 10px;
+        color: #182033;
+        font-size: 1.18rem;
+      }
+
+      .mock-preview-card p {
+        margin: 0;
+        color: #4b5872;
+        line-height: 1.7;
+      }
+
+      .mock-preview-safety-card {
+        border-color: rgba(225, 81, 81, 0.22);
+        background: rgba(255, 251, 248, 0.9);
+      }
+
+      .mock-preview-safety-list li {
+        background: #fff1f0;
+        color: #9f2f23;
+      }
+
+      .mock-preview-section-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+        padding: 0;
+        margin: 18px 0 0;
+        list-style: none;
+      }
+
+      .mock-preview-section-list li {
+        display: grid;
+        gap: 6px;
+        border-radius: 16px;
+        padding: 16px;
+        background: #f7faff;
+      }
+
+      .mock-preview-section-list strong {
+        color: #19233c;
+      }
+
+      .mock-preview-section-list span {
+        color: #5c667c;
+        line-height: 1.55;
+      }
+    </style>
   </head>
   <body>
     <main aria-labelledby="mock-only-preview-title">
-      <h1 id="mock-only-preview-title">MOCK ONLY</h1>
-      <p>LOCAL PREVIEW ONLY</p>
-      <p>REDACTED FIXTURE DATA</p>
-      <p>NO REAL NETWORK</p>
-      <p>NO REAL ACCOUNT</p>
-      <p>NO OUTBOUND DELIVERY</p>
+      <section class="page-hero">
+        <p class="page-kicker">Mock-only local safe preview</p>
+        <h1 id="mock-only-preview-title">AI股票基金每日信息报告</h1>
+        <p class="page-subtitle">股票基金质量分析系统 mock-only 本地安全预览</p>
+        <ul class="page-safety-list" aria-label="mock-only safety boundaries">
+          <li>仅供模拟</li>
+          <li>仅限本地预览</li>
+          <li>不读取 .env</li>
+          <li>不连接真实 API</li>
+          <li>不启动后端</li>
+          <li>不发送通知</li>
+        </ul>
+      </section>
       <div id="mock-only-preview-root"></div>
     </main>
     <script type="module" src="/src/mocks/preview-entry/mockOnlyPreviewEntry.ts"></script>
