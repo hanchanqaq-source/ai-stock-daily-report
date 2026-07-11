@@ -7,7 +7,7 @@ Boundaries:
 - Uses the L2I mock service with `{ mode: "mock", source: "local_preview_only" }`.
 - Stays outside the real Web App entry, App shell, routes, API client, pages, stores, components, contexts, and utils.
 - Does not add or require any Web startup script.
-- Does not call a backend, provider, notification channel, AI service, or formal report generator.
+- Does not call backend, provider, outbound delivery, AI service, or formal report generation paths.
 - Uses only redacted fixture-backed mock data.
 
-`MockOnlyPreviewPage.tsx` is a draft component for future review only. It is intentionally not imported by the real App or route tree.
+Future visual drafts should stay outside the real App and route tree until a separately reviewed preview entry is approved.

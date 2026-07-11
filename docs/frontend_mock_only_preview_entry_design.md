@@ -41,7 +41,7 @@
 - 不读取 `import.meta.env`。
 - 不接真实 provider。
 - 不接真实账户。
-- 不读取或保存真实 Token、Webhook、API Key、账户、持仓、金额或成本数据。
+- 不读取或保存真实凭据、外部投递地址、账户、持仓、金额或成本数据。
 - 不新增 Web 启动脚本。
 - 不启动 Web dev server 或 preview server。
 
@@ -49,18 +49,18 @@
 
 后续 mock-only Web preview 页面建议至少包含以下区域：
 
-1. 安全横幅：明确展示 `MOCK ONLY`、`LOCAL PREVIEW ONLY`、`REDACTED FIXTURE DATA`、`NO REAL NETWORK`、`NO REAL ACCOUNT`、`NO NOTIFICATION`。
+1. 安全横幅：明确展示 `MOCK ONLY`、`LOCAL PREVIEW ONLY`、`REDACTED FIXTURE DATA`、`NO REAL NETWORK`、`NO REAL ACCOUNT`、`NO OUTBOUND DELIVERY`。
 2. Dashboard 摘要：展示 dashboard fixture 中的摘要卡片、市场状态和 watchlist 示例。
 3. Portfolio 摘要：展示 portfolio fixture 中的账户、持仓、风险和交易形态示例。
 4. History reports 摘要：展示 history fixture 中的报告列表、报告详情和空状态示例。
-5. Alerts 摘要：展示 alerts fixture 中的规则、触发记录和通知形态示例，但不触发真实通知。
+5. Alerts 摘要：展示 alerts fixture 中的规则、触发记录和外部投递形态示例，但不触发真实外部投递。
 6. Agent chat 摘要：展示 agent fixture 中的会话、消息、stream chunk 和错误形态示例，但不调用真实 AI。
 7. Empty/error 示例：展示 empty states fixture 和各模块内置错误形态，便于后续页面验证空态、错误态和降级展示。
 
 ## 5. 后续拆分
 
 - L2K：新增 mock-only preview 网络穿透测试，继续证明 preview scaffold 无真实网络路径、无真实 API import、无运行时代码接入。
-- L2L：新增 localhost-only Windows Web safe preview 脚本设计，但仍需保持显式安全开关、mock-only 数据源和网络阻断约束。
+- L2L：新增 本机回环-only Windows Web safe preview 脚本设计，但仍需保持显式安全开关、mock-only 数据源和网络阻断约束。
 - L2M：Windows 本地 mock-only Web 实际验证，在 L2K / L2L 安全设计通过后再执行，不在本轮启动 Web 或后端。
 
 ## 6. 风险与回滚

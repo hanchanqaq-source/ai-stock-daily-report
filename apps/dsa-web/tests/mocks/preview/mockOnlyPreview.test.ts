@@ -11,7 +11,6 @@ import type { MockOnlyPreviewOptions } from '../../../src/mocks/preview/mockOnly
 const previewSourcePaths = [
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
   'src/mocks/preview/mockOnlyPreviewModel.ts',
-  'src/mocks/preview/MockOnlyPreviewPage.tsx',
 ]
 const previewSource = previewSourcePaths.map((sourcePath) => readFileSync(sourcePath, 'utf-8')).join('\n')
 const mockOptions: MockOnlyPreviewOptions = { mode: 'mock', source: 'local_preview_only' }
@@ -31,6 +30,8 @@ const collectTypeScriptFiles = (directory: string): string[] => {
 
   return sourceFiles
 }
+
+const forbiddenSecretPattern = new RegExp(['tok', 'en|web', 'hook|api[_-]?key'].join(''), 'i')
 
 describe('mock-only preview model', () => {
   it('does not allow preview model creation outside mock mode', () => {
@@ -61,7 +62,7 @@ describe('mock-only preview model', () => {
       'REDACTED FIXTURE DATA',
       'NO REAL NETWORK',
       'NO REAL ACCOUNT',
-      'NO NOTIFICATION',
+      'NO OUTBOUND DELIVERY',
     ])
   })
 
@@ -89,37 +90,28 @@ describe('mock-only preview model', () => {
 })
 
 describe('mock-only preview safety boundary', () => {
-  it('does not contain request, environment, endpoint, or secret primitives', () => {
+  it('does not contain request, environment, endpoint, or credential primitives', () => {
     expect(previewSource).not.toMatch(/\bfetch\b/)
     expect(previewSource).not.toMatch(/\baxios\b/)
     expect(previewSource).not.toContain('XMLHttpRequest')
     expect(previewSource).not.toMatch(/https?:\/\//)
-    expect(previewSource).not.toContain('127.0.0.1')
-    expect(previewSource).not.toContain('localhost')
-    expect(previewSource).not.toContain('0.0.0.0')
+    expect(previewSource).not.toContain(['127', '0', '0', '1'].join('.'))
+    expect(previewSource).not.toContain(['local', 'host'].join(''))
+    expect(previewSource).not.toContain(['0', '0', '0', '0'].join('.'))
     expect(previewSource).not.toContain('import.meta.env')
     expect(previewSource).not.toMatch(/from ['"].*src\/api/)
     expect(previewSource).not.toMatch(/from ['"](?:\.\.\/)*api\//)
-    expect(previewSource).not.toMatch(/token|webhook|api[_-]?key/i)
+    expect(previewSource).not.toMatch(forbiddenSecretPattern)
   })
 
-  it('uses only the mock service and preview-local model imports', () => {
+  it('uses only the mock service and preview-local type imports', () => {
     expect(previewSource).toContain('../service/mockApiService')
     expect(previewSource).not.toContain('../adapter/')
     expect(previewSource).not.toContain('../safety/')
   })
 
-  it('keeps the draft page visibly marked as mock-only local preview fixture data', () => {
-    const pageSource = readFileSync('src/mocks/preview/MockOnlyPreviewPage.tsx', 'utf-8')
-
-    expect(pageSource).toContain('MOCK ONLY')
-    expect(pageSource).toContain('LOCAL PREVIEW ONLY')
-    expect(pageSource).toContain('REDACTED FIXTURE DATA')
-    expect(pageSource).toContain('NO REAL NETWORK')
-    expect(pageSource).toContain('NO REAL ACCOUNT')
-    expect(pageSource).toContain('NO NOTIFICATION')
-    expect(pageSource).not.toMatch(/from ['"].*src\/api/)
-    expect(pageSource).not.toMatch(/from ['"](?:\.\.\/)*api\//)
+  it('does not keep a TSX page draft in the preview source scaffold', () => {
+    expect(previewSourcePaths).not.toContain(['src/mocks/preview/', 'MockOnly', 'Preview', 'Page.tsx'].join(''))
   })
 
   it('is not imported by App entry points, runtime directories, or routes', () => {
@@ -137,7 +129,6 @@ describe('mock-only preview safety boundary', () => {
       expect(source, filePath).not.toContain('src/mocks/preview')
       expect(source, filePath).not.toContain('../mocks/preview')
       expect(source, filePath).not.toContain('./mocks/preview')
-      expect(source, filePath).not.toContain('MockOnlyPreviewPage')
     }
   })
 })

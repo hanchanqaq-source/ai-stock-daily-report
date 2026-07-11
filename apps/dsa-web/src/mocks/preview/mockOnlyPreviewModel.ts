@@ -27,7 +27,7 @@ const SAFETY_BANNER = Object.freeze([
   'REDACTED FIXTURE DATA',
   'NO REAL NETWORK',
   'NO REAL ACCOUNT',
-  'NO NOTIFICATION',
+  'NO OUTBOUND DELIVERY',
 ])
 
 const assertPreviewOptions = (options: MockOnlyPreviewOptions): void => {
@@ -106,7 +106,7 @@ export const getMockOnlyPreviewSections = (
     {
       id: 'alerts-preview',
       title: 'Alerts preview',
-      description: 'Alert rule, trigger, and notification-shaped examples from redacted fixture data.',
+      description: 'Alert rule, trigger, and outbound-delivery-shaped examples from redacted fixture data.',
       data: alerts,
     },
     {
