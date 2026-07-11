@@ -11,3 +11,17 @@ Boundaries:
 - Uses only redacted fixture-backed mock data.
 
 Future visual drafts should stay outside the real App and route tree until a separately reviewed preview entry is approved.
+
+## Future Windows localhost-only safe preview script design
+
+L2L only documents how a future Windows one-click safe preview script should behave. It does not add a startup script, npm script, Vite entry, route, or runtime App integration.
+
+Future script work must keep this preview mock-only and localhost-only:
+
+- Bind only to `127.0.0.1`.
+- Reject `0.0.0.0`, LAN IPs, public IPs, and externally reachable hosts.
+- Run mock-only network boundary and preview tests before any startup attempt.
+- Do not read real `.env` files or real `VITE_API_URL` values.
+- Do not call real `/api/v1/**`, providers, AI services, notifications, or formal report generation paths.
+
+Until a separately reviewed mock-only preview entry exists, a future script should stop with a design-only message instead of trying to start Web preview.
