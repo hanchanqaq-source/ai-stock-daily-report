@@ -99,6 +99,70 @@ def test_script_runs_mock_only_tests_and_build() -> None:
     assert "npm run build" in text
 
 
+def _label_block(text: str, label: str) -> str:
+    marker = f"\n:{label}\n"
+    start = text.index(marker) + len(marker)
+    next_label = text.find("\n:", start)
+    if next_label == -1:
+        return text[start:]
+    return text[start:next_label]
+
+
+def test_script_uses_unified_fatal_exit_without_call_fail_pattern() -> None:
+    text = script_text()
+    lower_text = text.lower()
+
+    assert "call :fail" not in lower_text
+    assert ":fatal_exit" in lower_text
+    assert "exit /b 1" in lower_text
+    assert "if not defined ci pause" in lower_text
+
+
+def test_check_helpers_do_not_swallow_failures_with_exit_zero() -> None:
+    text = script_text().lower()
+
+    check_file_block = _label_block(text, "check_file")
+    check_no_env_file_block = _label_block(text, "check_no_env_file")
+
+    assert "exit /b 1" in check_file_block
+    assert "exit /b 1" in check_no_env_file_block
+
+    for block in [check_file_block, check_no_env_file_block]:
+        failure_branch = block.split("exit /b 1", maxsplit=1)[0]
+        assert "exit /b 0" not in failure_branch
+
+
+def test_success_banner_exists_only_after_build_success_gate() -> None:
+    text = script_text().lower()
+
+    passed_index = text.index("dry run passed")
+    build_index = text.index("npm run build")
+    build_failure_gate_index = text.index("fail_reason=npm run build failed", build_index)
+    fatal_after_build_index = text.index("goto :fatal_exit", build_failure_gate_index)
+
+    assert build_index < build_failure_gate_index < fatal_after_build_index < passed_index
+
+
+def test_npm_test_and_build_commands_fail_fast_to_fatal_exit() -> None:
+    text = script_text().lower()
+
+    commands = [
+        "npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts",
+        "npm run test -- tests/mocks/preview/mockonlypreviewnetworkboundary.test.ts",
+        "npm run test -- tests/mocks/preview/mockonlypreview.test.ts",
+        "npm run build",
+    ]
+
+    for command in commands:
+        command_index = text.index(command)
+        next_command_indexes = [text.find(other, command_index + len(command)) for other in commands]
+        next_command_indexes = [index for index in next_command_indexes if index != -1]
+        block_end = min(next_command_indexes) if next_command_indexes else text.index("dry run passed")
+        command_block = text[command_index:block_end]
+        assert "if errorlevel 1" in command_block
+        assert "goto :fatal_exit" in command_block
+
+
 def test_protected_runtime_files_not_modified_by_this_task() -> None:
     changed_files = {
         "scripts/windows_localhost_web_safe_preview_dry_run.bat",

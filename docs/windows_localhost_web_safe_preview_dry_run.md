@@ -4,7 +4,7 @@
 
 本轮新增 `scripts\windows_localhost_web_safe_preview_dry_run.bat`，用于在 Windows 本地检查 mock-only preview 的安全启动前置条件。
 
-该脚本只做 dry-run 检查：
+该脚本只做 dry-run 检查；任意检查、测试或 build 失败时会立即进入统一失败出口并返回 exit code 1，只有完整成功路径才会打印 `DRY RUN PASSED`：
 
 - 不真正启动 Web。
 - 不启动后端。
@@ -43,7 +43,7 @@ scripts\windows_localhost_web_safe_preview_dry_run.bat
 
 ## 如果失败怎么办
 
-常见失败与处理方式：
+脚本失败时会打印 `FAIL ...`、提示 dry-run 已在启动任何 Web / 后端 / 浏览器前停止，并以 exit code 1 退出；CI 环境不会 pause，普通双击环境下会 pause 便于查看错误。常见失败与处理方式：
 
 - 不在正确仓库：确认脚本路径仍为 `scripts\windows_localhost_web_safe_preview_dry_run.bat`，且仓库内存在 `docs\CHANGELOG.md` 与 `apps\dsa-web\package.json`。
 - 没装 Node：手动安装 Node 后重新运行脚本。
@@ -67,6 +67,8 @@ scripts\windows_localhost_web_safe_preview_dry_run.bat
 - 不连接 `/api/v1/**`。
 - 不触发 provider、AI、通知或正式日报。
 - 不自动执行依赖安装。
+- 任意失败立即停止后续测试与 build，不打印 `DRY RUN PASSED`。
+- CI 环境失败时不 pause；普通双击环境失败时可以 pause。
 
 ## 后续步骤
 
