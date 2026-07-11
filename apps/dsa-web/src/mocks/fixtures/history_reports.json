@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "reports": [
+    {
+      "id": "report-mock-001",
+      "stockCode": "MOCK-A",
+      "title": "Demo redacted stock report",
+      "createdAt": "DEMO_TIMESTAMP"
+    }
+  ],
+  "detail": {
+    "id": "report-mock-001",
+    "markdown": "# Demo Report\n\nThis is mock redacted markdown for local preview only.",
+    "diagnostics": {
+      "dataQuality": "mock",
+      "warnings": [
+        "redacted fixture only"
+      ]
+    },
+    "news": [
+      {
+        "title": "Mock news item",
+        "source": "demo",
+        "url": "MOCK_API_PATH_ONLY"
+      }
+    ],
+    "stockBar": {
+      "symbol": "MOCK-A",
+      "price": "REDACTED_PRICE",
+      "changePercent": "MOCK_PERCENT"
+    }
+  },
+  "empty": {
+    "reports": []
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "rules": [
+    {
+      "id": "alert-rule-mock",
+      "symbol": "MOCK-A",
+      "condition": "mock threshold",
+      "enabled": true
+    }
+  ],
+  "triggers": [
+    {
+      "id": "trigger-mock",
+      "ruleId": "alert-rule-mock",
+      "status": "triggered",
+      "value": "REDACTED_PRICE"
+    }
+  ],
+  "notifications": [
+    {
+      "id": "notification-mock",
+      "channel": "mock_channel",
+      "status": "sent_mock"
+    }
+  ],
+  "tests": {
+    "success": {
+      "ok": true,
+      "message": "mock notification test success"
+    },
+    "failed": {
+      "ok": false,
+      "message": "mock notification test failed"
+    }
+  },
+  "empty": {
+    "rules": []
+  }
+}

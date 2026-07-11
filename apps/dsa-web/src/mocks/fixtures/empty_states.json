@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "dashboard": {
+    "items": [],
+    "message": "mock empty dashboard"
+  },
+  "portfolio": {
+    "accounts": [],
+    "holdings": []
+  },
+  "history": {
+    "reports": []
+  },
+  "alerts": {
+    "rules": [],
+    "triggers": []
+  },
+  "chat": {
+    "sessions": [],
+    "messages": []
+  },
+  "usage": {
+    "totalTokens": "0 MOCK",
+    "recentCalls": []
+  }
+}

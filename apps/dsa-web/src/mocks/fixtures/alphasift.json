@@ -1,0 +1,48 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "status": {
+    "enabled": true,
+    "installed": true,
+    "mode": "mock"
+  },
+  "disabledStatus": {
+    "enabled": false,
+    "reason": "mock disabled"
+  },
+  "strategies": [
+    {
+      "id": "strategy-mock",
+      "name": "Demo strategy"
+    }
+  ],
+  "hotspots": [
+    {
+      "id": "hotspot-mock",
+      "name": "Mock hotspot",
+      "score": "MOCK_SCORE"
+    }
+  ],
+  "screenTask": {
+    "id": "screen-task-mock",
+    "status": "completed"
+  },
+  "candidates": [
+    {
+      "symbol": "MOCK-A",
+      "score": "MOCK_SCORE",
+      "reason": "demo candidate"
+    }
+  ]
+}

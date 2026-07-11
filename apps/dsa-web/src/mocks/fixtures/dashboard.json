@@ -1,0 +1,64 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "summaryCards": [
+    {
+      "id": "reports",
+      "label": "Demo reports",
+      "value": "3 MOCK"
+    },
+    {
+      "id": "tasks",
+      "label": "Running tasks",
+      "value": "1 MOCK"
+    },
+    {
+      "id": "alerts",
+      "label": "Enabled alerts",
+      "value": "2 MOCK"
+    }
+  ],
+  "marketStatus": {
+    "status": "mock_open",
+    "asOf": "DEMO_DATE",
+    "note": "redacted market status"
+  },
+  "watchlist": [
+    {
+      "symbol": "MOCK-A",
+      "name": "Demo Stock A",
+      "market": "DEMO_MARKET",
+      "price": "REDACTED_PRICE"
+    }
+  ],
+  "skills": [
+    {
+      "id": "mock-analysis",
+      "name": "Demo analysis",
+      "enabled": true
+    }
+  ],
+  "states": {
+    "loading": {
+      "isLoading": true
+    },
+    "empty": {
+      "items": []
+    },
+    "error": {
+      "code": "MOCK_DASHBOARD_ERROR",
+      "message": "mock dashboard error"
+    }
+  }
+}

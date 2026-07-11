@@ -1,0 +1,43 @@
+{
+  "metadata": {
+    "mode": "mock",
+    "source": "local_preview_only",
+    "contains_real_data": false,
+    "contains_secrets": false,
+    "safe_for_windows_preview": true,
+    "labels": [
+      "demo",
+      "mock",
+      "redacted",
+      "local_preview_only"
+    ]
+  },
+  "maskedConfig": {
+    "apiKey": "REDACTED_API_KEY",
+    "webhook": "REDACTED_WEBHOOK",
+    "token": "REDACTED_TOKEN",
+    "providerUrl": "REDACTED_PROVIDER_URL",
+    "modelBinding": "REDACTED_MODEL_BINDING"
+  },
+  "setupStatus": {
+    "configured": true,
+    "mode": "mock"
+  },
+  "schedulerStatus": {
+    "enabled": false,
+    "nextRun": "DEMO_TIMESTAMP"
+  },
+  "watchlist": [
+    "MOCK-A",
+    "MOCK-B"
+  ],
+  "llmTestResult": {
+    "ok": true,
+    "provider": "mock_redacted",
+    "model": "REDACTED_MODEL_BINDING"
+  },
+  "notificationTestResult": {
+    "ok": true,
+    "webhook": "REDACTED_WEBHOOK"
+  }
+}
