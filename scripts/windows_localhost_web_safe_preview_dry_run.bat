@@ -8,6 +8,7 @@ set "DRY_RUN_PUSHED_ROOT="
 set "DRY_RUN_PUSHED_WEB="
 set "FAIL_REASON=Unexpected dry-run failure."
 set "NODE_EXE="
+set "LAST_EXIT="
 
 echo ============================================================
 echo Windows localhost web safe preview dry-run
@@ -81,6 +82,8 @@ if not exist "apps\dsa-web\node_modules" (
   goto :fatal_exit
 )
 call :pass "apps\dsa-web\node_modules exists."
+call :check_file "apps\dsa-web\node_modules\vitest\vitest.mjs" "local Vitest CLI entry" || goto :fatal_exit
+call :pass "Local Vitest CLI entry found."
 
 pushd "apps\dsa-web" >nul 2>nul
 if errorlevel 1 (
@@ -89,31 +92,48 @@ if errorlevel 1 (
 )
 set "DRY_RUN_PUSHED_WEB=1"
 
+echo Running local Vitest version diagnostic...
+"%NODE_EXE%" "node_modules\vitest\vitest.mjs" --version
+set "LAST_EXIT=%ERRORLEVEL%"
+echo Vitest local mjs --version exit code: %LAST_EXIT%
+if not "%LAST_EXIT%"=="0" (
+  set "FAIL_REASON=local Vitest version diagnostic failed."
+  goto :fatal_exit
+)
+
 echo Running mock-only preview-entry test...
 call npm run test -- tests/mocks/preview-entry/mockOnlyPreviewEntry.test.ts
-if errorlevel 1 (
-  set "FAIL_REASON=mockOnlyPreviewEntry.test.ts failed."
+set "LAST_EXIT=%ERRORLEVEL%"
+echo npm run test exit code: %LAST_EXIT%
+if not "%LAST_EXIT%"=="0" (
+  set "FAIL_REASON=mockOnlyPreviewEntry.test.ts failed with exit code %LAST_EXIT%."
   goto :fatal_exit
 )
 
 echo Running mock-only network-boundary test...
 call npm run test -- tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts
-if errorlevel 1 (
-  set "FAIL_REASON=mockOnlyPreviewNetworkBoundary.test.ts failed."
+set "LAST_EXIT=%ERRORLEVEL%"
+echo npm run test exit code: %LAST_EXIT%
+if not "%LAST_EXIT%"=="0" (
+  set "FAIL_REASON=mockOnlyPreviewNetworkBoundary.test.ts failed with exit code %LAST_EXIT%."
   goto :fatal_exit
 )
 
 echo Running mock-only preview model test...
 call npm run test -- tests/mocks/preview/mockOnlyPreview.test.ts
-if errorlevel 1 (
-  set "FAIL_REASON=mockOnlyPreview.test.ts failed."
+set "LAST_EXIT=%ERRORLEVEL%"
+echo npm run test exit code: %LAST_EXIT%
+if not "%LAST_EXIT%"=="0" (
+  set "FAIL_REASON=mockOnlyPreview.test.ts failed with exit code %LAST_EXIT%."
   goto :fatal_exit
 )
 
 echo Running web build dry-run check...
 call npm run build
-if errorlevel 1 (
-  set "FAIL_REASON=web build dry-run check failed."
+set "LAST_EXIT=%ERRORLEVEL%"
+echo npm run build exit code: %LAST_EXIT%
+if not "%LAST_EXIT%"=="0" (
+  set "FAIL_REASON=web build dry-run check failed with exit code %LAST_EXIT%."
   goto :fatal_exit
 )
 

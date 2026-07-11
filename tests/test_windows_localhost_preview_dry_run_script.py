@@ -149,6 +149,17 @@ def test_script_runs_mock_only_tests_and_build() -> None:
     assert "call npm run build" in text
 
 
+def test_script_runs_local_vitest_version_diagnostic_without_npx() -> None:
+    text = script_text()
+    lower_text = text.lower()
+
+    assert "apps\\dsa-web\\node_modules\\vitest\\vitest.mjs" in text
+    assert '"%NODE_EXE%" "node_modules\\vitest\\vitest.mjs" --version' in text
+    assert "Vitest local mjs --version exit code: %LAST_EXIT%" in text
+    assert "local Vitest version diagnostic failed" in text
+    assert "npx vitest" not in lower_text
+
+
 def _label_block(text: str, label: str) -> str:
     marker = f"\n:{label}\n"
     start = text.index(marker) + len(marker)
@@ -236,7 +247,7 @@ def test_npm_cmd_invocations_use_call_to_preserve_parent_bat_control_flow() -> N
             raise AssertionError(f"npm .cmd invocation must use call: {line}")
 
 
-def test_npm_test_and_build_commands_fail_fast_to_fatal_exit() -> None:
+def test_npm_test_and_build_commands_print_exit_code_and_fail_fast() -> None:
     text = script_text()
 
     commands = [
@@ -248,8 +259,12 @@ def test_npm_test_and_build_commands_fail_fast_to_fatal_exit() -> None:
 
     for command in commands:
         command_block = _command_block_after_exact_line(text, command, commands)
-        assert "if errorlevel 1" in command_block
+        assert 'set "last_exit=%errorlevel%"' in command_block
+        assert 'if not "%last_exit%"=="0"' in command_block
         assert "goto :fatal_exit" in command_block
+
+    assert text.count("echo npm run test exit code: %LAST_EXIT%") == 3
+    assert "echo npm run build exit code: %LAST_EXIT%" in text
 
 
 def test_protected_runtime_files_not_modified_by_this_task() -> None:
