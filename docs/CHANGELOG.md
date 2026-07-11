@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [文档] 新增 Windows 本地 Web 安全预览设计，确认当前 Vite/React 前端仍依赖真实 API 路径与后端联调，暂不新增 Web 启动脚本。
 - [新功能] 新增 Windows 本地 demo 报告离线预览脚本、说明文档和静态 HTML 示例，用于不接真实数据源、不调用 AI、不发送通知、不生成正式日报的安全展示。
 - [新功能] 新增 Windows 本地安全预览启动脚本与说明文档，复用 `main.py --local-smoke` 提供不安装依赖、不运行 pytest、不启动真实服务的一键安全预览入口。
 - [新功能] 新增 Web-P19 清理中心 demo 页面，展示可清理 / 谨慎清理 / 禁止清理分类、清理影响、预览确认和安全边界；当前默认只扫描不删除，不联网，不调用真实清理接口，不清理 data/history、data/user_config、真实账户数据或 Token / API Key / Webhook。
