@@ -46,9 +46,20 @@ def test_start_script_calls_dry_run_before_vite() -> None:
     dry_run_index = lower_text.index('call "%dry_run_script%"')
     dry_run_failure_gate_index = lower_text.index("l2n dry-run failed. web preview was not started.", dry_run_index)
     fatal_after_dry_run_index = lower_text.index("goto :fatal_exit", dry_run_failure_gate_index)
-    vite_start_index = lower_text.index("node_modules\\.bin\\vite.cmd ^")
+    vite_start_index = lower_text.index("call node_modules\\.bin\\vite.cmd ^")
 
     assert dry_run_index < dry_run_failure_gate_index < fatal_after_dry_run_index < vite_start_index
+
+
+def test_start_script_calls_vite_cmd_to_preserve_parent_bat_control_flow() -> None:
+    lines = [line.strip().lower() for line in start_script_text().splitlines()]
+
+    assert "call node_modules\\.bin\\vite.cmd ^" in lines
+    assert "node_modules\\.bin\\vite.cmd ^" not in lines
+
+    for line in lines:
+        if line.startswith("vite.cmd") or line.startswith("node_modules\\.bin\\vite.cmd"):
+            raise AssertionError(f"vite.cmd invocation must use call: {line}")
 
 
 def test_start_script_uses_dedicated_config_and_loopback_command() -> None:

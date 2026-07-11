@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [修复] L2N-fix-2 修复 Windows localhost-only safe preview dry-run/start 批处理脚本对 npm/npm run/vite.cmd 的调用方式，避免 .cmd 裸调用导致父 bat 提前退出或退出码处理异常。
 - [新功能] 新增 Windows localhost-only safe preview 真启动脚本、专用 mock-only Vite 配置、说明文档和静态测试；启动前强制执行 L2N dry-run，仅绑定 127.0.0.1:5174，不启动后端、不打开浏览器、不读取 .env、不请求真实 API。
 - [修复] 修复 Windows localhost-only safe preview dry-run 脚本 fail-fast 退出路径，确保任意失败立即停止后续测试与 build、不打印成功提示，并在 CI 下失败不 pause。
 - [新功能] 新增 Windows localhost-only safe preview dry-run 脚本、说明文档和静态测试，用于检查 mock-only preview entry、.env 安全边界、Node/npm、node_modules、mock-only tests 与 Web build；脚本不启动 Web / 后端、不打开浏览器、不读取 .env、不请求真实网络。

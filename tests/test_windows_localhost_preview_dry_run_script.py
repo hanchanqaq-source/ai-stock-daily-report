@@ -96,7 +96,7 @@ def test_script_runs_mock_only_tests_and_build() -> None:
     assert "mockOnlyPreviewEntry.test.ts" in text
     assert "mockOnlyPreviewNetworkBoundary.test.ts" in text
     assert "mockOnlyPreview.test.ts" in text
-    assert "npm run build" in text
+    assert "call npm run build" in text
 
 
 def _label_block(text: str, label: str) -> str:
@@ -136,7 +136,7 @@ def test_success_banner_exists_only_after_build_success_gate() -> None:
     text = script_text().lower()
 
     passed_index = text.index("dry run passed")
-    build_index = text.index("npm run build")
+    build_index = text.index("call npm run build")
     build_failure_gate_index = text.index("fail_reason=web build dry-run check failed", build_index)
     fatal_after_build_index = text.index("goto :fatal_exit", build_failure_gate_index)
 
@@ -162,14 +162,38 @@ def _command_block_after_exact_line(
     return "\n".join(lines[start:end])
 
 
+def test_npm_cmd_invocations_use_call_to_preserve_parent_bat_control_flow() -> None:
+    lines = [line.strip().lower() for line in script_text().splitlines()]
+
+    assert "call npm --version >nul 2>nul" in lines
+    assert "for /f \"delims=\" %%v in ('call npm --version') do echo pass npm version: %%v" in lines
+    assert "call npm run build" in lines
+
+    npm_run_test_lines = [line for line in lines if line.startswith("call npm run test ")]
+    assert npm_run_test_lines == [
+        "call npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts",
+        "call npm run test -- tests/mocks/preview/mockonlypreviewnetworkboundary.test.ts",
+        "call npm run test -- tests/mocks/preview/mockonlypreview.test.ts",
+    ]
+
+    forbidden_prefixes = (
+        "npm --version",
+        "npm run ",
+        "npm build",
+    )
+    for line in lines:
+        if line.startswith(forbidden_prefixes):
+            raise AssertionError(f"npm .cmd invocation must use call: {line}")
+
+
 def test_npm_test_and_build_commands_fail_fast_to_fatal_exit() -> None:
     text = script_text()
 
     commands = [
-        "npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts",
-        "npm run test -- tests/mocks/preview/mockonlypreviewnetworkboundary.test.ts",
-        "npm run test -- tests/mocks/preview/mockonlypreview.test.ts",
-        "npm run build",
+        "call npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts",
+        "call npm run test -- tests/mocks/preview/mockonlypreviewnetworkboundary.test.ts",
+        "call npm run test -- tests/mocks/preview/mockonlypreview.test.ts",
+        "call npm run build",
     ]
 
     for command in commands:
