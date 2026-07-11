@@ -90,6 +90,56 @@ def test_script_does_not_start_web_backend_browser_or_network_tools() -> None:
         assert forbidden not in lower_text
 
 
+def test_script_resolves_node_exe_before_node_version_check() -> None:
+    text = script_text()
+    lower_text = text.lower()
+
+    assert 'set "NODE_EXE="' in text
+    assert "for /f \"delims=\" %%N in ('where node.exe') do (" in text
+    assert 'set "NODE_EXE=%%N"' in text
+    assert 'goto :node_found' in text
+    assert ':node_found' in text
+    assert 'if not defined NODE_EXE (' in text
+    assert 'Node is not available. Install Node manually, then rerun.' in text
+    assert '"%NODE_EXE%" --version >nul 2>nul' in text
+    assert "for /f \"delims=\" %%V in ('\"%NODE_EXE%\" --version') do echo PASS Node version: %%V" in text
+
+    node_resolution_index = lower_text.index("where node.exe")
+    node_version_index = lower_text.index('"%node_exe%" --version')
+    npm_version_index = lower_text.index("call npm --version")
+
+    assert node_resolution_index < node_version_index < npm_version_index
+
+
+def test_script_has_no_bare_node_invocations() -> None:
+    lines = [line.strip().lower() for line in script_text().splitlines()]
+
+    for line in lines:
+        if line.startswith("node --version"):
+            raise AssertionError(f"Node version check must use NODE_EXE: {line}")
+        if line.startswith("call node "):
+            raise AssertionError(f"Node command must use NODE_EXE: {line}")
+        if "('node --version')" in line:
+            raise AssertionError(f"Node for-loop must use NODE_EXE: {line}")
+
+
+def test_script_forbidden_preview_start_commands_are_absent() -> None:
+    lower_text = script_text().lower()
+
+    for forbidden in [
+        "0.0.0.0",
+        "--open",
+        "npm run dev",
+        "npm run preview",
+        "npx vite",
+        "npm exec",
+        "node_modules\\.bin\\vite.cmd",
+        "start http",
+        "explorer http",
+    ]:
+        assert forbidden not in lower_text
+
+
 def test_script_runs_mock_only_tests_and_build() -> None:
     text = script_text()
 
