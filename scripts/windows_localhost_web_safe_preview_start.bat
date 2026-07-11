@@ -71,7 +71,7 @@ echo.
 echo Stop with Ctrl+C.
 echo ============================================================
 
-call node_modules\.bin\vite.cmd ^
+call npm exec --offline -- vite ^
   --config mock-only-preview\vite.config.ts ^
   --host 127.0.0.1 ^
   --port 5174 ^

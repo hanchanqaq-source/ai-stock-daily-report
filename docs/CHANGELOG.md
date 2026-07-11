@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [修复] L2O-fix-2 修复 Windows localhost-only safe preview start 脚本启动 Vite 时弹出额外 Node.js 交互窗口的问题，改为通过本地依赖的 npm exec 在当前 CMD 中启动，并补充静态测试锁定 loopback 端口与禁用启动方式。
 - [改进] L2R 优化 mock-only 本地安全预览页面标题、副标题、安全边界提示、预览元数据与模块范围展示，并补充静态测试继续确认不读取 .env、不连接真实 API、不启动后端、不发送通知。
 - [文档] 新增 Windows localhost-only safe preview 故障处理文档和静态测试，记录 L2P 真实运行中的 Node、node_modules、bat 调用、guard 拦截、端口占用与停止服务排查标准。
 - [修复] L2N-fix-2 修复 Windows localhost-only safe preview dry-run/start 批处理脚本对 npm/npm run/vite.cmd 的调用方式，避免 .cmd 裸调用导致父 bat 提前退出或退出码处理异常。
