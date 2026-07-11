@@ -46,20 +46,34 @@ def test_start_script_calls_dry_run_before_vite() -> None:
     dry_run_index = lower_text.index('call "%dry_run_script%"')
     dry_run_failure_gate_index = lower_text.index("l2n dry-run failed. web preview was not started.", dry_run_index)
     fatal_after_dry_run_index = lower_text.index("goto :fatal_exit", dry_run_failure_gate_index)
-    vite_start_index = lower_text.index("call node_modules\\.bin\\vite.cmd ^")
+    vite_start_index = lower_text.index("call npm exec --offline -- vite ^")
 
     assert dry_run_index < dry_run_failure_gate_index < fatal_after_dry_run_index < vite_start_index
 
 
-def test_start_script_calls_vite_cmd_to_preserve_parent_bat_control_flow() -> None:
+def test_start_script_uses_npm_exec_local_vite_without_cmd_shim_startup() -> None:
     lines = [line.strip().lower() for line in start_script_text().splitlines()]
 
-    assert "call node_modules\\.bin\\vite.cmd ^" in lines
-    assert "node_modules\\.bin\\vite.cmd ^" not in lines
+    assert "call npm exec --offline -- vite ^" in lines
+    assert "npm exec --offline -- vite ^" not in lines
+    assert "call npx vite" not in lines
 
+    forbidden_invocations = [
+        "call node_modules\\.bin\\vite.cmd",
+        "node_modules\\.bin\\vite.cmd",
+        "call node_modules\\.bin\\vite",
+        "node_modules\\.bin\\vite",
+        "call vite.cmd",
+        "vite.cmd",
+        "call vite ",
+        "vite ",
+    ]
     for line in lines:
-        if line.startswith("vite.cmd") or line.startswith("node_modules\\.bin\\vite.cmd"):
-            raise AssertionError(f"vite.cmd invocation must use call: {line}")
+        if any(line.startswith(invocation) for invocation in forbidden_invocations):
+            raise AssertionError(
+                "Vite must be launched via npm exec in the current CMD, "
+                f"not a cmd shim/direct vite call: {line}"
+            )
 
 
 def test_start_script_uses_dedicated_config_and_loopback_command() -> None:
@@ -80,6 +94,7 @@ def test_start_script_forbidden_commands_are_absent() -> None:
         "0.0.0.0",
         "npm run dev",
         "npm run preview",
+        "npx vite",
         "apps/dsa-web/vite.config.ts",
         "--open",
         "start http",
