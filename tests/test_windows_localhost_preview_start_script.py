@@ -46,16 +46,50 @@ def test_start_script_calls_dry_run_before_vite() -> None:
     dry_run_index = lower_text.index('call "%dry_run_script%"')
     dry_run_failure_gate_index = lower_text.index("l2n dry-run failed. web preview was not started.", dry_run_index)
     fatal_after_dry_run_index = lower_text.index("goto :fatal_exit", dry_run_failure_gate_index)
-    vite_start_index = lower_text.index("call node node_modules\\vite\\bin\\vite.js ^")
+    vite_start_index = lower_text.index('call "%node_exe%" node_modules\\vite\\bin\\vite.js ^')
 
     assert dry_run_index < dry_run_failure_gate_index < fatal_after_dry_run_index < vite_start_index
+
+
+def test_start_script_resolves_node_exe_before_dry_run_and_vite() -> None:
+    text = start_script_text()
+    lower_text = text.lower()
+
+    assert 'set "NODE_EXE="' in text
+    assert "for /f \"delims=\" %%N in ('where node.exe') do (" in text
+    assert 'set "NODE_EXE=%%N"' in text
+    assert 'goto :node_found' in text
+    assert ':node_found' in text
+    assert 'if not defined NODE_EXE (' in text
+    assert 'Node is not available. Install Node manually, then rerun.' in text
+    assert '"%NODE_EXE%" --version >nul 2>nul' in text
+    assert "for /f \"delims=\" %%V in ('\"%NODE_EXE%\" --version') do echo PASS Node version: %%V" in text
+
+    node_resolution_index = lower_text.index("where node.exe")
+    node_version_index = lower_text.index('"%node_exe%" --version')
+    dry_run_index = lower_text.index('call "%dry_run_script%"')
+    vite_start_index = lower_text.index('call "%node_exe%" node_modules\\vite\\bin\\vite.js ^')
+
+    assert node_resolution_index < node_version_index < dry_run_index < vite_start_index
+
+
+def test_start_script_has_no_bare_node_invocations() -> None:
+    lines = [line.strip().lower() for line in start_script_text().splitlines()]
+
+    for line in lines:
+        if line.startswith("node --version"):
+            raise AssertionError(f"Node version check must use NODE_EXE: {line}")
+        if line.startswith("call node "):
+            raise AssertionError(f"Node command must use NODE_EXE: {line}")
+        if "('node --version')" in line:
+            raise AssertionError(f"Node for-loop must use NODE_EXE: {line}")
 
 
 def test_start_script_uses_node_vite_js_entry_without_npm_or_cmd_shim_startup() -> None:
     lines = [line.strip().lower() for line in start_script_text().splitlines()]
     lower_text = start_script_text().lower()
 
-    assert "call node node_modules\\vite\\bin\\vite.js ^" in lines
+    assert 'call "%node_exe%" node_modules\\vite\\bin\\vite.js ^' in lines
 
     for forbidden in [
         "npm exec",

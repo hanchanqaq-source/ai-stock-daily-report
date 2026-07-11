@@ -8,6 +8,7 @@ set "REPO_ROOT=%SCRIPT_DIR%.."
 set "START_PUSHED_ROOT="
 set "START_PUSHED_WEB="
 set "FAIL_REASON=Unexpected start failure."
+set "NODE_EXE="
 set "DRY_RUN_SCRIPT=scripts\windows_localhost_web_safe_preview_dry_run.bat"
 set "PREVIEW_CONFIG=apps\dsa-web\mock-only-preview\vite.config.ts"
 set "LOCAL_VITE=apps\dsa-web\node_modules\vite\bin\vite.js"
@@ -48,6 +49,22 @@ call :check_file "%PREVIEW_CONFIG%" "mock-only preview Vite config" || goto :fat
 call :check_file "%LOCAL_VITE%" "local Vite JS entry" || goto :fatal_exit
 call :pass "Required local files found."
 
+for /f "delims=" %%N in ('where node.exe') do (
+  set "NODE_EXE=%%N"
+  goto :node_found
+)
+:node_found
+if not defined NODE_EXE (
+  set "FAIL_REASON=Node is not available. Install Node manually, then rerun."
+  goto :fatal_exit
+)
+"%NODE_EXE%" --version >nul 2>nul
+if errorlevel 1 (
+  set "FAIL_REASON=Node is not available. Install Node manually, then rerun."
+  goto :fatal_exit
+)
+for /f "delims=" %%V in ('"%NODE_EXE%" --version') do echo PASS Node version: %%V
+
 echo Running L2N dry-run before starting preview...
 call "%DRY_RUN_SCRIPT%"
 if errorlevel 1 (
@@ -71,7 +88,7 @@ echo.
 echo Stop with Ctrl+C.
 echo ============================================================
 
-call node node_modules\vite\bin\vite.js ^
+call "%NODE_EXE%" node_modules\vite\bin\vite.js ^
   --config mock-only-preview\vite.config.ts ^
   --host 127.0.0.1 ^
   --port 5174 ^

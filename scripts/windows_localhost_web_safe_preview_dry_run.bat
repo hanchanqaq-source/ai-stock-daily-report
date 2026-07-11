@@ -7,6 +7,7 @@ set "REPO_ROOT=%SCRIPT_DIR%.."
 set "DRY_RUN_PUSHED_ROOT="
 set "DRY_RUN_PUSHED_WEB="
 set "FAIL_REASON=Unexpected dry-run failure."
+set "NODE_EXE="
 
 echo ============================================================
 echo Windows localhost web safe preview dry-run
@@ -52,12 +53,21 @@ if not "%DRY_RUN_HOST%"=="127.0.0.1" (
 )
 call :pass "Host policy is fixed to 127.0.0.1."
 
-node --version >nul 2>nul
+for /f "delims=" %%N in ('where node.exe') do (
+  set "NODE_EXE=%%N"
+  goto :node_found
+)
+:node_found
+if not defined NODE_EXE (
+  set "FAIL_REASON=Node is not available. Install Node manually, then rerun."
+  goto :fatal_exit
+)
+"%NODE_EXE%" --version >nul 2>nul
 if errorlevel 1 (
   set "FAIL_REASON=Node is not available. Install Node manually, then rerun."
   goto :fatal_exit
 )
-for /f "delims=" %%V in ('node --version') do echo PASS Node version: %%V
+for /f "delims=" %%V in ('"%NODE_EXE%" --version') do echo PASS Node version: %%V
 
 call npm --version >nul 2>nul
 if errorlevel 1 (
