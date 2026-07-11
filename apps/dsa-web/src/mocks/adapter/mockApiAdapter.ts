@@ -41,6 +41,24 @@ const mockFixtureMap = Object.freeze({
   emptyStates: emptyStatesFixture,
 } satisfies Record<MockFixtureName, unknown>)
 
+const MOCK_FIXTURE_NAMES = [
+  'auth',
+  'dashboard',
+  'analysis',
+  'history',
+  'portfolio',
+  'alerts',
+  'systemConfig',
+  'agent',
+  'alphasift',
+  'usage',
+  'backtest',
+  'decisionSignals',
+  'stocksImport',
+  'errors',
+  'emptyStates',
+] as const satisfies readonly MockFixtureName[]
+
 const mockFixtureFiles = Object.freeze({
   auth: 'auth.json',
   dashboard: 'dashboard.json',
@@ -60,16 +78,15 @@ const mockFixtureFiles = Object.freeze({
 } satisfies Record<MockFixtureName, string>)
 
 export const getMockFixtureCatalog = (): MockFixtureCatalog => {
-  return Object.fromEntries(
-    Object.entries(mockFixtureFiles).map(([moduleName, fixtureFile]) => [
+  return MOCK_FIXTURE_NAMES.reduce((catalog, moduleName) => {
+    catalog[moduleName] = {
       moduleName,
-      {
-        moduleName,
-        fixtureFile,
-        scenarios: [DEFAULT_SCENARIO],
-      } satisfies MockFixtureCatalogEntry,
-    ]),
-  ) as MockFixtureCatalog
+      fixtureFile: mockFixtureFiles[moduleName],
+      scenarios: [DEFAULT_SCENARIO],
+    } satisfies MockFixtureCatalogEntry
+
+    return catalog
+  }, {} as MockFixtureCatalog)
 }
 
 export const loadMockFixture = <TFixture = unknown>(name: MockFixtureName): TFixture => {

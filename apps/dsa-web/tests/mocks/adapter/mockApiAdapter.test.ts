@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { getMockFixtureCatalog, getMockResponse, loadMockFixture } from './mockApiAdapter'
+import { getMockFixtureCatalog, getMockResponse, loadMockFixture } from '../../../src/mocks/adapter/mockApiAdapter'
 
 const adapterSourcePath = 'src/mocks/adapter/mockApiAdapter.ts'
 const adapterSource = readFileSync(adapterSourcePath, 'utf-8')

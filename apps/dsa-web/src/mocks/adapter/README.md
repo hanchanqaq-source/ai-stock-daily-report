@@ -16,3 +16,7 @@
 - `getMockResponse(moduleName, scenarioName)`：返回带模块名、场景名和 fixture 的 mock response 包装。
 
 后续 L2G/L2H 如需接入 mock-only 模式，必须显式新增安全开关、网络阻断测试和本地绑定策略后再接入运行入口。
+
+## 测试位置
+
+Adapter 测试位于 `apps/dsa-web/tests/mocks/adapter/`，避免被正式 App build 的 `tsconfig.app.json` 作为 `src` 源码扫描。

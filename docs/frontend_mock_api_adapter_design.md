@@ -81,7 +81,7 @@ L2F 的验证重点是静态边界，而不是启动 Web：
 - 检查新增文件仅位于 `docs/`、`docs/CHANGELOG.md` 和 `apps/dsa-web/src/mocks/adapter/`。
 - 检查 adapter 源码不包含网络、环境变量和 secret 访问关键字。
 - 检查 `src/api/**`、`main.tsx`、`App.tsx`、页面、store、组件、context、utils 没有导入 mock adapter。
-- 运行 mock adapter 单元测试或等价静态检查。
+- 运行 `apps/dsa-web/tests/mocks/adapter/` 下的 mock adapter 单元测试或等价静态检查，测试文件不放入 `src`，避免进入正式 App build。
 
 ## 8. 回滚方式
 
