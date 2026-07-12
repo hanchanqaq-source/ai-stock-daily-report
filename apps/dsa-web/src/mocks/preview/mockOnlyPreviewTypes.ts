@@ -13,6 +13,7 @@ export type MockOnlyPreviewSectionId =
   | 'alerts-preview'
   | 'agent-chat-preview'
   | 'empty-error-examples'
+  | 'local-settings-import-export'
 
 export interface MockOnlyPreviewMetadata {
   readonly mode: 'mock'

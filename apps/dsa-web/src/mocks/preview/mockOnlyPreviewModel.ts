@@ -121,6 +121,16 @@ export const getMockOnlyPreviewSections = (
       description: 'Empty states and error-shaped examples for future preview rendering checks.',
       data: emptyStates,
     },
+    {
+      id: 'local-settings-import-export',
+      title: 'Local settings and import/export preview',
+      description: 'A static Web-P20 boundary preview. It does not read files, configuration, or secrets.',
+      data: Object.freeze({
+        settingsMode: 'mock_only_locked',
+        importMode: 'review_only',
+        exportMode: 'not_generated',
+      }),
+    },
   ])
 }
 

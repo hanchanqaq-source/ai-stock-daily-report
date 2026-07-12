@@ -82,6 +82,10 @@ describe('mock-only preview independent web entry', () => {
       '不连接真实 API',
       '不启动后端',
       '不发送通知',
+      'Web-P20 设置与导入导出（模拟）',
+      '不执行配置读取、文件导入、备份导出或任何写入。',
+      '不读取文件或剪贴板',
+      '不生成备份，不导出 .env、Token、API Key 或 Webhook',
       'createElement',
       'textContent',
       'appendChild',
@@ -104,6 +108,8 @@ describe('mock-only preview independent web entry', () => {
       /\bWebSocket\b/,
       /\bimport\.meta\.env\b/,
       /\bwindow\.location\b/,
+      /\bFileReader\b/,
+      /\bnavigator\.clipboard\b/,
       /\blocalStorage\b/,
       /\bsessionStorage\b/,
       /\bindexedDB\b/,
@@ -144,5 +150,17 @@ describe('mock-only preview independent web entry', () => {
 
     const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
     expect(model.metadata).toMatchObject({ mode: 'mock', source: 'local_preview_only' })
+    expect(model.sections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'local-settings-import-export',
+          data: expect.objectContaining({
+            settingsMode: 'mock_only_locked',
+            importMode: 'review_only',
+            exportMode: 'not_generated',
+          }),
+        }),
+      ]),
+    )
   })
 })

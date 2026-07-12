@@ -66,7 +66,7 @@ describe('mock-only preview model', () => {
     ])
   })
 
-  it('returns dashboard, portfolio, history, alerts, agent, and empty/error sections', () => {
+  it('returns all mock-only preview sections including Web-P20 settings import/export', () => {
     expect(getMockOnlyPreviewSections(mockOptions).map((section) => section.id)).toEqual([
       'safety-banner',
       'dashboard-summary',
@@ -75,7 +75,23 @@ describe('mock-only preview model', () => {
       'alerts-preview',
       'agent-chat-preview',
       'empty-error-examples',
+      'local-settings-import-export',
     ])
+  })
+
+  it('keeps the Web-P20 settings import/export section static and non-executing', () => {
+    expect(getMockOnlyPreviewSections(mockOptions)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'local-settings-import-export',
+          data: expect.objectContaining({
+            settingsMode: 'mock_only_locked',
+            importMode: 'review_only',
+            exportMode: 'not_generated',
+          }),
+        }),
+      ]),
+    )
   })
 
   it('derives preview metadata from mock fixture metadata', () => {

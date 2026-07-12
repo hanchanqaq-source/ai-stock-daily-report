@@ -15,6 +15,12 @@ const SAFETY_NOTES = Object.freeze([
   '不发送通知',
 ])
 
+const SETTINGS_IMPORT_EXPORT_NOTES = Object.freeze([
+  '设置状态：mock-only 固定，不保存本地配置',
+  '导入状态：仅展示人工复核流程，不读取文件或剪贴板',
+  '导出状态：不生成备份，不导出 .env、Token、API Key 或 Webhook',
+])
+
 export interface MockOnlyPreviewEntryRenderResult {
   readonly safetyBannerCount: number
   readonly safetyNoteCount: number
@@ -77,6 +83,13 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
     'mock-preview-metadata-list',
   )
   container.appendChild(metadataPanel)
+
+  const settingsPanel = document.createElement('section')
+  settingsPanel.className = 'mock-preview-card mock-preview-settings-card'
+  appendTextElement(settingsPanel, 'h3', 'Web-P20 设置与导入导出（模拟）')
+  appendTextElement(settingsPanel, 'p', '本区只说明本地操作边界，不执行配置读取、文件导入、备份导出或任何写入。')
+  appendList(settingsPanel, 'ul', SETTINGS_IMPORT_EXPORT_NOTES, 'mock-preview-settings-list')
+  container.appendChild(settingsPanel)
 
   const sectionsPanel = document.createElement('section')
   sectionsPanel.className = 'mock-preview-card'
