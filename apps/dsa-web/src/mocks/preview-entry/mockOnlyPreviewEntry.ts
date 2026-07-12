@@ -287,7 +287,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendTextElement(
     portfolioPanel,
     'p',
-    '本区域仅展示静态脱敏 fixture，用于本地页面渲染检查，不读取真实账户、真实基金、真实行情或真实交易记录。',
+    '本区域仅展示静态脱敏 fixture，用于本地页面渲染检查，不读取真实账户、真实基金、真实行情或真实交易明细。',
   )
   appendList(portfolioPanel, 'ul', portfolioPreview.labels, 'mock-preview-dashboard-labels')
 

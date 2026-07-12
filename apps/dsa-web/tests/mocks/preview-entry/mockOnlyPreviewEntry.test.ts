@@ -198,8 +198,17 @@ describe('mock-only preview independent web entry', () => {
   it('renders Web-P28 page overview and module completion status from the preview model', () => {
     const source = readSource(entryPath)
     const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
-    const previewableSections = model.sections.filter((section) => section.status === '可预览')
-    const pendingSections = model.sections.filter((section) => section.status === '后续建设')
+    const businessSectionIds = new Set([
+      'dashboard-summary',
+      'portfolio-preview',
+      'history-reports-preview',
+      'alerts-preview',
+      'agent-chat-preview',
+      'empty-error-examples',
+    ])
+    const businessSections = model.sections.filter((section) => businessSectionIds.has(section.id))
+    const previewableSections = businessSections.filter((section) => section.status === '可预览')
+    const pendingSections = businessSections.filter((section) => section.status === '后续建设')
 
     for (const requiredText of [
       '页面总览',
@@ -258,8 +267,36 @@ describe('mock-only preview independent web entry', () => {
     expect(model.overview.usageDescription).toContain('本页面仅用于 Windows 本地 mock-only 渲染检查')
     expect(model.overview.previewableModuleCount).toBe(previewableSections.length)
     expect(model.overview.pendingModuleCount).toBe(pendingSections.length)
-    expect(model.overview.totalModuleCount).toBe(previewableSections.length + pendingSections.length)
+    expect(model.overview.totalModuleCount).toBe(businessSections.length)
   })
+
+  it('keeps preview entry fixture text redacted from precise holding values and real account detail labels', () => {
+    const source = `${readSource(entryPath)}
+${JSON.stringify(createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' }))}`
+
+    for (const forbiddenExactValue of [
+      ['¥59', '167.78'].join(','),
+      ['¥180', '000.00'].join(','),
+      ['32', '9%'].join('.'),
+      ['¥14', '879.70'].join(','),
+      ['+18', '33%'].join('.'),
+      ['¥6', '877.54'].join(','),
+      ['-0', '46%'].join('.'),
+      ['¥2', '115.71'].join(','),
+      ['-4', '01%'].join('.'),
+      ['¥2', '292.78'].join(','),
+      ['-1', '61%'].join('.'),
+    ]) {
+      expect(source).not.toContain(forbiddenExactValue)
+    }
+
+    expect(source).toContain('REDACTED FIXTURE DATA')
+    expect(source).toContain('模拟数据')
+    for (const forbiddenAccountDetail of ['真实基金代码', '真实账户明细', '真实交易记录']) {
+      expect(source).not.toContain(forbiddenAccountDetail)
+    }
+  })
+
 
   it('renders Web-P27 quick navigation anchors and section return links without external targets', () => {
     const source = readSource(entryPath)

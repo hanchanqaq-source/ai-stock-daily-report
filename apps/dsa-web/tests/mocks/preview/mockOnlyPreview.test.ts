@@ -95,10 +95,19 @@ describe('mock-only preview model', () => {
   })
 
 
-  it('derives mock-only overview completion counts from current section statuses', () => {
+  it('derives mock-only overview completion counts from business preview modules only', () => {
     const model = createMockOnlyPreviewModel(mockOptions)
-    const previewableSections = model.sections.filter((section) => section.status === '可预览')
-    const pendingSections = model.sections.filter((section) => section.status === '后续建设')
+    const businessSectionIds = new Set([
+      'dashboard-summary',
+      'portfolio-preview',
+      'history-reports-preview',
+      'alerts-preview',
+      'agent-chat-preview',
+      'empty-error-examples',
+    ])
+    const businessSections = model.sections.filter((section) => businessSectionIds.has(section.id))
+    const previewableSections = businessSections.filter((section) => section.status === '可预览')
+    const pendingSections = businessSections.filter((section) => section.status === '后续建设')
 
     expect(model.overview).toMatchObject({
       modeLabel: 'mock-only 本地预览',
@@ -113,7 +122,7 @@ describe('mock-only preview model', () => {
     })
     expect(model.overview.previewableModuleCount).toBe(previewableSections.length)
     expect(model.overview.pendingModuleCount).toBe(pendingSections.length)
-    expect(model.overview.totalModuleCount).toBe(previewableSections.length + pendingSections.length)
+    expect(model.overview.totalModuleCount).toBe(businessSections.length)
     expect(model.overview.completionPercent).toBe(
       Math.round((previewableSections.length / model.overview.totalModuleCount) * 100),
     )
@@ -134,9 +143,9 @@ describe('mock-only preview model', () => {
     expect(createMockOnlyPreviewModel(mockOptions).dashboardSummaryPreview).toMatchObject({
       headline: '科技方向保持震荡，模拟组合以观察为主，暂不进行主动调仓。',
       marketStatus: '震荡观察',
-      totalHoldingAmount: '¥59,167.78',
+      totalHoldingAmount: '¥88,888.88',
       dailyChange: '+0.68%',
-      positionRatio: '32.9%',
+      positionRatio: '44.4%',
       riskLevel: '中等',
       labels: expect.arrayContaining(['模拟数据', 'REDACTED FIXTURE DATA', '非真实账户', '非投资建议', '不会发送通知']),
     })
@@ -145,9 +154,9 @@ describe('mock-only preview model', () => {
   it('exposes static redacted portfolio preview fixture data', () => {
     expect(createMockOnlyPreviewModel(mockOptions).portfolioPreview).toMatchObject({
       accountLabel: '本地预览组合',
-      totalAmountLabel: '¥59,167.78',
-      targetAmountLabel: '¥180,000.00',
-      positionRatioLabel: '32.9%',
+      totalAmountLabel: '¥88,888.88',
+      targetAmountLabel: '¥200,000.00',
+      positionRatioLabel: '44.4%',
       labels: expect.arrayContaining([
         '模拟数据',
         'REDACTED FIXTURE DATA',
@@ -159,9 +168,9 @@ describe('mock-only preview model', () => {
       holdings: expect.arrayContaining([
         expect.objectContaining({
           name: '硬科技观察仓',
-          amountLabel: '¥14,879.70',
+          amountLabel: '¥20,000.00',
           weightLabel: '25.1%',
-          pnlLabel: '+18.33%',
+          pnlLabel: '+8.88%',
           riskLevel: '中高',
         }),
       ]),
@@ -169,6 +178,37 @@ describe('mock-only preview model', () => {
       actionNotes: expect.arrayContaining(['模拟组合保持观察，不执行自动调仓。']),
     })
   })
+
+  it('keeps mock-only fixture redacted from precise real holding values and account details', () => {
+    const model = createMockOnlyPreviewModel(mockOptions)
+    const visibleText = JSON.stringify(model)
+
+    for (const forbiddenExactValue of [
+      ['¥59', '167.78'].join(','),
+      ['¥180', '000.00'].join(','),
+      ['32', '9%'].join('.'),
+      ['¥14', '879.70'].join(','),
+      ['+18', '33%'].join('.'),
+      ['¥6', '877.54'].join(','),
+      ['-0', '46%'].join('.'),
+      ['¥2', '115.71'].join(','),
+      ['-4', '01%'].join('.'),
+      ['¥2', '292.78'].join(','),
+      ['-1', '61%'].join('.'),
+    ]) {
+      expect(visibleText).not.toContain(forbiddenExactValue)
+    }
+
+    expect(visibleText).toContain('REDACTED FIXTURE DATA')
+    expect(visibleText).toContain('模拟数据')
+    expect(visibleText).toContain('非真实账户')
+    expect(visibleText).toContain('不会交易')
+
+    for (const forbiddenAccountDetail of ['真实基金代码', '真实账户明细', '真实交易记录']) {
+      expect(visibleText).not.toContain(forbiddenAccountDetail)
+    }
+  })
+
 
   it('exposes static redacted history reports preview fixture data', () => {
     expect(createMockOnlyPreviewModel(mockOptions).historyReportsPreview).toMatchObject({
