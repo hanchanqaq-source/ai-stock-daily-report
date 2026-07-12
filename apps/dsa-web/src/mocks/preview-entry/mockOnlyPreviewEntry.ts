@@ -387,6 +387,101 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
 
   container.appendChild(alertsPanel)
 
+  const agentChatPreview = model.agentChatPreview
+  const agentPanel = document.createElement('section')
+  agentPanel.className = 'mock-preview-card mock-preview-dashboard-card'
+  agentPanel.id = 'mock-agent-chat-preview'
+  agentPanel.setAttribute('aria-labelledby', 'mock-agent-chat-preview-title')
+  appendTextElement(agentPanel, 'h3', 'Agent 对话预览', 'mock-preview-dashboard-title').id = 'mock-agent-chat-preview-title'
+  appendTextElement(
+    agentPanel,
+    'p',
+    '本区域仅展示静态脱敏 fixture，用于本地页面渲染检查，不连接真实 AI、真实 Agent、真实 provider、真实模型或真实账户。',
+  )
+  appendList(agentPanel, 'ul', agentChatPreview.labels, 'mock-preview-dashboard-labels')
+
+  const agentMetrics = document.createElement('div')
+  agentMetrics.className = 'mock-preview-dashboard-grid'
+  for (const metric of agentChatPreview.summary) {
+    appendMetric(agentMetrics, metric.label, metric.value)
+  }
+  agentPanel.appendChild(agentMetrics)
+
+  const sessionsBlock = document.createElement('div')
+  sessionsBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(sessionsBlock, 'h4', '会话列表')
+  const sessionsList = document.createElement('ul')
+  sessionsList.className = 'mock-preview-portfolio-list'
+  for (const session of agentChatPreview.sessions) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${session.sessionLabel}｜主题：${session.topic}｜状态：${session.status}｜模式：${session.mode}`,
+    )
+    appendTextElement(item, 'span', `${session.startedAtLabel}｜${session.note}`)
+    sessionsList.appendChild(item)
+  }
+  sessionsBlock.appendChild(sessionsList)
+  agentPanel.appendChild(sessionsBlock)
+
+  const messagesBlock = document.createElement('div')
+  messagesBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(messagesBlock, 'h4', '消息示例')
+  const messagesList = document.createElement('ul')
+  messagesList.className = 'mock-preview-portfolio-list'
+  for (const message of agentChatPreview.messages) {
+    const item = document.createElement('li')
+    appendTextElement(item, 'strong', `${message.role}：${message.content}`)
+    appendTextElement(item, 'span', `${message.timestampLabel}｜${message.status}｜${message.note}`)
+    messagesList.appendChild(item)
+  }
+  messagesBlock.appendChild(messagesList)
+  agentPanel.appendChild(messagesBlock)
+
+  const chunksBlock = document.createElement('div')
+  chunksBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(chunksBlock, 'h4', '流式片段示例')
+  const chunksList = document.createElement('ol')
+  chunksList.className = 'mock-preview-portfolio-list'
+  for (const chunk of agentChatPreview.streamChunks) {
+    const item = document.createElement('li')
+    appendTextElement(item, 'strong', `chunk ${chunk.order}：${chunk.content}`)
+    appendTextElement(item, 'span', `${chunk.type}｜${chunk.status}｜${chunk.note}`)
+    chunksList.appendChild(item)
+  }
+  chunksBlock.appendChild(chunksList)
+  agentPanel.appendChild(chunksBlock)
+
+  const errorsBlock = document.createElement('div')
+  errorsBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(errorsBlock, 'h4', '错误示例')
+  const errorsList = document.createElement('ul')
+  errorsList.className = 'mock-preview-portfolio-list'
+  for (const errorExample of agentChatPreview.errorExamples) {
+    const item = document.createElement('li')
+    appendTextElement(item, 'strong', `${errorExample.title}：${errorExample.message}`)
+    appendTextElement(item, 'span', `${errorExample.status}｜${errorExample.recoveryHint}`)
+    errorsList.appendChild(item)
+  }
+  errorsBlock.appendChild(errorsList)
+  agentPanel.appendChild(errorsBlock)
+
+  const agentWarningBlock = document.createElement('div')
+  agentWarningBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(agentWarningBlock, 'h4', '风险提示')
+  appendList(agentWarningBlock, 'ul', agentChatPreview.riskNotes, 'mock-preview-settings-list')
+  agentPanel.appendChild(agentWarningBlock)
+
+  const agentActionBlock = document.createElement('div')
+  agentActionBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(agentActionBlock, 'h4', '今日观察备注')
+  appendList(agentActionBlock, 'ol', agentChatPreview.actionNotes, 'mock-preview-settings-list')
+  agentPanel.appendChild(agentActionBlock)
+
+  container.appendChild(agentPanel)
+
+
   root.appendChild(container)
 
   return {

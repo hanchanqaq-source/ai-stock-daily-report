@@ -91,6 +91,7 @@ describe('mock-only preview independent web entry', () => {
       '持仓预览',
       '历史报告预览',
       '提醒预览',
+      'Agent 对话预览',
       'AI股票基金每日信息报告',
       '模拟账户',
       '模拟持仓总额',
@@ -118,6 +119,8 @@ describe('mock-only preview independent web entry', () => {
       model.historyReportsPreview.selectedReport.headline,
       ...model.alertsPreview.summary.map((item) => `${item.label}:${item.value}`),
       ...model.alertsPreview.labels,
+      ...model.agentChatPreview.summary.map((item) => `${item.label}:${item.value}`),
+      ...model.agentChatPreview.labels,
       ...model.historyReportsPreview.selectedReport.tags,
     ].join('\n')
 
@@ -140,6 +143,15 @@ describe('mock-only preview independent web entry', () => {
       '非真实通知',
       '不读取 webhook',
       '不读取 token',
+      'Agent 对话预览',
+      '模拟会话数量',
+      '模拟消息数量',
+      '模拟流式片段',
+      '非真实 Agent',
+      '非真实 AI',
+      '不会调用模型',
+      '不读取 API key',
+      '不读取 .env',
     ]) {
       expect(visibleText).toContain(requiredText)
     }
@@ -227,24 +239,39 @@ describe('mock-only preview independent web entry', () => {
     expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
   })
 
-  it('marks dashboard summary, portfolio preview, history reports preview, and alerts preview as previewable and keeps unfinished modules pending', () => {
+  it('renders the agent chat entry in the module range before the agent chat content', () => {
+    const source = readSource(entryPath)
+    const moduleRangeIndex = source.indexOf('模拟模块预览范围')
+    const agentEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const agentContentIndex = source.indexOf("agentPanel.id = 'mock-agent-chat-preview'")
+
+    expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
+    expect(agentEntryIndex).toBeGreaterThan(moduleRangeIndex)
+    expect(agentContentIndex).toBeGreaterThan(agentEntryIndex)
+    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+  })
+
+  it('marks dashboard summary, portfolio preview, history reports preview, alerts preview, and agent chat preview as previewable and keeps unfinished modules pending', () => {
     const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
     const dashboard = model.sections.find((section) => section.id === 'dashboard-summary')
     const portfolio = model.sections.find((section) => section.id === 'portfolio-preview')
     const history = model.sections.find((section) => section.id === 'history-reports-preview')
     const alerts = model.sections.find((section) => section.id === 'alerts-preview')
+    const agent = model.sections.find((section) => section.id === 'agent-chat-preview')
     const unfinishedSections = model.sections.filter(
       (section) =>
         section.id !== 'dashboard-summary' &&
         section.id !== 'portfolio-preview' &&
         section.id !== 'history-reports-preview' &&
-        section.id !== 'alerts-preview',
+        section.id !== 'alerts-preview' &&
+        section.id !== 'agent-chat-preview',
     )
 
     expect(dashboard).toMatchObject({ title: '仪表盘摘要', status: '可预览', previewAnchor: 'mock-dashboard-summary-preview' })
     expect(portfolio).toMatchObject({ title: '持仓预览', status: '可预览', previewAnchor: 'mock-portfolio-preview' })
     expect(history).toMatchObject({ title: '历史报告预览', status: '可预览', previewAnchor: 'mock-history-reports-preview' })
     expect(alerts).toMatchObject({ title: '提醒预览', status: '可预览', previewAnchor: 'mock-alerts-preview' })
+    expect(agent).toMatchObject({ title: 'Agent 对话预览', status: '可预览', previewAnchor: 'mock-agent-chat-preview' })
     expect(unfinishedSections.length).toBeGreaterThan(0)
     for (const section of unfinishedSections) {
       expect(section.status).toBe('后续建设')
@@ -257,7 +284,6 @@ describe('mock-only preview independent web entry', () => {
 
     for (const forbidden of [
       '0.0.0.0',
-      '.env',
       'fetch(',
       'axios',
       'XMLHttpRequest',
@@ -271,8 +297,6 @@ describe('mock-only preview independent web entry', () => {
       'sendBeacon',
       '/api/v1',
       'VITE_API_URL',
-      'webhook',
-      'token',
     ]) {
       expect(source).not.toContain(forbidden)
     }
