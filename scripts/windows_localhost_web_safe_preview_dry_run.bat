@@ -9,6 +9,8 @@ set "DRY_RUN_PUSHED_WEB="
 set "FAIL_REASON=Unexpected dry-run failure."
 set "NODE_EXE="
 set "LAST_EXIT="
+set "TEST_TIMEOUT_SECONDS=60"
+set "BUILD_TIMEOUT_SECONDS=180"
 
 echo ============================================================
 echo Windows localhost web safe preview dry-run
@@ -77,6 +79,13 @@ if errorlevel 1 (
 )
 for /f "delims=" %%V in ('call npm --version') do echo PASS npm version: %%V
 
+where powershell.exe >nul 2>nul
+if errorlevel 1 (
+  set "FAIL_REASON=PowerShell is not available. Cannot enforce dry-run timeouts."
+  goto :fatal_exit
+)
+call :pass "PowerShell timeout runner is available."
+
 if not exist "apps\dsa-web\node_modules" (
   set "FAIL_REASON=apps\dsa-web\node_modules is missing. Install dependencies manually before dry-run."
   goto :fatal_exit
@@ -102,36 +111,52 @@ if not "%LAST_EXIT%"=="0" (
 )
 
 echo Running mock-only preview-entry test...
-call npm run test -- tests/mocks/preview-entry/mockOnlyPreviewEntry.test.ts
+call :run_timed "mockOnlyPreviewEntry.test.ts" "%TEST_TIMEOUT_SECONDS%" "npm run test -- tests/mocks/preview-entry/mockOnlyPreviewEntry.test.ts"
 set "LAST_EXIT=%ERRORLEVEL%"
 echo npm run test exit code: %LAST_EXIT%
+if "%LAST_EXIT%"=="124" (
+  set "FAIL_REASON=mockOnlyPreviewEntry.test.ts timed out after %TEST_TIMEOUT_SECONDS% seconds."
+  goto :fatal_exit
+)
 if not "%LAST_EXIT%"=="0" (
   set "FAIL_REASON=mockOnlyPreviewEntry.test.ts failed with exit code %LAST_EXIT%."
   goto :fatal_exit
 )
 
 echo Running mock-only network-boundary test...
-call npm run test -- tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts
+call :run_timed "mockOnlyPreviewNetworkBoundary.test.ts" "%TEST_TIMEOUT_SECONDS%" "npm run test -- tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts"
 set "LAST_EXIT=%ERRORLEVEL%"
 echo npm run test exit code: %LAST_EXIT%
+if "%LAST_EXIT%"=="124" (
+  set "FAIL_REASON=mockOnlyPreviewNetworkBoundary.test.ts timed out after %TEST_TIMEOUT_SECONDS% seconds."
+  goto :fatal_exit
+)
 if not "%LAST_EXIT%"=="0" (
   set "FAIL_REASON=mockOnlyPreviewNetworkBoundary.test.ts failed with exit code %LAST_EXIT%."
   goto :fatal_exit
 )
 
 echo Running mock-only preview model test...
-call npm run test -- tests/mocks/preview/mockOnlyPreview.test.ts
+call :run_timed "mockOnlyPreview.test.ts" "%TEST_TIMEOUT_SECONDS%" "npm run test -- tests/mocks/preview/mockOnlyPreview.test.ts"
 set "LAST_EXIT=%ERRORLEVEL%"
 echo npm run test exit code: %LAST_EXIT%
+if "%LAST_EXIT%"=="124" (
+  set "FAIL_REASON=mockOnlyPreview.test.ts timed out after %TEST_TIMEOUT_SECONDS% seconds."
+  goto :fatal_exit
+)
 if not "%LAST_EXIT%"=="0" (
   set "FAIL_REASON=mockOnlyPreview.test.ts failed with exit code %LAST_EXIT%."
   goto :fatal_exit
 )
 
 echo Running web build dry-run check...
-call npm run build
+call :run_timed "npm run build" "%BUILD_TIMEOUT_SECONDS%" "npm run build"
 set "LAST_EXIT=%ERRORLEVEL%"
 echo npm run build exit code: %LAST_EXIT%
+if "%LAST_EXIT%"=="124" (
+  set "FAIL_REASON=web build dry-run check timed out after %BUILD_TIMEOUT_SECONDS% seconds."
+  goto :fatal_exit
+)
 if not "%LAST_EXIT%"=="0" (
   set "FAIL_REASON=web build dry-run check failed with exit code %LAST_EXIT%."
   goto :fatal_exit
@@ -173,6 +198,18 @@ exit /b 0
 :pass
 echo PASS %~1
 exit /b 0
+
+:run_timed
+set "DRY_RUN_TIMED_LABEL=%~1"
+set "DRY_RUN_TIMED_TIMEOUT=%~2"
+set "DRY_RUN_TIMED_COMMAND=%~3"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$label=$env:DRY_RUN_TIMED_LABEL; $timeout=[int]$env:DRY_RUN_TIMED_TIMEOUT; $cmd=$env:DRY_RUN_TIMED_COMMAND; $p=Start-Process -FilePath 'cmd.exe' -ArgumentList '/d','/s','/c',$cmd -NoNewWindow -PassThru; if (-not $p.WaitForExit($timeout * 1000)) { taskkill.exe /PID $p.Id /T /F > $null 2>&1; Write-Host ('FAIL ' + $label + ' timed out after ' + $timeout + ' seconds.'); exit 124 }; exit $p.ExitCode"
+set "RUN_TIMED_EXIT=%ERRORLEVEL%"
+set "DRY_RUN_TIMED_LABEL="
+set "DRY_RUN_TIMED_TIMEOUT="
+set "DRY_RUN_TIMED_COMMAND="
+exit /b %RUN_TIMED_EXIT%
 
 :fatal_exit
 echo FAIL %FAIL_REASON%
