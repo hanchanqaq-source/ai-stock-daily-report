@@ -86,7 +86,7 @@ describe('mock-only preview model', () => {
         expect.objectContaining({ id: 'safety-banner', title: '安全边界', status: '后续建设' }),
         expect.objectContaining({ id: 'dashboard-summary', title: '仪表盘摘要', status: '可预览' }),
         expect.objectContaining({ id: 'portfolio-preview', title: '持仓预览', status: '可预览' }),
-        expect.objectContaining({ id: 'history-reports-preview', title: '历史报告预览', status: '后续建设' }),
+        expect.objectContaining({ id: 'history-reports-preview', title: '历史报告预览', status: '可预览' }),
         expect.objectContaining({ id: 'alerts-preview', title: '提醒预览', status: '后续建设' }),
         expect.objectContaining({ id: 'agent-chat-preview', title: 'Agent 对话预览', status: '后续建设' }),
       ]),
@@ -130,6 +130,34 @@ describe('mock-only preview model', () => {
       ]),
       riskNotes: expect.arrayContaining(['本区域只展示静态脱敏 fixture，不读取用户真实持仓。']),
       actionNotes: expect.arrayContaining(['模拟组合保持观察，不执行自动调仓。']),
+    })
+  })
+
+  it('exposes static redacted history reports preview fixture data', () => {
+    expect(createMockOnlyPreviewModel(mockOptions).historyReportsPreview).toMatchObject({
+      summary: expect.arrayContaining([
+        expect.objectContaining({ label: '模拟报告数量', value: '3' }),
+        expect.objectContaining({ label: '最新模拟报告', value: '2026-07-12' }),
+        expect.objectContaining({ label: '模拟数据来源', value: 'REDACTED FIXTURE DATA' }),
+      ]),
+      reports: expect.arrayContaining([
+        expect.objectContaining({
+          reportDateLabel: '2026-07-12',
+          title: 'AI股票基金每日信息报告',
+          status: '本地预览',
+          marketMood: '震荡观察',
+          portfolioAction: '不调仓',
+          riskLevel: '中等',
+          deliveryStatus: '未发送',
+        }),
+      ]),
+      selectedReport: expect.objectContaining({
+        title: 'AI股票基金每日信息报告 mock-only 历史详情',
+        headline: '科技方向维持震荡，模拟组合以观察为主，不执行主动调仓。',
+        tags: expect.arrayContaining(['模拟数据', 'REDACTED FIXTURE DATA', '非真实日报', '非真实账户', '非投资建议', '不会发送通知', '不会交易']),
+      }),
+      riskNotes: expect.arrayContaining(['本区域只展示静态脱敏 fixture，不读取真实历史报告。']),
+      actionNotes: expect.arrayContaining(['历史报告列表仅用于 mock-only 页面演示。']),
     })
   })
 
