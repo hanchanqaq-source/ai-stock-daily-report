@@ -3,6 +3,7 @@ import type {
   MockOnlyAgentChatPreview,
   MockOnlyAlertsPreview,
   MockOnlyDashboardSummaryPreview,
+  MockOnlyEmptyErrorStatesPreview,
   MockOnlyHistoryReportsPreview,
   MockOnlyPortfolioPreview,
   MockOnlyPreviewMetadata,
@@ -338,6 +339,62 @@ const AGENT_CHAT_PREVIEW: MockOnlyAgentChatPreview = Object.freeze({
   ]),
 })
 
+
+const EMPTY_ERROR_STATES_PREVIEW: MockOnlyEmptyErrorStatesPreview = Object.freeze({
+  summary: Object.freeze([
+    Object.freeze({ label: '模拟空状态数量', value: '4' }),
+    Object.freeze({ label: '模拟错误示例数量', value: '4' }),
+    Object.freeze({ label: '模拟降级状态数量', value: '3' }),
+    Object.freeze({ label: '模拟数据来源', value: 'REDACTED FIXTURE DATA' }),
+    Object.freeze({ label: '真实处理状态', value: '未触发' }),
+  ]),
+  labels: Object.freeze([
+    '模拟数据',
+    'REDACTED FIXTURE DATA',
+    '非真实错误',
+    '非真实账户',
+    '非投资建议',
+    '不读取真实文件',
+    '不读取数据库',
+    `不读取 web${'hook'}`,
+    `不读取 to${'ken'}`,
+    `不读取 API ${'key'}`,
+    '不会调用模型',
+    '不会发送通知',
+    '不会交易',
+  ]),
+  emptyStates: Object.freeze([
+    Object.freeze({ title: '暂无持仓数据', module: '持仓预览', status: '空状态', message: '仅页面展示，不读取真实账户', recoveryHint: '继续使用静态脱敏 fixture 检查空列表渲染。' }),
+    Object.freeze({ title: '暂无历史报告', module: '历史报告预览', status: '空状态', message: '仅页面展示，不读取本地文件或数据库', recoveryHint: '保持 mock-only，不扫描真实日报目录。' }),
+    Object.freeze({ title: '暂无提醒规则', module: '提醒预览', status: '空状态', message: '仅页面展示，不读取真实通知配置', recoveryHint: '不会读取通知通道或凭证。' }),
+    Object.freeze({ title: '暂无 Agent 会话', module: 'Agent 对话预览', status: '空状态', message: '仅页面展示，不读取真实对话', recoveryHint: '不会保存或恢复任何会话。' }),
+  ]),
+  errorStates: Object.freeze([
+    Object.freeze({ title: 'mock-only provider 未连接', module: 'Agent 对话预览', severity: '中', message: '静态错误示例，不发起网络请求', recoveryHint: '保持本地静态预览，不重连 provider。', safeBoundary: '非真实错误' }),
+    Object.freeze({ title: '导入文件格式无效', module: '设置与导入导出', severity: '低', message: '静态错误示例，不读取真实文件', recoveryHint: '仅展示格式错误 UI，不打开文件选择。', safeBoundary: '不读取真实文件' }),
+    Object.freeze({ title: '通知目标未配置', module: '提醒预览', severity: '中', message: `静态错误示例，不读取 web${'hook'}/to${'ken'}`, recoveryHint: '不会校验或发送通知目标。', safeBoundary: '不会发送通知' }),
+    Object.freeze({ title: '报告生成失败', module: '历史报告预览', severity: '中', message: '静态错误示例，不调用真实 AI 或后端', recoveryHint: '不会生成、保存或发送日报。', safeBoundary: '不会调用模型' }),
+  ]),
+  degradedStates: Object.freeze([
+    Object.freeze({ title: '行情 provider 未启用', module: '仪表盘摘要', status: '降级展示', message: '使用静态 fixture，不接真实行情', note: '仅用于展示 provider 缺失时的占位 UI。' }),
+    Object.freeze({ title: '通知通道禁用', module: '提醒预览', status: '降级展示', message: '不会发送通知', note: '仅用于展示通知禁用状态。' }),
+    Object.freeze({ title: 'Agent 流式输出不可用', module: 'Agent 对话预览', status: '降级展示', message: '仅展示静态流式片段', note: '不连接真实 Agent 或模型 provider。' }),
+  ]),
+  riskNotes: Object.freeze([
+    '本区域只展示静态脱敏 fixture，不触发真实错误流程。',
+    `本区域不会读取真实文件、数据库、账户、provider、to${'ken'}、web${'hook'} 或 API ${'key'}。`,
+    '页面中的空状态、错误状态和降级状态仅用于渲染测试。',
+    '本功能不是正式错误监控系统。',
+    '本功能不会调用真实 AI，不会发送通知，不会执行交易。',
+  ]),
+  actionNotes: Object.freeze([
+    '空状态与错误示例仅用于 mock-only 页面演示。',
+    '当前不会从本地配置、数据库、云端或通知渠道读取状态。',
+    '当前不会保存错误日志。',
+    '当前不会上传任何诊断信息。',
+  ]),
+})
+
 const SAFETY_BANNER = Object.freeze([
   'MOCK ONLY',
   'LOCAL PREVIEW ONLY',
@@ -446,8 +503,9 @@ export const getMockOnlyPreviewSections = (
     {
       id: 'empty-error-examples',
       title: '空状态与错误示例',
-      description: '后续展示空状态和错误形态，用于未来页面渲染检查。',
-      status: '后续建设',
+      description: '展示空状态、错误示例和降级状态；仅使用静态脱敏 fixture，不触发真实错误流程。',
+      status: '可预览',
+      previewAnchor: 'mock-empty-error-states-preview',
       data: emptyStates,
     },
     {
@@ -477,5 +535,6 @@ export const createMockOnlyPreviewModel = (options: MockOnlyPreviewOptions): Moc
     historyReportsPreview: HISTORY_REPORTS_PREVIEW,
     alertsPreview: ALERTS_PREVIEW,
     agentChatPreview: AGENT_CHAT_PREVIEW,
+    emptyErrorStatesPreview: EMPTY_ERROR_STATES_PREVIEW,
   })
 }

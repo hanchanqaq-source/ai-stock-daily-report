@@ -89,6 +89,7 @@ describe('mock-only preview model', () => {
         expect.objectContaining({ id: 'history-reports-preview', title: '历史报告预览', status: '可预览' }),
         expect.objectContaining({ id: 'alerts-preview', title: '提醒预览', status: '可预览' }),
         expect.objectContaining({ id: 'agent-chat-preview', title: 'Agent 对话预览', status: '可预览' }),
+        expect.objectContaining({ id: 'empty-error-examples', title: '空状态与错误示例', status: '可预览' }),
       ]),
     )
   })
@@ -226,6 +227,57 @@ describe('mock-only preview model', () => {
       '日报摘要检查',
       '正在生成 mock-only 回复',
       '模拟 provider 未连接',
+    ]) {
+      expect(visibleText).toContain(requiredText)
+    }
+  })
+
+
+  it('exposes static redacted empty and error states preview fixture data', () => {
+    const model = createMockOnlyPreviewModel(mockOptions)
+    const visibleText = [
+      ...model.sections.map((section) => `${section.title}:${section.status}:${section.previewAnchor ?? ''}`),
+      ...model.emptyErrorStatesPreview.summary.map((item) => `${item.label}:${item.value}`),
+      ...model.emptyErrorStatesPreview.labels,
+      ...model.emptyErrorStatesPreview.emptyStates.map((item) => `${item.title}:${item.module}:${item.status}:${item.message}:${item.recoveryHint}`),
+      ...model.emptyErrorStatesPreview.errorStates.map((item) => `${item.title}:${item.module}:${item.severity}:${item.message}:${item.safeBoundary}`),
+      ...model.emptyErrorStatesPreview.degradedStates.map((item) => `${item.title}:${item.module}:${item.status}:${item.message}:${item.note}`),
+      ...model.emptyErrorStatesPreview.riskNotes,
+      ...model.emptyErrorStatesPreview.actionNotes,
+    ].join('\n')
+
+    for (const requiredText of [
+      '空状态与错误示例',
+      '可预览',
+      'mock-empty-error-states-preview',
+      '模拟空状态数量',
+      '模拟错误示例数量',
+      '模拟降级状态数量',
+      'REDACTED FIXTURE DATA',
+      '非真实错误',
+      '非真实账户',
+      '非投资建议',
+      '不读取真实文件',
+      '不读取数据库',
+      '不读取 webhook',
+      '不读取 token',
+      '不读取 API key',
+      '不会调用模型',
+      '不会发送通知',
+      '不会交易',
+      '暂无持仓数据',
+      '暂无历史报告',
+      '暂无提醒规则',
+      '暂无 Agent 会话',
+      'mock-only provider 未连接',
+      '导入文件格式无效',
+      '通知目标未配置',
+      '报告生成失败',
+      '行情 provider 未启用',
+      '通知通道禁用',
+      'Agent 流式输出不可用',
+      '本功能不是正式错误监控系统。',
+      '当前不会上传任何诊断信息。',
     ]) {
       expect(visibleText).toContain(requiredText)
     }

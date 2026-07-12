@@ -92,6 +92,7 @@ describe('mock-only preview independent web entry', () => {
       '历史报告预览',
       '提醒预览',
       'Agent 对话预览',
+      '空状态与错误示例',
       'AI股票基金每日信息报告',
       '模拟账户',
       '模拟持仓总额',
@@ -121,6 +122,8 @@ describe('mock-only preview independent web entry', () => {
       ...model.alertsPreview.labels,
       ...model.agentChatPreview.summary.map((item) => `${item.label}:${item.value}`),
       ...model.agentChatPreview.labels,
+      ...model.emptyErrorStatesPreview.summary.map((item) => `${item.label}:${item.value}`),
+      ...model.emptyErrorStatesPreview.labels,
       ...model.historyReportsPreview.selectedReport.tags,
     ].join('\n')
 
@@ -152,6 +155,8 @@ describe('mock-only preview independent web entry', () => {
       '不会调用模型',
       '不读取 API key',
       '不读取 .env',
+      '空状态与错误示例',
+      '非真实错误',
     ]) {
       expect(visibleText).toContain(requiredText)
     }
@@ -251,20 +256,35 @@ describe('mock-only preview independent web entry', () => {
     expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
   })
 
-  it('marks dashboard summary, portfolio preview, history reports preview, alerts preview, and agent chat preview as previewable and keeps unfinished modules pending', () => {
+
+  it('renders the empty and error states entry in the module range before the empty and error states content', () => {
+    const source = readSource(entryPath)
+    const moduleRangeIndex = source.indexOf('模拟模块预览范围')
+    const emptyErrorEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const emptyErrorContentIndex = source.indexOf("emptyErrorPanel.id = 'mock-empty-error-states-preview'")
+
+    expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
+    expect(emptyErrorEntryIndex).toBeGreaterThan(moduleRangeIndex)
+    expect(emptyErrorContentIndex).toBeGreaterThan(emptyErrorEntryIndex)
+    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+  })
+
+  it('marks dashboard summary, portfolio preview, history reports preview, alerts preview, agent chat preview, and empty/error states preview as previewable and keeps unfinished modules pending', () => {
     const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
     const dashboard = model.sections.find((section) => section.id === 'dashboard-summary')
     const portfolio = model.sections.find((section) => section.id === 'portfolio-preview')
     const history = model.sections.find((section) => section.id === 'history-reports-preview')
     const alerts = model.sections.find((section) => section.id === 'alerts-preview')
     const agent = model.sections.find((section) => section.id === 'agent-chat-preview')
+    const emptyErrors = model.sections.find((section) => section.id === 'empty-error-examples')
     const unfinishedSections = model.sections.filter(
       (section) =>
         section.id !== 'dashboard-summary' &&
         section.id !== 'portfolio-preview' &&
         section.id !== 'history-reports-preview' &&
         section.id !== 'alerts-preview' &&
-        section.id !== 'agent-chat-preview',
+        section.id !== 'agent-chat-preview' &&
+        section.id !== 'empty-error-examples',
     )
 
     expect(dashboard).toMatchObject({ title: '仪表盘摘要', status: '可预览', previewAnchor: 'mock-dashboard-summary-preview' })
@@ -272,6 +292,7 @@ describe('mock-only preview independent web entry', () => {
     expect(history).toMatchObject({ title: '历史报告预览', status: '可预览', previewAnchor: 'mock-history-reports-preview' })
     expect(alerts).toMatchObject({ title: '提醒预览', status: '可预览', previewAnchor: 'mock-alerts-preview' })
     expect(agent).toMatchObject({ title: 'Agent 对话预览', status: '可预览', previewAnchor: 'mock-agent-chat-preview' })
+    expect(emptyErrors).toMatchObject({ title: '空状态与错误示例', status: '可预览', previewAnchor: 'mock-empty-error-states-preview' })
     expect(unfinishedSections.length).toBeGreaterThan(0)
     for (const section of unfinishedSections) {
       expect(section.status).toBe('后续建设')
