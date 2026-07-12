@@ -9,7 +9,7 @@ const PREVIEW_OPTIONS = {
 const SAFETY_NOTES = Object.freeze([
   '仅供模拟',
   '仅限本地预览',
-  '不读取 .env',
+  '不读取环境配置文件',
   '不连接真实 API',
   '不启动后端',
   '不发送通知',
@@ -18,7 +18,7 @@ const SAFETY_NOTES = Object.freeze([
 const SETTINGS_IMPORT_EXPORT_NOTES = Object.freeze([
   '设置状态：mock-only 固定，不保存本地配置',
   '导入状态：仅展示人工复核流程，不读取文件或剪贴板',
-  '导出状态：不生成备份，不导出 .env、Token、API Key 或 Webhook',
+  '导出状态：不生成备份，不导出环境配置、Token、API Key 或 Webhook',
 ])
 
 export interface MockOnlyPreviewEntryRenderResult {
@@ -43,6 +43,20 @@ const appendList = (parent: HTMLElement, tagName: 'ul' | 'ol', items: readonly s
   }
   parent.appendChild(list)
   return list
+}
+
+const appendMetric = (parent: HTMLElement, label: string, value: string): void => {
+  const metric = document.createElement('div')
+  metric.className = 'mock-preview-dashboard-metric'
+  appendTextElement(metric, 'span', label)
+  appendTextElement(metric, 'strong', value)
+  parent.appendChild(metric)
+}
+
+const ratioToWidth = (ratio: string): string => {
+  const parsedRatio = Number.parseFloat(ratio)
+  if (!Number.isFinite(parsedRatio)) return '0%'
+  return `${Math.max(0, Math.min(100, parsedRatio))}%`
 }
 
 export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEntryRenderResult => {
@@ -93,17 +107,77 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
 
   const sectionsPanel = document.createElement('section')
   sectionsPanel.className = 'mock-preview-card'
-  appendTextElement(sectionsPanel, 'h3', 'Mock 模块预览范围')
+  appendTextElement(sectionsPanel, 'h3', '模拟模块预览范围')
   const sectionList = document.createElement('ol')
   sectionList.className = 'mock-preview-section-list'
   for (const section of model.sections) {
     const item = document.createElement('li')
     appendTextElement(item, 'strong', section.title)
+    appendTextElement(
+      item,
+      'span',
+      section.status,
+      section.status === '可预览' ? 'mock-preview-section-status' : 'mock-preview-section-status is-pending',
+    )
     appendTextElement(item, 'span', section.description)
+    if (section.previewAnchor) {
+      const previewLink = document.createElement('a')
+      previewLink.className = 'mock-preview-link'
+      previewLink.href = `#${section.previewAnchor}`
+      previewLink.textContent = '进入预览'
+      item.appendChild(previewLink)
+    }
     sectionList.appendChild(item)
   }
   sectionsPanel.appendChild(sectionList)
   container.appendChild(sectionsPanel)
+
+  const dashboardPreview = model.dashboardSummaryPreview
+  const dashboardPanel = document.createElement('section')
+  dashboardPanel.className = 'mock-preview-card mock-preview-dashboard-card'
+  dashboardPanel.id = 'mock-dashboard-summary-preview'
+  dashboardPanel.setAttribute('aria-labelledby', 'mock-dashboard-summary-preview-title')
+  appendTextElement(dashboardPanel, 'h3', '仪表盘摘要预览', 'mock-preview-dashboard-title').id =
+    'mock-dashboard-summary-preview-title'
+  appendTextElement(dashboardPanel, 'p', `今日一句话摘要：${dashboardPreview.headline}`)
+  appendList(dashboardPanel, 'ul', dashboardPreview.labels, 'mock-preview-dashboard-labels')
+
+  const metricsGrid = document.createElement('div')
+  metricsGrid.className = 'mock-preview-dashboard-grid'
+  appendMetric(metricsGrid, '市场状态', dashboardPreview.marketStatus)
+  appendMetric(metricsGrid, '模拟持仓总额', dashboardPreview.totalHoldingAmount)
+  appendMetric(metricsGrid, '模拟当日涨跌', dashboardPreview.dailyChange)
+  appendMetric(metricsGrid, '模拟仓位比例', dashboardPreview.positionRatio)
+  appendMetric(metricsGrid, '风险等级', dashboardPreview.riskLevel)
+  dashboardPanel.appendChild(metricsGrid)
+
+  const structureBlock = document.createElement('div')
+  structureBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(structureBlock, 'h4', '持仓结构')
+  for (const holding of dashboardPreview.holdingStructure) {
+    appendTextElement(structureBlock, 'p', `${holding.name}：${holding.ratio}`)
+    const progress = document.createElement('div')
+    progress.className = 'mock-preview-dashboard-progress'
+    const bar = document.createElement('span')
+    bar.style.width = ratioToWidth(holding.ratio)
+    progress.appendChild(bar)
+    structureBlock.appendChild(progress)
+  }
+  dashboardPanel.appendChild(structureBlock)
+
+  const warningBlock = document.createElement('div')
+  warningBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(warningBlock, 'h4', '风险提示')
+  appendList(warningBlock, 'ul', dashboardPreview.riskWarnings, 'mock-preview-settings-list')
+  dashboardPanel.appendChild(warningBlock)
+
+  const actionBlock = document.createElement('div')
+  actionBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(actionBlock, 'h4', '今日动作建议示例')
+  appendList(actionBlock, 'ol', dashboardPreview.actionSuggestions, 'mock-preview-settings-list')
+  dashboardPanel.appendChild(actionBlock)
+
+  container.appendChild(dashboardPanel)
 
   root.appendChild(container)
 
