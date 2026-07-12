@@ -71,7 +71,8 @@
       .mock-preview-badge-list,
       .mock-preview-safety-list,
       .mock-preview-settings-list,
-      .mock-preview-metadata-list {
+      .mock-preview-metadata-list,
+      .mock-preview-dashboard-labels {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
@@ -84,7 +85,8 @@
       .mock-preview-badge-list li,
       .mock-preview-safety-list li,
       .mock-preview-settings-list li,
-      .mock-preview-metadata-list li {
+      .mock-preview-metadata-list li,
+      .mock-preview-dashboard-labels li {
         border-radius: 999px;
         padding: 8px 12px;
         background: #edf4ff;
@@ -160,6 +162,75 @@
         color: #5c667c;
         line-height: 1.55;
       }
+
+      .mock-preview-section-status {
+        width: fit-content;
+        border-radius: 999px;
+        padding: 4px 10px;
+        background: #e9f7ef;
+        color: #14713b;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .mock-preview-section-status.is-pending {
+        background: #f0f3f8;
+        color: #5c667c;
+      }
+
+      .mock-preview-link {
+        width: fit-content;
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: #3156d4;
+        color: #ffffff;
+        font-size: 0.92rem;
+        font-weight: 800;
+        text-decoration: none;
+      }
+
+      .mock-preview-dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin: 18px 0;
+      }
+
+      .mock-preview-dashboard-metric,
+      .mock-preview-dashboard-block {
+        border-radius: 16px;
+        padding: 16px;
+        background: #f7faff;
+      }
+
+      .mock-preview-dashboard-metric span {
+        display: block;
+        color: #5c667c;
+        font-size: 0.86rem;
+        font-weight: 700;
+      }
+
+      .mock-preview-dashboard-metric strong {
+        display: block;
+        margin-top: 6px;
+        color: #182033;
+        font-size: 1.35rem;
+      }
+
+      .mock-preview-dashboard-progress {
+        overflow: hidden;
+        height: 10px;
+        margin-top: 8px;
+        border-radius: 999px;
+        background: #e5edff;
+      }
+
+      .mock-preview-dashboard-progress span {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #3156d4, #5b8cff);
+      }
     </style>
   </head>
   <body>
@@ -171,7 +242,7 @@
         <ul class="page-safety-list" aria-label="mock-only safety boundaries">
           <li>仅供模拟</li>
           <li>仅限本地预览</li>
-          <li>不读取 .env</li>
+          <li>不读取环境配置文件</li>
           <li>不连接真实 API</li>
           <li>不启动后端</li>
           <li>不发送通知</li>

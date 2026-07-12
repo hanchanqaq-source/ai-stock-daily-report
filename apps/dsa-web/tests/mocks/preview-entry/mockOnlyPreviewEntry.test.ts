@@ -35,7 +35,7 @@ describe('mock-only preview independent web entry', () => {
       '股票基金质量分析系统 mock-only 本地安全预览',
       '仅供模拟',
       '仅限本地预览',
-      '不读取 .env',
+      '不读取环境配置文件',
       '不连接真实 API',
       '不启动后端',
       '不发送通知',
@@ -78,14 +78,17 @@ describe('mock-only preview independent web entry', () => {
       '股票基金质量分析系统 mock-only 本地安全预览',
       '仅供模拟',
       '仅限本地预览',
-      '不读取 .env',
+      '不读取环境配置文件',
       '不连接真实 API',
       '不启动后端',
       '不发送通知',
       'Web-P20 设置与导入导出（模拟）',
       '不执行配置读取、文件导入、备份导出或任何写入。',
       '不读取文件或剪贴板',
-      '不生成备份，不导出 .env、Token、API Key 或 Webhook',
+      '不生成备份，不导出环境配置、Token、API Key 或 Webhook',
+      '模拟模块预览范围',
+      '仪表盘摘要预览',
+      '进入预览',
       'createElement',
       'textContent',
       'appendChild',
@@ -123,6 +126,40 @@ describe('mock-only preview independent web entry', () => {
 
     for (const forbiddenTarget of ['http://', 'https://', '/api/v1', 'VITE_API_URL']) {
       expect(source).not.toContain(forbiddenTarget)
+    }
+  })
+
+
+  it('renders the dashboard entry in the module range before the dashboard content', () => {
+    const source = readSource(entryPath)
+    const moduleRangeIndex = source.indexOf('模拟模块预览范围')
+    const dashboardEntryIndex = source.indexOf('进入预览')
+    const dashboardContentIndex = source.indexOf('仪表盘摘要预览')
+
+    expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
+    expect(dashboardEntryIndex).toBeGreaterThan(moduleRangeIndex)
+    expect(dashboardContentIndex).toBeGreaterThan(dashboardEntryIndex)
+    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+  })
+
+  it('marks only the dashboard summary as previewable and keeps unfinished modules pending', () => {
+    const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
+    const dashboard = model.sections.find((section) => section.id === 'dashboard-summary')
+    const unfinishedSections = model.sections.filter((section) => section.id !== 'dashboard-summary')
+
+    expect(dashboard).toMatchObject({ title: '仪表盘摘要', status: '可预览', previewAnchor: 'mock-dashboard-summary-preview' })
+    expect(unfinishedSections.length).toBeGreaterThan(0)
+    for (const section of unfinishedSections) {
+      expect(section.status).toBe('后续建设')
+      expect(section.status).not.toBe('可预览')
+    }
+  })
+
+  it('keeps the rendered preview page source free of forbidden runtime endpoints and network primitives', () => {
+    const source = `${readSource(indexPath)}\n${readSource(entryPath)}`
+
+    for (const forbidden of ['0.0.0.0', '.env', 'fetch(', 'axios', 'WebSocket', 'EventSource', '/api/v1', 'VITE_API_URL']) {
+      expect(source).not.toContain(forbidden)
     }
   })
 

@@ -23,15 +23,33 @@ export interface MockOnlyPreviewMetadata {
   readonly safeForWindowsPreview: true
 }
 
+export type MockOnlyPreviewSectionStatus = '可预览' | '后续建设'
+
 export interface MockOnlyPreviewSection<TData = unknown> {
   readonly id: MockOnlyPreviewSectionId
   readonly title: string
   readonly description: string
+  readonly status: MockOnlyPreviewSectionStatus
+  readonly previewAnchor?: string
   readonly data: TData
+}
+
+export interface MockOnlyDashboardSummaryPreview {
+  readonly headline: string
+  readonly marketStatus: string
+  readonly totalHoldingAmount: string
+  readonly dailyChange: string
+  readonly positionRatio: string
+  readonly riskLevel: string
+  readonly labels: readonly string[]
+  readonly holdingStructure: readonly { readonly name: string; readonly ratio: string }[]
+  readonly riskWarnings: readonly string[]
+  readonly actionSuggestions: readonly string[]
 }
 
 export interface MockOnlyPreviewModel {
   readonly metadata: MockOnlyPreviewMetadata
   readonly safetyBanner: readonly string[]
   readonly sections: readonly MockOnlyPreviewSection[]
+  readonly dashboardSummaryPreview: MockOnlyDashboardSummaryPreview
 }

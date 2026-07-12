@@ -79,6 +79,32 @@ describe('mock-only preview model', () => {
     ])
   })
 
+
+  it('uses Chinese module titles with explicit preview statuses', () => {
+    expect(getMockOnlyPreviewSections(mockOptions)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: 'safety-banner', title: '安全边界', status: '后续建设' }),
+        expect.objectContaining({ id: 'dashboard-summary', title: '仪表盘摘要', status: '可预览' }),
+        expect.objectContaining({ id: 'portfolio-preview', title: '持仓预览', status: '后续建设' }),
+        expect.objectContaining({ id: 'history-reports-preview', title: '历史报告预览', status: '后续建设' }),
+        expect.objectContaining({ id: 'alerts-preview', title: '提醒预览', status: '后续建设' }),
+        expect.objectContaining({ id: 'agent-chat-preview', title: 'Agent 对话预览', status: '后续建设' }),
+      ]),
+    )
+  })
+
+  it('exposes static redacted dashboard summary preview fixture data', () => {
+    expect(createMockOnlyPreviewModel(mockOptions).dashboardSummaryPreview).toMatchObject({
+      headline: '科技方向保持震荡，模拟组合以观察为主，暂不进行主动调仓。',
+      marketStatus: '震荡观察',
+      totalHoldingAmount: '¥59,167.78',
+      dailyChange: '+0.68%',
+      positionRatio: '32.9%',
+      riskLevel: '中等',
+      labels: expect.arrayContaining(['模拟数据', 'REDACTED FIXTURE DATA', '非真实账户', '非投资建议', '不会发送通知']),
+    })
+  })
+
   it('keeps the Web-P20 settings import/export section static and non-executing', () => {
     expect(getMockOnlyPreviewSections(mockOptions)).toEqual(
       expect.arrayContaining([
