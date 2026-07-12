@@ -195,6 +195,75 @@ describe('mock-only preview independent web entry', () => {
   })
 
 
+
+  it('renders Web-P27 quick navigation anchors and section return links without external targets', () => {
+    const source = readSource(entryPath)
+
+    for (const requiredText of [
+      '页面快速导航',
+      '本地预览导航',
+      '返回顶部',
+      '返回模块列表',
+      '安全边界确认',
+      '设置与导入导出',
+      '仪表盘摘要',
+      '持仓预览',
+      '历史报告预览',
+      '提醒预览',
+      'Agent 对话预览',
+      '空状态与错误示例',
+      '本页仅为 mock-only 本地预览',
+      '所有跳转均为同页锚点',
+      '不会打开外部链接',
+      '不会连接真实服务',
+    ]) {
+      expect(source).toContain(requiredText)
+    }
+
+    for (const requiredAnchor of [
+      'mock-preview-top',
+      'mock-preview-modules',
+      'mock-safety-boundary',
+      'mock-settings-import-export',
+      'mock-dashboard-summary-preview',
+      'mock-portfolio-preview',
+      'mock-history-reports-preview',
+      'mock-alerts-preview',
+      'mock-agent-chat-preview',
+      'mock-empty-error-states-preview',
+    ]) {
+      expect(source).toContain(requiredAnchor)
+    }
+
+    expect(source).toContain('link.href = href')
+    for (const samePageHref of [
+      '#mock-preview-top',
+      '#mock-preview-modules',
+      '`#${item.anchor}`',
+      '`#${section.previewAnchor}`',
+    ]) {
+      expect(source).toContain(samePageHref)
+    }
+    expect(source).not.toContain('target="_blank"')
+    expect(source).not.toMatch(/https?:\/\//)
+  })
+
+  it('adds return links to every major mock-only preview section', () => {
+    const source = readSource(entryPath)
+    for (const panelName of [
+      'safetyPanel',
+      'settingsPanel',
+      'dashboardPanel',
+      'portfolioPanel',
+      'historyPanel',
+      'alertsPanel',
+      'agentPanel',
+      'emptyErrorPanel',
+    ]) {
+      expect(source).toContain(`appendSectionReturnLinks(${panelName})`)
+    }
+  })
+
   it('renders the dashboard entry in the module range before the dashboard content', () => {
     const source = readSource(entryPath)
     const moduleRangeIndex = source.indexOf('模拟模块预览范围')
@@ -204,69 +273,69 @@ describe('mock-only preview independent web entry', () => {
     expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
     expect(dashboardEntryIndex).toBeGreaterThan(moduleRangeIndex)
     expect(dashboardContentIndex).toBeGreaterThan(dashboardEntryIndex)
-    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+    expect(source).toContain("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
   })
 
   it('renders the portfolio entry in the module range before the portfolio content', () => {
     const source = readSource(entryPath)
     const moduleRangeIndex = source.indexOf('模拟模块预览范围')
-    const portfolioEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const portfolioEntryIndex = source.indexOf("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
     const portfolioContentIndex = source.indexOf("portfolioPanel.id = 'mock-portfolio-preview'")
 
     expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
     expect(portfolioEntryIndex).toBeGreaterThan(moduleRangeIndex)
     expect(portfolioContentIndex).toBeGreaterThan(portfolioEntryIndex)
-    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+    expect(source).toContain("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
   })
 
   it('renders the history reports entry in the module range before the history reports content', () => {
     const source = readSource(entryPath)
     const moduleRangeIndex = source.indexOf('模拟模块预览范围')
-    const historyEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const historyEntryIndex = source.indexOf("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
     const historyContentIndex = source.indexOf("historyPanel.id = 'mock-history-reports-preview'")
 
     expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
     expect(historyEntryIndex).toBeGreaterThan(moduleRangeIndex)
     expect(historyContentIndex).toBeGreaterThan(historyEntryIndex)
-    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+    expect(source).toContain("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
   })
 
 
   it('renders the alerts entry in the module range before the alerts content', () => {
     const source = readSource(entryPath)
     const moduleRangeIndex = source.indexOf('模拟模块预览范围')
-    const alertsEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const alertsEntryIndex = source.indexOf("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
     const alertsContentIndex = source.indexOf("alertsPanel.id = 'mock-alerts-preview'")
 
     expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
     expect(alertsEntryIndex).toBeGreaterThan(moduleRangeIndex)
     expect(alertsContentIndex).toBeGreaterThan(alertsEntryIndex)
-    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+    expect(source).toContain("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
   })
 
   it('renders the agent chat entry in the module range before the agent chat content', () => {
     const source = readSource(entryPath)
     const moduleRangeIndex = source.indexOf('模拟模块预览范围')
-    const agentEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const agentEntryIndex = source.indexOf("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
     const agentContentIndex = source.indexOf("agentPanel.id = 'mock-agent-chat-preview'")
 
     expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
     expect(agentEntryIndex).toBeGreaterThan(moduleRangeIndex)
     expect(agentContentIndex).toBeGreaterThan(agentEntryIndex)
-    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+    expect(source).toContain("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
   })
 
 
   it('renders the empty and error states entry in the module range before the empty and error states content', () => {
     const source = readSource(entryPath)
     const moduleRangeIndex = source.indexOf('模拟模块预览范围')
-    const emptyErrorEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const emptyErrorEntryIndex = source.indexOf("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
     const emptyErrorContentIndex = source.indexOf("emptyErrorPanel.id = 'mock-empty-error-states-preview'")
 
     expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
     expect(emptyErrorEntryIndex).toBeGreaterThan(moduleRangeIndex)
     expect(emptyErrorContentIndex).toBeGreaterThan(emptyErrorEntryIndex)
-    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+    expect(source).toContain("appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)")
   })
 
   it('marks dashboard summary, portfolio preview, history reports preview, alerts preview, agent chat preview, and empty/error states preview as previewable and keeps unfinished modules pending', () => {
@@ -305,6 +374,7 @@ describe('mock-only preview independent web entry', () => {
 
     for (const forbidden of [
       '0.0.0.0',
+      'target="_blank"',
       'fetch(',
       'axios',
       'XMLHttpRequest',
@@ -316,6 +386,12 @@ describe('mock-only preview independent web entry', () => {
       'Notification(',
       'serviceWorker',
       'sendBeacon',
+      'FileReader',
+      'input type="file"',
+      'openai',
+      'deepseek',
+      'zhipu',
+      'LangChain',
       '/api/v1',
       'VITE_API_URL',
     ]) {

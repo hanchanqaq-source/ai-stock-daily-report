@@ -15,6 +15,24 @@ const SAFETY_NOTES = Object.freeze([
   '不发送通知',
 ])
 
+const NAVIGATION_NOTES = Object.freeze([
+  '本页仅为 mock-only 本地预览。',
+  '所有跳转均为同页锚点。',
+  '不会打开外部链接。',
+  '不会连接真实服务。',
+])
+
+const QUICK_NAVIGATION_ITEMS = Object.freeze([
+  Object.freeze({ label: '安全边界确认', anchor: 'mock-safety-boundary', status: '可预览' }),
+  Object.freeze({ label: '设置与导入导出', anchor: 'mock-settings-import-export', status: '可预览' }),
+  Object.freeze({ label: '仪表盘摘要', anchor: 'mock-dashboard-summary-preview', status: '可预览' }),
+  Object.freeze({ label: '持仓预览', anchor: 'mock-portfolio-preview', status: '可预览' }),
+  Object.freeze({ label: '历史报告预览', anchor: 'mock-history-reports-preview', status: '可预览' }),
+  Object.freeze({ label: '提醒预览', anchor: 'mock-alerts-preview', status: '可预览' }),
+  Object.freeze({ label: 'Agent 对话预览', anchor: 'mock-agent-chat-preview', status: '可预览' }),
+  Object.freeze({ label: '空状态与错误示例', anchor: 'mock-empty-error-states-preview', status: '可预览' }),
+])
+
 const SETTINGS_IMPORT_EXPORT_NOTES = Object.freeze([
   '设置状态：mock-only 固定，不保存本地配置',
   '导入状态：仅展示人工复核流程，不读取文件或剪贴板',
@@ -45,6 +63,24 @@ const appendList = (parent: HTMLElement, tagName: 'ul' | 'ol', items: readonly s
   return list
 }
 
+const appendAnchorLink = (parent: HTMLElement, label: string, href: string, className = 'mock-preview-link'): HTMLAnchorElement => {
+  const link = document.createElement('a')
+  link.className = className
+  link.href = href
+  link.textContent = label
+  parent.appendChild(link)
+  return link
+}
+
+const appendSectionReturnLinks = (parent: HTMLElement): void => {
+  const actions = document.createElement('nav')
+  actions.className = 'mock-preview-return-links'
+  actions.setAttribute('aria-label', '预览区域返回入口')
+  appendAnchorLink(actions, '返回顶部', '#mock-preview-top', 'mock-preview-return-link')
+  appendAnchorLink(actions, '返回模块列表', '#mock-preview-modules', 'mock-preview-return-link')
+  parent.appendChild(actions)
+}
+
 const appendMetric = (parent: HTMLElement, label: string, value: string): void => {
   const metric = document.createElement('div')
   metric.className = 'mock-preview-dashboard-metric'
@@ -64,6 +100,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
 
   const container = document.createElement('section')
   container.className = 'mock-preview-shell'
+  container.id = 'mock-preview-top'
   container.setAttribute('aria-labelledby', 'mock-only-preview-entry-title')
 
   const hero = document.createElement('div')
@@ -73,12 +110,32 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendTextElement(hero, 'p', '股票基金质量分析系统 mock-only 本地安全预览', 'mock-preview-subtitle')
   container.appendChild(hero)
 
+  const navigationPanel = document.createElement('nav')
+  navigationPanel.className = 'mock-preview-card mock-preview-navigation-card'
+  navigationPanel.setAttribute('aria-labelledby', 'mock-preview-navigation-title')
+  appendTextElement(navigationPanel, 'h3', '页面快速导航', 'mock-preview-navigation-title').id =
+    'mock-preview-navigation-title'
+  appendTextElement(navigationPanel, 'p', '本地预览导航：本页仅为 mock-only 本地预览，所有跳转均为同页锚点，不会打开外部链接，不会连接真实服务。')
+  appendList(navigationPanel, 'ul', NAVIGATION_NOTES, 'mock-preview-navigation-notes')
+  const navigationList = document.createElement('ol')
+  navigationList.className = 'mock-preview-navigation-list'
+  for (const item of QUICK_NAVIGATION_ITEMS) {
+    const navItem = document.createElement('li')
+    appendAnchorLink(navItem, item.label, `#${item.anchor}`, 'mock-preview-navigation-link')
+    appendTextElement(navItem, 'span', item.status, 'mock-preview-section-status')
+    navigationList.appendChild(navItem)
+  }
+  navigationPanel.appendChild(navigationList)
+  container.appendChild(navigationPanel)
+
   const safetyPanel = document.createElement('section')
   safetyPanel.className = 'mock-preview-card mock-preview-safety-card'
+  safetyPanel.id = 'mock-safety-boundary'
   appendTextElement(safetyPanel, 'h3', '安全边界确认')
   appendTextElement(safetyPanel, 'p', '此页面只渲染脱敏 fixture 与静态 mock 模型，用于本机安全预览体验检查。')
   appendList(safetyPanel, 'ul', SAFETY_NOTES, 'mock-preview-badge-list')
   appendList(safetyPanel, 'ul', model.safetyBanner, 'mock-preview-safety-list')
+  appendSectionReturnLinks(safetyPanel)
   container.appendChild(safetyPanel)
 
   const metadataPanel = document.createElement('section')
@@ -100,13 +157,16 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
 
   const settingsPanel = document.createElement('section')
   settingsPanel.className = 'mock-preview-card mock-preview-settings-card'
+  settingsPanel.id = 'mock-settings-import-export'
   appendTextElement(settingsPanel, 'h3', 'Web-P20 设置与导入导出（模拟）')
   appendTextElement(settingsPanel, 'p', '本区只说明本地操作边界，不执行配置读取、文件导入、备份导出或任何写入。')
   appendList(settingsPanel, 'ul', SETTINGS_IMPORT_EXPORT_NOTES, 'mock-preview-settings-list')
+  appendSectionReturnLinks(settingsPanel)
   container.appendChild(settingsPanel)
 
   const sectionsPanel = document.createElement('section')
   sectionsPanel.className = 'mock-preview-card'
+  sectionsPanel.id = 'mock-preview-modules'
   appendTextElement(sectionsPanel, 'h3', '模拟模块预览范围')
   const sectionList = document.createElement('ol')
   sectionList.className = 'mock-preview-section-list'
@@ -121,11 +181,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
     )
     appendTextElement(item, 'span', section.description)
     if (section.previewAnchor) {
-      const previewLink = document.createElement('a')
-      previewLink.className = 'mock-preview-link'
-      previewLink.href = `#${section.previewAnchor}`
-      previewLink.textContent = '进入预览'
-      item.appendChild(previewLink)
+      appendAnchorLink(item, '进入预览', `#${section.previewAnchor}`)
     }
     sectionList.appendChild(item)
   }
@@ -177,6 +233,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendList(actionBlock, 'ol', dashboardPreview.actionSuggestions, 'mock-preview-settings-list')
   dashboardPanel.appendChild(actionBlock)
 
+  appendSectionReturnLinks(dashboardPanel)
   container.appendChild(dashboardPanel)
 
   const portfolioPreview = model.portfolioPreview
@@ -231,6 +288,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendList(portfolioActionBlock, 'ol', portfolioPreview.actionNotes, 'mock-preview-settings-list')
   portfolioPanel.appendChild(portfolioActionBlock)
 
+  appendSectionReturnLinks(portfolioPanel)
   container.appendChild(portfolioPanel)
 
 
@@ -296,6 +354,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendList(historyActionBlock, 'ol', historyReportsPreview.actionNotes, 'mock-preview-settings-list')
   historyPanel.appendChild(historyActionBlock)
 
+  appendSectionReturnLinks(historyPanel)
   container.appendChild(historyPanel)
 
 
@@ -385,6 +444,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendList(alertsActionBlock, 'ol', alertsPreview.actionNotes, 'mock-preview-settings-list')
   alertsPanel.appendChild(alertsActionBlock)
 
+  appendSectionReturnLinks(alertsPanel)
   container.appendChild(alertsPanel)
 
   const agentChatPreview = model.agentChatPreview
@@ -479,6 +539,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendList(agentActionBlock, 'ol', agentChatPreview.actionNotes, 'mock-preview-settings-list')
   agentPanel.appendChild(agentActionBlock)
 
+  appendSectionReturnLinks(agentPanel)
   container.appendChild(agentPanel)
 
 
@@ -568,6 +629,7 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendList(emptyErrorActionBlock, 'ol', emptyErrorStatesPreview.actionNotes, 'mock-preview-settings-list')
   emptyErrorPanel.appendChild(emptyErrorActionBlock)
 
+  appendSectionReturnLinks(emptyErrorPanel)
   container.appendChild(emptyErrorPanel)
 
 
