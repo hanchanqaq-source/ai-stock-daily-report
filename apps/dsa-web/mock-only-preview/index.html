@@ -102,6 +102,42 @@
         gap: 18px;
       }
 
+      main,
+      .page-hero,
+      .mock-preview-card,
+      .mock-preview-hero,
+      .mock-preview-dashboard-block,
+      .mock-preview-dashboard-metric,
+      .mock-preview-overview-list li,
+      .mock-preview-navigation-list li,
+      .mock-preview-section-list li,
+      .mock-preview-portfolio-list li {
+        min-width: 0;
+      }
+
+      .page-hero,
+      .mock-preview-card,
+      .mock-preview-hero,
+      .mock-preview-dashboard-block,
+      .mock-preview-dashboard-metric,
+      .mock-preview-overview-list li,
+      .mock-preview-navigation-list li,
+      .mock-preview-section-list li,
+      .mock-preview-portfolio-list li,
+      .page-safety-list li,
+      .mock-preview-badge-list li,
+      .mock-preview-safety-list li,
+      .mock-preview-settings-list li,
+      .mock-preview-metadata-list li,
+      .mock-preview-navigation-notes li,
+      .mock-preview-dashboard-labels li,
+      .mock-preview-navigation-link,
+      .mock-preview-link,
+      .mock-preview-return-link {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+      }
+
       .mock-preview-hero,
       .mock-preview-card {
         padding: 24px;
@@ -247,6 +283,7 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        min-height: 22px;
       }
 
       .mock-preview-return-links {
@@ -261,6 +298,7 @@
       .mock-preview-return-link {
         background: #eef4ff;
         color: #3156d4;
+        min-height: 22px;
       }
 
       .mock-preview-dashboard-grid {
@@ -329,6 +367,112 @@
       .mock-preview-portfolio-list span {
         color: #5c667c;
         line-height: 1.55;
+      }
+
+      @media (max-width: 900px) {
+        main {
+          width: 100%;
+          padding: 32px 16px 44px;
+        }
+
+        .page-hero,
+        .mock-preview-hero,
+        .mock-preview-card {
+          border-radius: 20px;
+          padding: 22px;
+        }
+
+        .mock-preview-overview-list,
+        .mock-preview-navigation-list,
+        .mock-preview-section-list,
+        .mock-preview-dashboard-grid {
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        }
+
+        .mock-preview-navigation-list li,
+        .mock-preview-section-list li {
+          align-content: start;
+        }
+      }
+
+      @media (max-width: 640px) {
+        main {
+          padding: 24px 12px 36px;
+        }
+
+        .page-hero,
+        .mock-preview-hero,
+        .mock-preview-card {
+          border-radius: 18px;
+          padding: 18px;
+        }
+
+        .page-subtitle,
+        .mock-preview-subtitle {
+          font-size: 1rem;
+          line-height: 1.6;
+        }
+
+        .page-safety-list,
+        .mock-preview-badge-list,
+        .mock-preview-safety-list,
+        .mock-preview-settings-list,
+        .mock-preview-metadata-list,
+        .mock-preview-navigation-notes,
+        .mock-preview-dashboard-labels,
+        .mock-preview-return-links {
+          gap: 8px;
+        }
+
+        .page-safety-list li,
+        .mock-preview-badge-list li,
+        .mock-preview-safety-list li,
+        .mock-preview-settings-list li,
+        .mock-preview-metadata-list li,
+        .mock-preview-navigation-notes li,
+        .mock-preview-dashboard-labels li {
+          border-radius: 14px;
+          padding: 8px 10px;
+          font-size: 0.88rem;
+        }
+
+        .mock-preview-overview-list,
+        .mock-preview-navigation-list,
+        .mock-preview-section-list,
+        .mock-preview-dashboard-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .mock-preview-navigation-link,
+        .mock-preview-link,
+        .mock-preview-return-link {
+          box-sizing: border-box;
+          width: 100%;
+          min-height: 44px;
+          padding: 10px 12px;
+          text-align: center;
+        }
+
+        .mock-preview-return-links {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 420px) {
+        main {
+          padding-inline: 10px;
+        }
+
+        .page-hero,
+        .mock-preview-hero,
+        .mock-preview-card {
+          padding: 16px;
+        }
+
+        .mock-preview-dashboard-metric strong {
+          font-size: 1.16rem;
+        }
       }
     </style>
   </head>
