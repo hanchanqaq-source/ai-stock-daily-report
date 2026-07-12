@@ -88,7 +88,7 @@ describe('mock-only preview model', () => {
         expect.objectContaining({ id: 'portfolio-preview', title: '持仓预览', status: '可预览' }),
         expect.objectContaining({ id: 'history-reports-preview', title: '历史报告预览', status: '可预览' }),
         expect.objectContaining({ id: 'alerts-preview', title: '提醒预览', status: '可预览' }),
-        expect.objectContaining({ id: 'agent-chat-preview', title: 'Agent 对话预览', status: '后续建设' }),
+        expect.objectContaining({ id: 'agent-chat-preview', title: 'Agent 对话预览', status: '可预览' }),
       ]),
     )
   })
@@ -188,6 +188,44 @@ describe('mock-only preview model', () => {
       '不读取 token',
       '科技仓位风险观察',
       'mock-only 本地预览通道',
+    ]) {
+      expect(visibleText).toContain(requiredText)
+    }
+  })
+
+  it('exposes static redacted agent chat preview fixture data', () => {
+    const model = createMockOnlyPreviewModel(mockOptions)
+    const visibleText = [
+      ...model.agentChatPreview.summary.map((item) => `${item.label}:${item.value}`),
+      ...model.agentChatPreview.labels,
+      ...model.agentChatPreview.sessions.map((session) => `${session.sessionLabel}:${session.topic}:${session.status}:${session.mode}`),
+      ...model.agentChatPreview.messages.map((message) => `${message.role}:${message.content}:${message.status}`),
+      ...model.agentChatPreview.streamChunks.map((chunk) => `${chunk.order}:${chunk.content}:${chunk.status}`),
+      ...model.agentChatPreview.errorExamples.map((errorExample) => `${errorExample.title}:${errorExample.message}:${errorExample.recoveryHint}`),
+      ...model.agentChatPreview.riskNotes,
+      ...model.agentChatPreview.actionNotes,
+    ].join('\n')
+
+    for (const requiredText of [
+      'Agent 对话预览',
+      '模拟会话数量',
+      '模拟消息数量',
+      '模拟流式片段',
+      'REDACTED FIXTURE DATA',
+      '非真实 Agent',
+      '非真实 AI',
+      '非真实账户',
+      '非投资建议',
+      '不会调用模型',
+      '不会发送通知',
+      '不会交易',
+      '不读取 API key',
+      '不读取 token',
+      '不读取 .env',
+      '本地预览会话 A',
+      '日报摘要检查',
+      '正在生成 mock-only 回复',
+      '模拟 provider 未连接',
     ]) {
       expect(visibleText).toContain(requiredText)
     }

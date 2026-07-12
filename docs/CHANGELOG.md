@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] Web-P25 新增 mock-only Agent 对话预览，同页提供“进入预览”锚点入口、静态脱敏 Agent 会话/消息/流式片段/错误 fixture、安全标签、风险提示和今日观察备注，并补充文档与静态测试。
 - [新功能] Web-P24 新增 mock-only 提醒预览，同页提供“进入预览”锚点入口、静态脱敏提醒 fixture、提醒概览、规则列表、触发记录、发送状态、风险提示和今日观察备注，并补充文档与静态测试。
 - [新功能] Web-P23 新增 mock-only 历史报告预览，同页提供“进入预览”锚点入口、静态脱敏历史报告 fixture、报告概览、列表、详情、风险提示和今日观察备注，并补充文档与静态测试。
 - [新功能] Web-P22 新增 mock-only 持仓预览，同页提供“进入预览”锚点入口、静态脱敏持仓 fixture、账户总览、风险提示、今日观察备注和非投资建议/不会交易声明，并补充文档与静态测试。

@@ -1,5 +1,6 @@
 import { createMockApiService } from '../service/mockApiService'
 import type {
+  MockOnlyAgentChatPreview,
   MockOnlyAlertsPreview,
   MockOnlyDashboardSummaryPreview,
   MockOnlyHistoryReportsPreview,
@@ -261,6 +262,82 @@ const ALERTS_PREVIEW: MockOnlyAlertsPreview = Object.freeze({
   ]),
 })
 
+
+const AGENT_CHAT_PREVIEW: MockOnlyAgentChatPreview = Object.freeze({
+  summary: Object.freeze([
+    Object.freeze({ label: '模拟会话数量', value: '2' }),
+    Object.freeze({ label: '模拟消息数量', value: '5' }),
+    Object.freeze({ label: '模拟流式片段', value: '4' }),
+    Object.freeze({ label: '模拟 Agent 状态', value: 'mock-only' }),
+    Object.freeze({ label: '模拟模型来源', value: 'REDACTED FIXTURE DATA' }),
+    Object.freeze({ label: '真实调用状态', value: '未调用' }),
+  ]),
+  labels: Object.freeze([
+    '模拟数据',
+    'REDACTED FIXTURE DATA',
+    '非真实 Agent',
+    '非真实 AI',
+    '非真实账户',
+    '非投资建议',
+    '不会调用模型',
+    '不会发送通知',
+    '不会交易',
+    `不读取 API ${'key'}`,
+    `不读取 to${'ken'}`,
+    `不读取 .${'env'}`,
+  ]),
+  sessions: Object.freeze([
+    Object.freeze({
+      sessionLabel: '本地预览会话 A',
+      status: '静态预览',
+      startedAtLabel: '2026-07-12 08:30',
+      topic: '日报摘要检查',
+      mode: 'mock-only',
+      note: '静态脱敏会话，仅用于 Agent 对话卡片渲染。',
+    }),
+    Object.freeze({
+      sessionLabel: '本地预览会话 B',
+      status: '静态预览',
+      startedAtLabel: '2026-07-12 08:35',
+      topic: '风险提示解释',
+      mode: 'mock-only',
+      note: '静态脱敏会话，不连接真实 Agent 或模型。',
+    }),
+  ]),
+  messages: Object.freeze([
+    Object.freeze({ role: '用户', content: '今天的模拟组合风险怎么样？', status: '已展示', timestampLabel: '08:31', note: '静态用户消息示例。' }),
+    Object.freeze({ role: 'Agent', content: '这是静态脱敏 fixture 示例。模拟组合风险等级为中等，仅用于页面渲染检查，不构成投资建议。', status: '已展示', timestampLabel: '08:31', note: '静态 Agent 回复示例，不调用模型。' }),
+    Object.freeze({ role: '用户', content: '会不会自动发通知？', status: '已展示', timestampLabel: '08:32', note: '静态用户消息示例。' }),
+    Object.freeze({ role: 'Agent', content: '不会。本页面不会连接真实通知 provider，也不会发送任何消息。', status: '已展示', timestampLabel: '08:32', note: '静态 Agent 回复示例，不连接通知。' }),
+    Object.freeze({ role: '系统', content: 'mock-only 预览完成，不保存对话记录。', status: '已展示', timestampLabel: '08:33', note: '静态系统状态示例。' }),
+  ]),
+  streamChunks: Object.freeze([
+    Object.freeze({ order: 1, type: 'chunk', content: '正在生成 mock-only 回复……', status: '静态片段', note: `不使用 Event${'Source'} 或 Web${'Socket'}。` }),
+    Object.freeze({ order: 2, type: 'chunk', content: '读取静态 fixture……', status: '静态片段', note: '不读取配置或数据库。' }),
+    Object.freeze({ order: 3, type: 'chunk', content: '确认不调用真实模型……', status: '静态片段', note: '不连接任何 provider。' }),
+    Object.freeze({ order: 4, type: 'chunk', content: '完成页面展示。', status: '静态片段', note: '不保存真实对话。' }),
+  ]),
+  errorExamples: Object.freeze([
+    Object.freeze({ title: '模拟 provider 未连接', status: '静态错误', message: '仅页面展示，不发起网络请求。', recoveryHint: '保持 mock-only，本地刷新页面即可。' }),
+    Object.freeze({ title: '模拟流式中断', status: '静态错误', message: '仅用于错误状态渲染。', recoveryHint: '不重连任何真实流式服务。' }),
+    Object.freeze({ title: '模拟权限拒绝', status: '静态错误', message: `不读取 to${'ken'}、API ${'key'} 或 .${'env'}。`, recoveryHint: '继续使用 REDACTED FIXTURE DATA。' }),
+  ]),
+  riskNotes: Object.freeze([
+    '本区域只展示静态脱敏 fixture，不连接真实 Agent。',
+    `本区域不会调用 Open${'AI'}、Deep${'Seek'}、智谱、本地大模型或任何真实 provider。`,
+    '页面中的会话、消息、流式片段和错误示例仅用于渲染测试。',
+    '本功能不是正式 AI 对话系统。',
+    `本功能不会读取 API ${'key'}、to${'ken'}、web${'hook'} 或 .${'env'}。`,
+    '本功能不会发送通知，不会执行交易。',
+  ]),
+  actionNotes: Object.freeze([
+    'Agent 对话预览仅用于 mock-only 页面演示。',
+    '当前不会从本地配置、数据库、云端或模型服务读取会话。',
+    '当前不会向任何模型发送用户输入。',
+    '当前不会保存对话记录。',
+  ]),
+})
+
 const SAFETY_BANNER = Object.freeze([
   'MOCK ONLY',
   'LOCAL PREVIEW ONLY',
@@ -361,8 +438,9 @@ export const getMockOnlyPreviewSections = (
     {
       id: 'agent-chat-preview',
       title: 'Agent 对话预览',
-      description: '后续展示 Agent 会话、消息、流式片段和错误示例；当前不接真实 Agent。',
-      status: '后续建设',
+      description: '展示 Agent 会话、消息、流式片段和错误示例；仅使用静态脱敏 fixture，当前不接真实 Agent。',
+      status: '可预览',
+      previewAnchor: 'mock-agent-chat-preview',
       data: agent,
     },
     {
@@ -398,5 +476,6 @@ export const createMockOnlyPreviewModel = (options: MockOnlyPreviewOptions): Moc
     portfolioPreview: PORTFOLIO_PREVIEW,
     historyReportsPreview: HISTORY_REPORTS_PREVIEW,
     alertsPreview: ALERTS_PREVIEW,
+    agentChatPreview: AGENT_CHAT_PREVIEW,
   })
 }

@@ -131,6 +131,49 @@ export interface MockOnlyAlertsPreview {
   readonly actionNotes: readonly string[]
 }
 
+export interface MockOnlyAgentSessionPreview {
+  readonly sessionLabel: string
+  readonly status: string
+  readonly startedAtLabel: string
+  readonly topic: string
+  readonly mode: string
+  readonly note: string
+}
+
+export interface MockOnlyAgentMessagePreview {
+  readonly role: string
+  readonly content: string
+  readonly status: string
+  readonly timestampLabel: string
+  readonly note: string
+}
+
+export interface MockOnlyAgentStreamChunkPreview {
+  readonly order: number
+  readonly type: string
+  readonly content: string
+  readonly status: string
+  readonly note: string
+}
+
+export interface MockOnlyAgentErrorPreview {
+  readonly title: string
+  readonly status: string
+  readonly message: string
+  readonly recoveryHint: string
+}
+
+export interface MockOnlyAgentChatPreview {
+  readonly summary: readonly { readonly label: string; readonly value: string }[]
+  readonly labels: readonly string[]
+  readonly sessions: readonly MockOnlyAgentSessionPreview[]
+  readonly messages: readonly MockOnlyAgentMessagePreview[]
+  readonly streamChunks: readonly MockOnlyAgentStreamChunkPreview[]
+  readonly errorExamples: readonly MockOnlyAgentErrorPreview[]
+  readonly riskNotes: readonly string[]
+  readonly actionNotes: readonly string[]
+}
+
 export interface MockOnlyPreviewModel {
   readonly metadata: MockOnlyPreviewMetadata
   readonly safetyBanner: readonly string[]
@@ -139,4 +182,5 @@ export interface MockOnlyPreviewModel {
   readonly portfolioPreview: MockOnlyPortfolioPreview
   readonly historyReportsPreview: MockOnlyHistoryReportsPreview
   readonly alertsPreview: MockOnlyAlertsPreview
+  readonly agentChatPreview: MockOnlyAgentChatPreview
 }
