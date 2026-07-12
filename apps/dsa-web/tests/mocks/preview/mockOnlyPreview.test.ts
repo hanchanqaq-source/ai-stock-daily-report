@@ -94,6 +94,42 @@ describe('mock-only preview model', () => {
     )
   })
 
+
+  it('derives mock-only overview completion counts from current section statuses', () => {
+    const model = createMockOnlyPreviewModel(mockOptions)
+    const previewableSections = model.sections.filter((section) => section.status === '可预览')
+    const pendingSections = model.sections.filter((section) => section.status === '后续建设')
+
+    expect(model.overview).toMatchObject({
+      modeLabel: 'mock-only 本地预览',
+      projectName: '股票基金质量分析系统',
+      pageDisplayName: 'AI股票基金每日信息报告',
+      dataSource: 'REDACTED FIXTURE DATA',
+      networkStatus: '未连接真实服务',
+      notificationStatus: '不会发送通知',
+      tradingStatus: '不会交易',
+      agentStatus: '不会调用模型',
+      safetyBoundary: '127.0.0.1 only',
+    })
+    expect(model.overview.previewableModuleCount).toBe(previewableSections.length)
+    expect(model.overview.pendingModuleCount).toBe(pendingSections.length)
+    expect(model.overview.totalModuleCount).toBe(previewableSections.length + pendingSections.length)
+    expect(model.overview.completionPercent).toBe(
+      Math.round((previewableSections.length / model.overview.totalModuleCount) * 100),
+    )
+    expect(model.overview.safetyStatus).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: '运行范围', value: '127.0.0.1 only' }),
+        expect.objectContaining({ label: '数据来源', value: '静态脱敏 fixture' }),
+        expect.objectContaining({ label: '真实网络', value: '未连接' }),
+        expect.objectContaining({ label: '真实账户', value: '未读取' }),
+        expect.objectContaining({ label: '真实通知', value: '未发送' }),
+        expect.objectContaining({ label: '真实交易', value: '禁用' }),
+        expect.objectContaining({ label: '模型调用', value: '未调用' }),
+      ]),
+    )
+  })
+
   it('exposes static redacted dashboard summary preview fixture data', () => {
     expect(createMockOnlyPreviewModel(mockOptions).dashboardSummaryPreview).toMatchObject({
       headline: '科技方向保持震荡，模拟组合以观察为主，暂不进行主动调仓。',

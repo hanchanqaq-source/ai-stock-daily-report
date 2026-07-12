@@ -195,6 +195,71 @@ describe('mock-only preview independent web entry', () => {
   })
 
 
+  it('renders Web-P28 page overview and module completion status from the preview model', () => {
+    const source = readSource(entryPath)
+    const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
+    const previewableSections = model.sections.filter((section) => section.status === '可预览')
+    const pendingSections = model.sections.filter((section) => section.status === '后续建设')
+
+    for (const requiredText of [
+      '页面总览',
+      'mock-only 模块完成度',
+      '当前模式',
+      '项目名称',
+      '页面显示名称',
+      '可预览模块数量',
+      '后续建设模块数量',
+      '总模块数量',
+      '完成度',
+      '数据来源',
+      '网络状态',
+      '通知状态',
+      '交易状态',
+      'Agent 状态',
+      '安全边界',
+      'AI股票基金每日信息报告',
+    ]) {
+      expect(source).toContain(requiredText)
+    }
+
+    const overviewVisibleText = [
+      model.overview.modeLabel,
+      model.overview.projectName,
+      model.overview.pageDisplayName,
+      model.overview.dataSource,
+      model.overview.networkStatus,
+      model.overview.notificationStatus,
+      model.overview.tradingStatus,
+      model.overview.agentStatus,
+      model.overview.safetyBoundary,
+      ...model.overview.safetyStatus.map((item) => `${item.label}:${item.value}`),
+    ].join('\n')
+
+    for (const requiredText of [
+      '运行范围',
+      '真实网络',
+      '真实账户',
+      '真实通知',
+      '真实交易',
+      '模型调用',
+      'mock-only 本地预览',
+      '股票基金质量分析系统',
+      'REDACTED FIXTURE DATA',
+      '未连接真实服务',
+      '不会发送通知',
+      '不会交易',
+      '不会调用模型',
+      '127.0.0.1 only',
+    ]) {
+      expect(overviewVisibleText).toContain(requiredText)
+    }
+
+    expect(model.overview.safetyBoundary).toBe('127.0.0.1 only')
+    expect(model.overview.usageDescription).toContain('本页面仅用于 Windows 本地 mock-only 渲染检查')
+    expect(model.overview.previewableModuleCount).toBe(previewableSections.length)
+    expect(model.overview.pendingModuleCount).toBe(pendingSections.length)
+    expect(model.overview.totalModuleCount).toBe(previewableSections.length + pendingSections.length)
+  })
 
   it('renders Web-P27 quick navigation anchors and section return links without external targets', () => {
     const source = readSource(entryPath)
