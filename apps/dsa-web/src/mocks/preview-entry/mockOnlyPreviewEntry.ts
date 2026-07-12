@@ -233,6 +233,71 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
 
   container.appendChild(portfolioPanel)
 
+
+  const historyReportsPreview = model.historyReportsPreview
+  const historyPanel = document.createElement('section')
+  historyPanel.className = 'mock-preview-card mock-preview-dashboard-card'
+  historyPanel.id = 'mock-history-reports-preview'
+  historyPanel.setAttribute('aria-labelledby', 'mock-history-reports-preview-title')
+  appendTextElement(historyPanel, 'h3', '历史报告预览', 'mock-preview-dashboard-title').id =
+    'mock-history-reports-preview-title'
+  appendTextElement(
+    historyPanel,
+    'p',
+    '本区域仅展示静态脱敏 fixture，用于本地页面渲染检查，不读取真实日报文件、数据库、账户、行情或通知记录。',
+  )
+  appendList(historyPanel, 'ul', historyReportsPreview.selectedReport.tags, 'mock-preview-dashboard-labels')
+
+  const historyMetrics = document.createElement('div')
+  historyMetrics.className = 'mock-preview-dashboard-grid'
+  for (const metric of historyReportsPreview.summary) {
+    appendMetric(historyMetrics, metric.label, metric.value)
+  }
+  historyPanel.appendChild(historyMetrics)
+
+  const reportsBlock = document.createElement('div')
+  reportsBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(reportsBlock, 'h4', '历史报告列表')
+  const reportsList = document.createElement('ul')
+  reportsList.className = 'mock-preview-portfolio-list'
+  for (const report of historyReportsPreview.reports) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${report.reportDateLabel}｜${report.title}｜状态：${report.status}｜市场：${report.marketMood}｜动作：${report.portfolioAction}｜风险：${report.riskLevel}｜发送：${report.deliveryStatus}`,
+    )
+    appendTextElement(item, 'span', report.note)
+    reportsList.appendChild(item)
+  }
+  reportsBlock.appendChild(reportsList)
+  historyPanel.appendChild(reportsBlock)
+
+  const selectedReportBlock = document.createElement('div')
+  selectedReportBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(selectedReportBlock, 'h4', '报告详情示例')
+  appendTextElement(selectedReportBlock, 'strong', historyReportsPreview.selectedReport.title)
+  appendTextElement(selectedReportBlock, 'p', `生成时间：${historyReportsPreview.selectedReport.generatedAtLabel}`)
+  appendTextElement(selectedReportBlock, 'p', `一句话摘要：${historyReportsPreview.selectedReport.headline}`)
+  for (const section of historyReportsPreview.selectedReport.sections) {
+    appendTextElement(selectedReportBlock, 'p', `${section.title}：${section.content}`)
+  }
+  historyPanel.appendChild(selectedReportBlock)
+
+  const historyWarningBlock = document.createElement('div')
+  historyWarningBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(historyWarningBlock, 'h4', '风险提示')
+  appendList(historyWarningBlock, 'ul', historyReportsPreview.riskNotes, 'mock-preview-settings-list')
+  historyPanel.appendChild(historyWarningBlock)
+
+  const historyActionBlock = document.createElement('div')
+  historyActionBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(historyActionBlock, 'h4', '今日观察备注')
+  appendList(historyActionBlock, 'ol', historyReportsPreview.actionNotes, 'mock-preview-settings-list')
+  historyPanel.appendChild(historyActionBlock)
+
+  container.appendChild(historyPanel)
+
   root.appendChild(container)
 
   return {

@@ -89,6 +89,8 @@ describe('mock-only preview independent web entry', () => {
       '模拟模块预览范围',
       '仪表盘摘要预览',
       '持仓预览',
+      '历史报告预览',
+      'AI股票基金每日信息报告',
       '模拟账户',
       '模拟持仓总额',
       '模拟目标仓位',
@@ -102,6 +104,33 @@ describe('mock-only preview independent web entry', () => {
     }
     for (const forbiddenImport of ['src/api', '/api/', '/pages', '/stores', '/components', '/contexts', '/utils', 'App', 'main', 'router']) {
       expect(source).not.toContain(forbiddenImport)
+    }
+  })
+
+  it('exposes history reports preview labels through the static preview model', () => {
+    const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
+    const visibleText = [
+      ...model.sections.map((section) => `${section.title}:${section.status}`),
+      ...model.historyReportsPreview.summary.map((item) => `${item.label}:${item.value}`),
+      ...model.historyReportsPreview.reports.map((item) => `${item.reportDateLabel}:${item.title}:${item.status}`),
+      model.historyReportsPreview.selectedReport.title,
+      model.historyReportsPreview.selectedReport.headline,
+      ...model.historyReportsPreview.selectedReport.tags,
+    ].join('\n')
+
+    for (const requiredText of [
+      '历史报告预览',
+      '模拟报告数量',
+      '最新模拟报告',
+      'AI股票基金每日信息报告',
+      'REDACTED FIXTURE DATA',
+      '非真实日报',
+      '非真实账户',
+      '非投资建议',
+      '不会发送通知',
+      '不会交易',
+    ]) {
+      expect(visibleText).toContain(requiredText)
     }
   })
 
@@ -159,16 +188,31 @@ describe('mock-only preview independent web entry', () => {
     expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
   })
 
-  it('marks dashboard summary and portfolio preview as previewable and keeps unfinished modules pending', () => {
+  it('renders the history reports entry in the module range before the history reports content', () => {
+    const source = readSource(entryPath)
+    const moduleRangeIndex = source.indexOf('模拟模块预览范围')
+    const historyEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const historyContentIndex = source.indexOf("historyPanel.id = 'mock-history-reports-preview'")
+
+    expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
+    expect(historyEntryIndex).toBeGreaterThan(moduleRangeIndex)
+    expect(historyContentIndex).toBeGreaterThan(historyEntryIndex)
+    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+  })
+
+  it('marks dashboard summary, portfolio preview, and history reports preview as previewable and keeps unfinished modules pending', () => {
     const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
     const dashboard = model.sections.find((section) => section.id === 'dashboard-summary')
     const portfolio = model.sections.find((section) => section.id === 'portfolio-preview')
+    const history = model.sections.find((section) => section.id === 'history-reports-preview')
     const unfinishedSections = model.sections.filter(
-      (section) => section.id !== 'dashboard-summary' && section.id !== 'portfolio-preview',
+      (section) =>
+        section.id !== 'dashboard-summary' && section.id !== 'portfolio-preview' && section.id !== 'history-reports-preview',
     )
 
     expect(dashboard).toMatchObject({ title: '仪表盘摘要', status: '可预览', previewAnchor: 'mock-dashboard-summary-preview' })
     expect(portfolio).toMatchObject({ title: '持仓预览', status: '可预览', previewAnchor: 'mock-portfolio-preview' })
+    expect(history).toMatchObject({ title: '历史报告预览', status: '可预览', previewAnchor: 'mock-history-reports-preview' })
     expect(unfinishedSections.length).toBeGreaterThan(0)
     for (const section of unfinishedSections) {
       expect(section.status).toBe('后续建设')

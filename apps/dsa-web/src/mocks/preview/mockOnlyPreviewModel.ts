@@ -1,6 +1,7 @@
 import { createMockApiService } from '../service/mockApiService'
 import type {
   MockOnlyDashboardSummaryPreview,
+  MockOnlyHistoryReportsPreview,
   MockOnlyPortfolioPreview,
   MockOnlyPreviewMetadata,
   MockOnlyPreviewModel,
@@ -102,6 +103,70 @@ const PORTFOLIO_PREVIEW: MockOnlyPortfolioPreview = Object.freeze({
   ]),
 })
 
+
+const HISTORY_REPORTS_PREVIEW: MockOnlyHistoryReportsPreview = Object.freeze({
+  summary: Object.freeze([
+    Object.freeze({ label: '模拟报告数量', value: '3' }),
+    Object.freeze({ label: '最新模拟报告', value: '2026-07-12' }),
+    Object.freeze({ label: '模拟发送状态', value: '未发送' }),
+    Object.freeze({ label: '模拟数据来源', value: 'REDACTED FIXTURE DATA' }),
+  ]),
+  reports: Object.freeze([
+    Object.freeze({
+      reportDateLabel: '2026-07-12',
+      title: 'AI股票基金每日信息报告',
+      status: '本地预览',
+      marketMood: '震荡观察',
+      portfolioAction: '不调仓',
+      riskLevel: '中等',
+      deliveryStatus: '未发送',
+      note: '静态脱敏 fixture 示例，不读取真实历史日报文件。',
+    }),
+    Object.freeze({
+      reportDateLabel: '2026-07-11',
+      title: 'AI股票基金每日信息报告',
+      status: '本地预览',
+      marketMood: '分化观察',
+      portfolioAction: '仅观察',
+      riskLevel: '中等',
+      deliveryStatus: '未发送',
+      note: '静态脱敏 fixture 示例，不读取数据库或通知记录。',
+    }),
+    Object.freeze({
+      reportDateLabel: '2026-07-10',
+      title: 'AI股票基金每日信息报告',
+      status: '本地预览',
+      marketMood: '偏强观察',
+      portfolioAction: '不交易',
+      riskLevel: '中高',
+      deliveryStatus: '未发送',
+      note: '静态脱敏 fixture 示例，不连接任何真实账户。',
+    }),
+  ]),
+  selectedReport: Object.freeze({
+    title: 'AI股票基金每日信息报告 mock-only 历史详情',
+    generatedAtLabel: '2026-07-12 本地静态预览',
+    headline: '科技方向维持震荡，模拟组合以观察为主，不执行主动调仓。',
+    sections: Object.freeze([
+      Object.freeze({ title: '市场概览', content: '静态脱敏 fixture 示例，不接真实行情。' }),
+      Object.freeze({ title: '持仓观察', content: '静态脱敏 fixture 示例，不读取真实账户。' }),
+      Object.freeze({ title: '风险提示', content: '页面仅用于渲染检查，不构成投资建议。' }),
+      Object.freeze({ title: '动作建议', content: '不发送通知，不执行交易。' }),
+    ]),
+    tags: Object.freeze(['模拟数据', 'REDACTED FIXTURE DATA', '非真实日报', '非真实账户', '非投资建议', '不会发送通知', '不会交易']),
+  }),
+  riskNotes: Object.freeze([
+    '本区域只展示静态脱敏 fixture，不读取真实历史报告。',
+    '本区域不接真实行情、provider、AI、通知或交易能力。',
+    '页面中的报告日期、摘要、风险等级和动作建议仅用于渲染测试。',
+    '本功能不是正式日报归档功能。',
+  ]),
+  actionNotes: Object.freeze([
+    '历史报告列表仅用于 mock-only 页面演示。',
+    '当前不会从本地文件、数据库、云端或通知渠道读取报告。',
+  ]),
+})
+
 const SAFETY_BANNER = Object.freeze([
   'MOCK ONLY',
   'LOCAL PREVIEW ONLY',
@@ -186,8 +251,9 @@ export const getMockOnlyPreviewSections = (
     {
       id: 'history-reports-preview',
       title: '历史报告预览',
-      description: '后续展示历史报告列表与详情示例；当前仅保留模块入口占位。',
-      status: '后续建设',
+      description: '展示历史报告列表与详情示例；仅使用静态脱敏 fixture，不读取真实日报。',
+      status: '可预览',
+      previewAnchor: 'mock-history-reports-preview',
       data: history,
     },
     {
@@ -235,5 +301,6 @@ export const createMockOnlyPreviewModel = (options: MockOnlyPreviewOptions): Moc
     sections,
     dashboardSummaryPreview: DASHBOARD_SUMMARY_PREVIEW,
     portfolioPreview: PORTFOLIO_PREVIEW,
+    historyReportsPreview: HISTORY_REPORTS_PREVIEW,
   })
 }

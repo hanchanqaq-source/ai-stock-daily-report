@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] Web-P23 新增 mock-only 历史报告预览，同页提供“进入预览”锚点入口、静态脱敏历史报告 fixture、报告概览、列表、详情、风险提示和今日观察备注，并补充文档与静态测试。
 - [新功能] Web-P22 新增 mock-only 持仓预览，同页提供“进入预览”锚点入口、静态脱敏持仓 fixture、账户总览、风险提示、今日观察备注和非投资建议/不会交易声明，并补充文档与静态测试。
 - [新功能] Web-P21 新增 mock-only 仪表盘摘要预览，同页提供“进入预览”锚点入口、中文模块状态、静态脱敏摘要指标、风险提示和非投资建议声明，并补充文档与静态测试。
 - [修复] L2N/L2O-fix-5 增强 Windows localhost-only safe preview dry-run 的 Vitest 本地诊断与 fail-fast 输出，先检查本地 Vitest CLI 并在每个 mock-only npm run test / build 后立即打印 exit code，便于定位 Windows + Node v24 + Vitest 4 下无输出或异常返回问题。
