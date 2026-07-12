@@ -43,6 +43,9 @@ const forbiddenNetworkPrimitives = [
   /\blocalStorage\b/,
   /\bsessionStorage\b/,
   /\bindexedDB\b/,
+  /\bNotification\s*\(/,
+  /\bserviceWorker\b/,
+  /\bsendBeacon\b/,
 ] as const
 
 const forbiddenRequestTargets = [

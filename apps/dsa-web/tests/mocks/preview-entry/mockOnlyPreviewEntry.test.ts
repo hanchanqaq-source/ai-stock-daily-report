@@ -90,6 +90,7 @@ describe('mock-only preview independent web entry', () => {
       '仪表盘摘要预览',
       '持仓预览',
       '历史报告预览',
+      '提醒预览',
       'AI股票基金每日信息报告',
       '模拟账户',
       '模拟持仓总额',
@@ -115,11 +116,14 @@ describe('mock-only preview independent web entry', () => {
       ...model.historyReportsPreview.reports.map((item) => `${item.reportDateLabel}:${item.title}:${item.status}`),
       model.historyReportsPreview.selectedReport.title,
       model.historyReportsPreview.selectedReport.headline,
+      ...model.alertsPreview.summary.map((item) => `${item.label}:${item.value}`),
+      ...model.alertsPreview.labels,
       ...model.historyReportsPreview.selectedReport.tags,
     ].join('\n')
 
     for (const requiredText of [
       '历史报告预览',
+      '提醒预览',
       '模拟报告数量',
       '最新模拟报告',
       'AI股票基金每日信息报告',
@@ -129,6 +133,13 @@ describe('mock-only preview independent web entry', () => {
       '非投资建议',
       '不会发送通知',
       '不会交易',
+      '提醒预览',
+      '模拟提醒规则数量',
+      '模拟触发记录',
+      '模拟发送状态',
+      '非真实通知',
+      '不读取 webhook',
+      '不读取 token',
     ]) {
       expect(visibleText).toContain(requiredText)
     }
@@ -150,6 +161,9 @@ describe('mock-only preview independent web entry', () => {
       /\blocalStorage\b/,
       /\bsessionStorage\b/,
       /\bindexedDB\b/,
+      /\bNotification\s*\(/,
+      /\bserviceWorker\b/,
+      /\bsendBeacon\b/,
       /\binnerHTML\b/,
       /\bdangerouslySetInnerHTML\b/,
       /\beval\b/,
@@ -200,19 +214,37 @@ describe('mock-only preview independent web entry', () => {
     expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
   })
 
-  it('marks dashboard summary, portfolio preview, and history reports preview as previewable and keeps unfinished modules pending', () => {
+
+  it('renders the alerts entry in the module range before the alerts content', () => {
+    const source = readSource(entryPath)
+    const moduleRangeIndex = source.indexOf('模拟模块预览范围')
+    const alertsEntryIndex = source.indexOf("previewLink.textContent = '进入预览'")
+    const alertsContentIndex = source.indexOf("alertsPanel.id = 'mock-alerts-preview'")
+
+    expect(moduleRangeIndex).toBeGreaterThanOrEqual(0)
+    expect(alertsEntryIndex).toBeGreaterThan(moduleRangeIndex)
+    expect(alertsContentIndex).toBeGreaterThan(alertsEntryIndex)
+    expect(source).toContain("previewLink.href = `#${section.previewAnchor}`")
+  })
+
+  it('marks dashboard summary, portfolio preview, history reports preview, and alerts preview as previewable and keeps unfinished modules pending', () => {
     const model = createMockOnlyPreviewModel({ mode: 'mock', source: 'local_preview_only' })
     const dashboard = model.sections.find((section) => section.id === 'dashboard-summary')
     const portfolio = model.sections.find((section) => section.id === 'portfolio-preview')
     const history = model.sections.find((section) => section.id === 'history-reports-preview')
+    const alerts = model.sections.find((section) => section.id === 'alerts-preview')
     const unfinishedSections = model.sections.filter(
       (section) =>
-        section.id !== 'dashboard-summary' && section.id !== 'portfolio-preview' && section.id !== 'history-reports-preview',
+        section.id !== 'dashboard-summary' &&
+        section.id !== 'portfolio-preview' &&
+        section.id !== 'history-reports-preview' &&
+        section.id !== 'alerts-preview',
     )
 
     expect(dashboard).toMatchObject({ title: '仪表盘摘要', status: '可预览', previewAnchor: 'mock-dashboard-summary-preview' })
     expect(portfolio).toMatchObject({ title: '持仓预览', status: '可预览', previewAnchor: 'mock-portfolio-preview' })
     expect(history).toMatchObject({ title: '历史报告预览', status: '可预览', previewAnchor: 'mock-history-reports-preview' })
+    expect(alerts).toMatchObject({ title: '提醒预览', status: '可预览', previewAnchor: 'mock-alerts-preview' })
     expect(unfinishedSections.length).toBeGreaterThan(0)
     for (const section of unfinishedSections) {
       expect(section.status).toBe('后续建设')
@@ -231,6 +263,12 @@ describe('mock-only preview independent web entry', () => {
       'XMLHttpRequest',
       'WebSocket',
       'EventSource',
+      'localStorage',
+      'sessionStorage',
+      'indexedDB',
+      'Notification(',
+      'serviceWorker',
+      'sendBeacon',
       '/api/v1',
       'VITE_API_URL',
       'webhook',

@@ -87,7 +87,7 @@ describe('mock-only preview model', () => {
         expect.objectContaining({ id: 'dashboard-summary', title: '仪表盘摘要', status: '可预览' }),
         expect.objectContaining({ id: 'portfolio-preview', title: '持仓预览', status: '可预览' }),
         expect.objectContaining({ id: 'history-reports-preview', title: '历史报告预览', status: '可预览' }),
-        expect.objectContaining({ id: 'alerts-preview', title: '提醒预览', status: '后续建设' }),
+        expect.objectContaining({ id: 'alerts-preview', title: '提醒预览', status: '可预览' }),
         expect.objectContaining({ id: 'agent-chat-preview', title: 'Agent 对话预览', status: '后续建设' }),
       ]),
     )
@@ -159,6 +159,38 @@ describe('mock-only preview model', () => {
       riskNotes: expect.arrayContaining(['本区域只展示静态脱敏 fixture，不读取真实历史报告。']),
       actionNotes: expect.arrayContaining(['历史报告列表仅用于 mock-only 页面演示。']),
     })
+  })
+
+
+  it('exposes static redacted alerts preview fixture data', () => {
+    const model = createMockOnlyPreviewModel(mockOptions)
+    const visibleText = [
+      ...model.alertsPreview.summary.map((item) => `${item.label}:${item.value}`),
+      ...model.alertsPreview.labels,
+      ...model.alertsPreview.rules.map((rule) => `${rule.name}:${rule.scope}:${rule.condition}:${rule.severity}:${rule.status}`),
+      ...model.alertsPreview.triggers.map((trigger) => `${trigger.triggeredAtLabel}:${trigger.ruleName}:${trigger.status}:${trigger.decision}`),
+      ...model.alertsPreview.deliveries.map((delivery) => `${delivery.channel}:${delivery.status}:${delivery.targetLabel}:${delivery.message}`),
+      ...model.alertsPreview.riskNotes,
+      ...model.alertsPreview.actionNotes,
+    ].join('\n')
+
+    for (const requiredText of [
+      '模拟提醒规则数量',
+      '模拟触发记录',
+      '模拟发送状态',
+      'REDACTED FIXTURE DATA',
+      '非真实通知',
+      '非真实账户',
+      '非投资建议',
+      '不会发送通知',
+      '不会交易',
+      '不读取 webhook',
+      '不读取 token',
+      '科技仓位风险观察',
+      'mock-only 本地预览通道',
+    ]) {
+      expect(visibleText).toContain(requiredText)
+    }
   })
 
   it('keeps the Web-P20 settings import/export section static and non-executing', () => {

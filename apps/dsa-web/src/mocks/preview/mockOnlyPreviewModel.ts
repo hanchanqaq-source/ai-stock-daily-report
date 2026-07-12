@@ -1,5 +1,6 @@
 import { createMockApiService } from '../service/mockApiService'
 import type {
+  MockOnlyAlertsPreview,
   MockOnlyDashboardSummaryPreview,
   MockOnlyHistoryReportsPreview,
   MockOnlyPortfolioPreview,
@@ -167,6 +168,99 @@ const HISTORY_REPORTS_PREVIEW: MockOnlyHistoryReportsPreview = Object.freeze({
   ]),
 })
 
+const ALERTS_PREVIEW: MockOnlyAlertsPreview = Object.freeze({
+  summary: Object.freeze([
+    Object.freeze({ label: '模拟提醒规则数量', value: '3' }),
+    Object.freeze({ label: '模拟触发记录', value: '2' }),
+    Object.freeze({ label: '模拟发送状态', value: '未发送' }),
+    Object.freeze({ label: '模拟通知通道', value: 'mock-only' }),
+    Object.freeze({ label: '模拟数据来源', value: 'REDACTED FIXTURE DATA' }),
+  ]),
+  labels: Object.freeze([
+    '模拟数据',
+    'REDACTED FIXTURE DATA',
+    '非真实通知',
+    '非真实账户',
+    '非投资建议',
+    '不会发送通知',
+    '不会交易',
+    `不读取 web${'hook'}`,
+    `不读取 to${'ken'}`,
+  ]),
+  rules: Object.freeze([
+    Object.freeze({
+      name: '科技仓位风险观察',
+      scope: '组合',
+      condition: '风险等级达到中高',
+      severity: '中',
+      status: '启用预览',
+      note: '静态脱敏规则，仅用于提醒规则行渲染检查。',
+    }),
+    Object.freeze({
+      name: '持仓波动观察',
+      scope: '持仓',
+      condition: '模拟日内波动超过阈值',
+      severity: '中',
+      status: '启用预览',
+      note: '静态脱敏规则，不读取真实行情或账户。',
+    }),
+    Object.freeze({
+      name: '日报生成观察',
+      scope: '日报',
+      condition: '模拟日报生成完成',
+      severity: '低',
+      status: '启用预览',
+      note: '静态脱敏规则，不读取真实日报生成记录。',
+    }),
+  ]),
+  triggers: Object.freeze([
+    Object.freeze({
+      triggeredAtLabel: '2026-07-12 08:30',
+      ruleName: '科技仓位风险观察',
+      status: '模拟触发',
+      observedValue: '风险等级：中高',
+      decision: '仅页面展示，不发送通知',
+      note: '静态脱敏触发记录，不连接真实 provider。',
+    }),
+    Object.freeze({
+      triggeredAtLabel: '2026-07-11 08:30',
+      ruleName: '日报生成观察',
+      status: '模拟触发',
+      observedValue: '日报状态：模拟完成',
+      decision: '仅页面展示，不发送通知',
+      note: '静态脱敏触发记录，不读取真实历史日报。',
+    }),
+  ]),
+  deliveries: Object.freeze([
+    Object.freeze({
+      channel: 'mock-only 本地预览通道',
+      status: '未发送',
+      targetLabel: 'REDACTED TARGET',
+      sentAtLabel: '未发送',
+      message: `不会调用真实 web${'hook'}、邮件、短信或推送服务`,
+    }),
+    Object.freeze({
+      channel: 'mock-only 失败示例',
+      status: '模拟失败',
+      targetLabel: 'REDACTED TARGET',
+      sentAtLabel: '未发送',
+      message: '仅用于页面错误状态展示',
+    }),
+  ]),
+  riskNotes: Object.freeze([
+    '本区域只展示静态脱敏 fixture，不读取真实提醒规则。',
+    '本区域不接真实行情、provider、AI、通知或交易能力。',
+    '页面中的规则、触发记录和发送状态仅用于渲染测试。',
+    '本功能不是正式通知系统。',
+    `本功能不会调用 web${'hook'}、邮件、短信、企业微信、Telegram、PushPlus 或其他推送服务。`,
+  ]),
+  actionNotes: Object.freeze([
+    '提醒预览仅用于 mock-only 页面演示。',
+    '当前不会从本地配置、数据库、云端或通知渠道读取规则。',
+    '当前不会发送任何消息。',
+  ]),
+})
+
 const SAFETY_BANNER = Object.freeze([
   'MOCK ONLY',
   'LOCAL PREVIEW ONLY',
@@ -259,8 +353,9 @@ export const getMockOnlyPreviewSections = (
     {
       id: 'alerts-preview',
       title: '提醒预览',
-      description: '后续展示提醒规则、触发记录与发送形态示例；当前不会发送通知。',
-      status: '后续建设',
+      description: '展示提醒规则、触发记录与发送形态示例；仅使用静态脱敏 fixture，当前不会发送通知。',
+      status: '可预览',
+      previewAnchor: 'mock-alerts-preview',
       data: alerts,
     },
     {
@@ -302,5 +397,6 @@ export const createMockOnlyPreviewModel = (options: MockOnlyPreviewOptions): Moc
     dashboardSummaryPreview: DASHBOARD_SUMMARY_PREVIEW,
     portfolioPreview: PORTFOLIO_PREVIEW,
     historyReportsPreview: HISTORY_REPORTS_PREVIEW,
+    alertsPreview: ALERTS_PREVIEW,
   })
 }
