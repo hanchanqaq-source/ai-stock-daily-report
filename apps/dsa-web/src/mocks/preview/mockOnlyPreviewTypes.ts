@@ -47,9 +47,31 @@ export interface MockOnlyDashboardSummaryPreview {
   readonly actionSuggestions: readonly string[]
 }
 
+export interface MockOnlyPortfolioHoldingPreview {
+  readonly name: string
+  readonly category: string
+  readonly amountLabel: string
+  readonly weightLabel: string
+  readonly pnlLabel: string
+  readonly riskLevel: string
+  readonly note: string
+}
+
+export interface MockOnlyPortfolioPreview {
+  readonly accountLabel: string
+  readonly totalAmountLabel: string
+  readonly targetAmountLabel: string
+  readonly positionRatioLabel: string
+  readonly labels: readonly string[]
+  readonly holdings: readonly MockOnlyPortfolioHoldingPreview[]
+  readonly riskNotes: readonly string[]
+  readonly actionNotes: readonly string[]
+}
+
 export interface MockOnlyPreviewModel {
   readonly metadata: MockOnlyPreviewMetadata
   readonly safetyBanner: readonly string[]
   readonly sections: readonly MockOnlyPreviewSection[]
   readonly dashboardSummaryPreview: MockOnlyDashboardSummaryPreview
+  readonly portfolioPreview: MockOnlyPortfolioPreview
 }

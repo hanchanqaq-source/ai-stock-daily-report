@@ -85,7 +85,7 @@ describe('mock-only preview model', () => {
       expect.arrayContaining([
         expect.objectContaining({ id: 'safety-banner', title: '安全边界', status: '后续建设' }),
         expect.objectContaining({ id: 'dashboard-summary', title: '仪表盘摘要', status: '可预览' }),
-        expect.objectContaining({ id: 'portfolio-preview', title: '持仓预览', status: '后续建设' }),
+        expect.objectContaining({ id: 'portfolio-preview', title: '持仓预览', status: '可预览' }),
         expect.objectContaining({ id: 'history-reports-preview', title: '历史报告预览', status: '后续建设' }),
         expect.objectContaining({ id: 'alerts-preview', title: '提醒预览', status: '后续建设' }),
         expect.objectContaining({ id: 'agent-chat-preview', title: 'Agent 对话预览', status: '后续建设' }),
@@ -102,6 +102,34 @@ describe('mock-only preview model', () => {
       positionRatio: '32.9%',
       riskLevel: '中等',
       labels: expect.arrayContaining(['模拟数据', 'REDACTED FIXTURE DATA', '非真实账户', '非投资建议', '不会发送通知']),
+    })
+  })
+
+  it('exposes static redacted portfolio preview fixture data', () => {
+    expect(createMockOnlyPreviewModel(mockOptions).portfolioPreview).toMatchObject({
+      accountLabel: '本地预览组合',
+      totalAmountLabel: '¥59,167.78',
+      targetAmountLabel: '¥180,000.00',
+      positionRatioLabel: '32.9%',
+      labels: expect.arrayContaining([
+        '模拟数据',
+        'REDACTED FIXTURE DATA',
+        '非真实账户',
+        '非投资建议',
+        '不会发送通知',
+        '不会交易',
+      ]),
+      holdings: expect.arrayContaining([
+        expect.objectContaining({
+          name: '硬科技观察仓',
+          amountLabel: '¥14,879.70',
+          weightLabel: '25.1%',
+          pnlLabel: '+18.33%',
+          riskLevel: '中高',
+        }),
+      ]),
+      riskNotes: expect.arrayContaining(['本区域只展示静态脱敏 fixture，不读取用户真实持仓。']),
+      actionNotes: expect.arrayContaining(['模拟组合保持观察，不执行自动调仓。']),
     })
   })
 
