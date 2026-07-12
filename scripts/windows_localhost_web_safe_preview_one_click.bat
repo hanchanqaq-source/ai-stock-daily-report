@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
 set "SCRIPT_DIR=%~dp0"
 set "REPO_ROOT=%SCRIPT_DIR%.."
@@ -51,10 +51,10 @@ if not exist "node_modules" (
   echo apps\dsa-web\node_modules is missing.
   echo Running npm ci...
   call npm ci
-  set "NPM_CI_EXIT=%ERRORLEVEL%"
-  echo npm ci exit code: %NPM_CI_EXIT%
-  if not "%NPM_CI_EXIT%"=="0" (
-    set "FAIL_REASON=npm ci failed with exit code %NPM_CI_EXIT%."
+  set "NPM_CI_EXIT=!ERRORLEVEL!"
+  echo npm ci exit code: !NPM_CI_EXIT!
+  if not "!NPM_CI_EXIT!"=="0" (
+    set "FAIL_REASON=npm ci failed with exit code !NPM_CI_EXIT!."
     goto :fatal_exit
   )
 ) else (
