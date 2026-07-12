@@ -1,6 +1,7 @@
 import { createMockApiService } from '../service/mockApiService'
 import type {
   MockOnlyDashboardSummaryPreview,
+  MockOnlyPortfolioPreview,
   MockOnlyPreviewMetadata,
   MockOnlyPreviewModel,
   MockOnlyPreviewOptions,
@@ -43,6 +44,61 @@ const DASHBOARD_SUMMARY_PREVIEW: MockOnlyDashboardSummaryPreview = Object.freeze
   actionSuggestions: Object.freeze([
     '观察模拟组合波动，不执行自动调仓。',
     '复核风险等级标签，仅作为页面展示示例。',
+  ]),
+})
+
+const PORTFOLIO_PREVIEW: MockOnlyPortfolioPreview = Object.freeze({
+  accountLabel: '本地预览组合',
+  totalAmountLabel: '¥59,167.78',
+  targetAmountLabel: '¥180,000.00',
+  positionRatioLabel: '32.9%',
+  labels: Object.freeze(['模拟数据', 'REDACTED FIXTURE DATA', '非真实账户', '非投资建议', '不会发送通知', '不会交易']),
+  holdings: Object.freeze([
+    Object.freeze({
+      name: '硬科技观察仓',
+      category: '主题观察',
+      amountLabel: '¥14,879.70',
+      weightLabel: '25.1%',
+      pnlLabel: '+18.33%',
+      riskLevel: '中高',
+      note: '静态脱敏示例，仅用于持仓行渲染检查。',
+    }),
+    Object.freeze({
+      name: 'AI 硬件观察仓',
+      category: '行业观察',
+      amountLabel: '¥6,877.54',
+      weightLabel: '11.6%',
+      pnlLabel: '-0.46%',
+      riskLevel: '中',
+      note: '静态脱敏示例，不代表真实账户或真实产品。',
+    }),
+    Object.freeze({
+      name: '半导体观察仓',
+      category: '行业观察',
+      amountLabel: '¥2,115.71',
+      weightLabel: '3.6%',
+      pnlLabel: '-4.01%',
+      riskLevel: '中高',
+      note: '静态脱敏示例，风险标签只用于页面展示。',
+    }),
+    Object.freeze({
+      name: '海外科技观察仓',
+      category: '跨市场观察',
+      amountLabel: '¥2,292.78',
+      weightLabel: '3.9%',
+      pnlLabel: '-1.61%',
+      riskLevel: '中',
+      note: '静态脱敏示例，不连接任何真实基金平台。',
+    }),
+  ]),
+  riskNotes: Object.freeze([
+    '本区域只展示静态脱敏 fixture，不读取用户真实持仓。',
+    '本区域不接真实行情、provider、通知或交易能力。',
+    '页面中的金额、比例、盈亏和风险等级仅用于渲染测试。',
+  ]),
+  actionNotes: Object.freeze([
+    '模拟组合保持观察，不执行自动调仓。',
+    '风险标签仅用于页面展示，不代表真实投资判断。',
   ]),
 })
 
@@ -122,8 +178,9 @@ export const getMockOnlyPreviewSections = (
     {
       id: 'portfolio-preview',
       title: '持仓预览',
-      description: '后续展示模拟账户、持仓结构、风险和交易示例；当前不伪装为已完成。',
-      status: '后续建设',
+      description: '展示模拟账户、持仓列表、风险提示和今日观察备注；仅使用静态脱敏 fixture。',
+      status: '可预览',
+      previewAnchor: 'mock-portfolio-preview',
       data: portfolio,
     },
     {
@@ -177,5 +234,6 @@ export const createMockOnlyPreviewModel = (options: MockOnlyPreviewOptions): Moc
     safetyBanner: SAFETY_BANNER,
     sections,
     dashboardSummaryPreview: DASHBOARD_SUMMARY_PREVIEW,
+    portfolioPreview: PORTFOLIO_PREVIEW,
   })
 }

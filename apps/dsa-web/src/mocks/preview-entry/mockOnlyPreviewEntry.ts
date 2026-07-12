@@ -18,7 +18,7 @@ const SAFETY_NOTES = Object.freeze([
 const SETTINGS_IMPORT_EXPORT_NOTES = Object.freeze([
   '设置状态：mock-only 固定，不保存本地配置',
   '导入状态：仅展示人工复核流程，不读取文件或剪贴板',
-  '导出状态：不生成备份，不导出环境配置、Token、API Key 或 Webhook',
+  '导出状态：不生成备份，不导出环境配置或密钥类配置',
 ])
 
 export interface MockOnlyPreviewEntryRenderResult {
@@ -178,6 +178,60 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   dashboardPanel.appendChild(actionBlock)
 
   container.appendChild(dashboardPanel)
+
+  const portfolioPreview = model.portfolioPreview
+  const portfolioPanel = document.createElement('section')
+  portfolioPanel.className = 'mock-preview-card mock-preview-dashboard-card'
+  portfolioPanel.id = 'mock-portfolio-preview'
+  portfolioPanel.setAttribute('aria-labelledby', 'mock-portfolio-preview-title')
+  appendTextElement(portfolioPanel, 'h3', '持仓预览', 'mock-preview-dashboard-title').id =
+    'mock-portfolio-preview-title'
+  appendTextElement(
+    portfolioPanel,
+    'p',
+    '本区域仅展示静态脱敏 fixture，用于本地页面渲染检查，不读取真实账户、真实基金、真实行情或真实交易记录。',
+  )
+  appendList(portfolioPanel, 'ul', portfolioPreview.labels, 'mock-preview-dashboard-labels')
+
+  const portfolioMetrics = document.createElement('div')
+  portfolioMetrics.className = 'mock-preview-dashboard-grid'
+  appendMetric(portfolioMetrics, '模拟账户', portfolioPreview.accountLabel)
+  appendMetric(portfolioMetrics, '模拟持仓总额', portfolioPreview.totalAmountLabel)
+  appendMetric(portfolioMetrics, '模拟目标仓位', portfolioPreview.targetAmountLabel)
+  appendMetric(portfolioMetrics, '模拟仓位比例', portfolioPreview.positionRatioLabel)
+  portfolioPanel.appendChild(portfolioMetrics)
+
+  const holdingsBlock = document.createElement('div')
+  holdingsBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(holdingsBlock, 'h4', '持仓列表')
+  const holdingList = document.createElement('ul')
+  holdingList.className = 'mock-preview-portfolio-list'
+  for (const holding of portfolioPreview.holdings) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${holding.name}：${holding.amountLabel}，占比 ${holding.weightLabel}，模拟浮动 ${holding.pnlLabel}，风险 ${holding.riskLevel}`,
+    )
+    appendTextElement(item, 'span', `${holding.category}｜${holding.note}`)
+    holdingList.appendChild(item)
+  }
+  holdingsBlock.appendChild(holdingList)
+  portfolioPanel.appendChild(holdingsBlock)
+
+  const portfolioWarningBlock = document.createElement('div')
+  portfolioWarningBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(portfolioWarningBlock, 'h4', '风险提示')
+  appendList(portfolioWarningBlock, 'ul', portfolioPreview.riskNotes, 'mock-preview-settings-list')
+  portfolioPanel.appendChild(portfolioWarningBlock)
+
+  const portfolioActionBlock = document.createElement('div')
+  portfolioActionBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(portfolioActionBlock, 'h4', '今日观察备注')
+  appendList(portfolioActionBlock, 'ol', portfolioPreview.actionNotes, 'mock-preview-settings-list')
+  portfolioPanel.appendChild(portfolioActionBlock)
+
+  container.appendChild(portfolioPanel)
 
   root.appendChild(container)
 
