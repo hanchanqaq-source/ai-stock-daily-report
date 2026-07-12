@@ -146,7 +146,7 @@ def test_script_runs_mock_only_tests_and_build() -> None:
     assert "mockOnlyPreviewEntry.test.ts" in text
     assert "mockOnlyPreviewNetworkBoundary.test.ts" in text
     assert "mockOnlyPreview.test.ts" in text
-    assert "call npm run build" in text
+    assert "npm run build" in text
 
 
 def test_script_runs_local_vitest_version_diagnostic_without_npx() -> None:
@@ -197,7 +197,7 @@ def test_success_banner_exists_only_after_build_success_gate() -> None:
     text = script_text().lower()
 
     passed_index = text.index("dry run passed")
-    build_index = text.index("call npm run build")
+    build_index = text.index('call :run_timed "npm run build" "%build_timeout_seconds%" "npm run build"')
     build_failure_gate_index = text.index("fail_reason=web build dry-run check failed", build_index)
     fatal_after_build_index = text.index("goto :fatal_exit", build_failure_gate_index)
 
@@ -228,13 +228,13 @@ def test_npm_cmd_invocations_use_call_to_preserve_parent_bat_control_flow() -> N
 
     assert "call npm --version >nul 2>nul" in lines
     assert "for /f \"delims=\" %%v in ('call npm --version') do echo pass npm version: %%v" in lines
-    assert "call npm run build" in lines
+    assert 'call :run_timed "npm run build" "%build_timeout_seconds%" "npm run build"' in lines
 
-    npm_run_test_lines = [line for line in lines if line.startswith("call npm run test ")]
+    npm_run_test_lines = [line for line in lines if line.startswith("call :run_timed ") and "npm run test " in line]
     assert npm_run_test_lines == [
-        "call npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts",
-        "call npm run test -- tests/mocks/preview/mockonlypreviewnetworkboundary.test.ts",
-        "call npm run test -- tests/mocks/preview/mockonlypreview.test.ts",
+        'call :run_timed "mockonlypreviewentry.test.ts" "%test_timeout_seconds%" "npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts"',
+        'call :run_timed "mockonlypreviewnetworkboundary.test.ts" "%test_timeout_seconds%" "npm run test -- tests/mocks/preview/mockonlypreviewnetworkboundary.test.ts"',
+        'call :run_timed "mockonlypreview.test.ts" "%test_timeout_seconds%" "npm run test -- tests/mocks/preview/mockonlypreview.test.ts"',
     ]
 
     forbidden_prefixes = (
@@ -251,10 +251,10 @@ def test_npm_test_and_build_commands_print_exit_code_and_fail_fast() -> None:
     text = script_text()
 
     commands = [
-        "call npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts",
-        "call npm run test -- tests/mocks/preview/mockonlypreviewnetworkboundary.test.ts",
-        "call npm run test -- tests/mocks/preview/mockonlypreview.test.ts",
-        "call npm run build",
+        'call :run_timed "mockonlypreviewentry.test.ts" "%test_timeout_seconds%" "npm run test -- tests/mocks/preview-entry/mockonlypreviewentry.test.ts"',
+        'call :run_timed "mockonlypreviewnetworkboundary.test.ts" "%test_timeout_seconds%" "npm run test -- tests/mocks/preview/mockonlypreviewnetworkboundary.test.ts"',
+        'call :run_timed "mockonlypreview.test.ts" "%test_timeout_seconds%" "npm run test -- tests/mocks/preview/mockonlypreview.test.ts"',
+        'call :run_timed "npm run build" "%build_timeout_seconds%" "npm run build"',
     ]
 
     for command in commands:
@@ -265,6 +265,25 @@ def test_npm_test_and_build_commands_print_exit_code_and_fail_fast() -> None:
 
     assert text.count("echo npm run test exit code: %LAST_EXIT%") == 3
     assert "echo npm run build exit code: %LAST_EXIT%" in text
+
+
+def test_npm_test_and_build_commands_have_timeout_fail_fast_messages() -> None:
+    text = script_text()
+
+    assert 'set "TEST_TIMEOUT_SECONDS=60"' in text
+    assert 'set "BUILD_TIMEOUT_SECONDS=180"' in text
+    assert ":run_timed" in text
+    assert "powershell.exe -NoProfile -ExecutionPolicy Bypass -Command" in text
+    assert "taskkill.exe /PID $p.Id /T /F" in text
+    assert "exit 124" in text
+
+    for expected in [
+        "mockOnlyPreviewEntry.test.ts timed out after %TEST_TIMEOUT_SECONDS% seconds.",
+        "mockOnlyPreviewNetworkBoundary.test.ts timed out after %TEST_TIMEOUT_SECONDS% seconds.",
+        "mockOnlyPreview.test.ts timed out after %TEST_TIMEOUT_SECONDS% seconds.",
+        "web build dry-run check timed out after %BUILD_TIMEOUT_SECONDS% seconds.",
+    ]:
+        assert expected in text
 
 
 def test_protected_runtime_files_not_modified_by_this_task() -> None:
