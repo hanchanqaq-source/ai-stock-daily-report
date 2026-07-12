@@ -197,7 +197,7 @@ def test_success_banner_exists_only_after_build_success_gate() -> None:
     text = script_text().lower()
 
     passed_index = text.index("dry run passed")
-    build_index = text.index("call npm run build")
+    build_index = text.index('call :run_timed "npm run build" "%build_timeout_seconds%" "npm run build"')
     build_failure_gate_index = text.index("fail_reason=web build dry-run check failed", build_index)
     fatal_after_build_index = text.index("goto :fatal_exit", build_failure_gate_index)
 
