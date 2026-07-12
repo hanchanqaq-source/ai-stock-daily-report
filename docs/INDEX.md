@@ -66,6 +66,7 @@
 | --- | --- |
 | [API 规格](architecture/api_spec.json) | FastAPI OpenAPI 规格产物 |
 | [贡献指南](CONTRIBUTING.md) | Issue、PR、测试、文档同步和协作要求 |
+| [Web mock-only 页面阶段收口说明](web_mock_only_phase_closeout.md) | Web-P21 到 Web-P29 mock-only 页面阶段完成内容、Windows 本地验证流程、安全边界总表和 Web-P31 前复核要求 |
 
 ## 多语言
 
