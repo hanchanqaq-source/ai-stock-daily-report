@@ -32,9 +32,9 @@ const REQUIRED_OPTIONS: MockOnlyPreviewOptions = {
 const DASHBOARD_SUMMARY_PREVIEW: MockOnlyDashboardSummaryPreview = Object.freeze({
   headline: '科技方向保持震荡，模拟组合以观察为主，暂不进行主动调仓。',
   marketStatus: '震荡观察',
-  totalHoldingAmount: '¥59,167.78',
+  totalHoldingAmount: '¥88,888.88',
   dailyChange: '+0.68%',
-  positionRatio: '32.9%',
+  positionRatio: '44.4%',
   riskLevel: '中等',
   labels: Object.freeze(['模拟数据', 'REDACTED FIXTURE DATA', '非真实账户', '非投资建议', '不会发送通知']),
   holdingStructure: Object.freeze([
@@ -54,44 +54,44 @@ const DASHBOARD_SUMMARY_PREVIEW: MockOnlyDashboardSummaryPreview = Object.freeze
 
 const PORTFOLIO_PREVIEW: MockOnlyPortfolioPreview = Object.freeze({
   accountLabel: '本地预览组合',
-  totalAmountLabel: '¥59,167.78',
-  targetAmountLabel: '¥180,000.00',
-  positionRatioLabel: '32.9%',
+  totalAmountLabel: '¥88,888.88',
+  targetAmountLabel: '¥200,000.00',
+  positionRatioLabel: '44.4%',
   labels: Object.freeze(['模拟数据', 'REDACTED FIXTURE DATA', '非真实账户', '非投资建议', '不会发送通知', '不会交易']),
   holdings: Object.freeze([
     Object.freeze({
       name: '硬科技观察仓',
       category: '主题观察',
-      amountLabel: '¥14,879.70',
+      amountLabel: '¥20,000.00',
       weightLabel: '25.1%',
-      pnlLabel: '+18.33%',
+      pnlLabel: '+8.88%',
       riskLevel: '中高',
       note: '静态脱敏示例，仅用于持仓行渲染检查。',
     }),
     Object.freeze({
       name: 'AI 硬件观察仓',
       category: '行业观察',
-      amountLabel: '¥6,877.54',
+      amountLabel: '¥12,345.67',
       weightLabel: '11.6%',
-      pnlLabel: '-0.46%',
+      pnlLabel: '-0.88%',
       riskLevel: '中',
       note: '静态脱敏示例，不代表真实账户或真实产品。',
     }),
     Object.freeze({
       name: '半导体观察仓',
       category: '行业观察',
-      amountLabel: '¥2,115.71',
+      amountLabel: '¥8,888.88',
       weightLabel: '3.6%',
-      pnlLabel: '-4.01%',
+      pnlLabel: '-2.22%',
       riskLevel: '中高',
       note: '静态脱敏示例，风险标签只用于页面展示。',
     }),
     Object.freeze({
       name: '海外科技观察仓',
       category: '跨市场观察',
-      amountLabel: '¥2,292.78',
+      amountLabel: '¥6,666.66',
       weightLabel: '3.9%',
-      pnlLabel: '-1.61%',
+      pnlLabel: '-1.11%',
       riskLevel: '中',
       note: '静态脱敏示例，不连接任何真实基金平台。',
     }),
@@ -524,12 +524,22 @@ export const getMockOnlyPreviewSections = (
 }
 
 
+const BUSINESS_PREVIEW_SECTION_IDS = new Set<MockOnlyPreviewSection['id']>([
+  'dashboard-summary',
+  'portfolio-preview',
+  'history-reports-preview',
+  'alerts-preview',
+  'agent-chat-preview',
+  'empty-error-examples',
+])
+
 const createMockOnlyPreviewOverview = (
   sections: readonly MockOnlyPreviewSection[],
 ): MockOnlyPreviewOverview => {
-  const previewableModuleCount = sections.filter((section) => section.status === '可预览').length
-  const pendingModuleCount = sections.filter((section) => section.status === '后续建设').length
-  const totalModuleCount = previewableModuleCount + pendingModuleCount
+  const businessSections = sections.filter((section) => BUSINESS_PREVIEW_SECTION_IDS.has(section.id))
+  const previewableModuleCount = businessSections.filter((section) => section.status === '可预览').length
+  const pendingModuleCount = businessSections.filter((section) => section.status === '后续建设').length
+  const totalModuleCount = businessSections.length
   const completionPercent = totalModuleCount === 0 ? 0 : Math.round((previewableModuleCount / totalModuleCount) * 100)
 
   return Object.freeze({
