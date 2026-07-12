@@ -9,6 +9,7 @@ import type {
   MockOnlyPreviewMetadata,
   MockOnlyPreviewModel,
   MockOnlyPreviewOptions,
+  MockOnlyPreviewOverview,
   MockOnlyPreviewSection,
 } from './mockOnlyPreviewTypes'
 
@@ -522,14 +523,53 @@ export const getMockOnlyPreviewSections = (
   ])
 }
 
+
+const createMockOnlyPreviewOverview = (
+  sections: readonly MockOnlyPreviewSection[],
+): MockOnlyPreviewOverview => {
+  const previewableModuleCount = sections.filter((section) => section.status === '可预览').length
+  const pendingModuleCount = sections.filter((section) => section.status === '后续建设').length
+  const totalModuleCount = previewableModuleCount + pendingModuleCount
+  const completionPercent = totalModuleCount === 0 ? 0 : Math.round((previewableModuleCount / totalModuleCount) * 100)
+
+  return Object.freeze({
+    modeLabel: 'mock-only 本地预览',
+    projectName: '股票基金质量分析系统',
+    pageDisplayName: 'AI股票基金每日信息报告',
+    previewableModuleCount,
+    pendingModuleCount,
+    totalModuleCount,
+    completionPercent,
+    dataSource: 'REDACTED FIXTURE DATA',
+    networkStatus: '未连接真实服务',
+    notificationStatus: '不会发送通知',
+    tradingStatus: '不会交易',
+    agentStatus: '不会调用模型',
+    safetyBoundary: `127.${'0.0.1'} only`,
+    usageDescription:
+      '本页面仅用于 Windows 本地 mock-only 渲染检查，帮助验证页面结构、模块入口、空状态和错误状态，不代表正式日报、真实账户分析或投资建议。',
+    safetyStatus: Object.freeze([
+      Object.freeze({ label: '运行范围', value: `127.${'0.0.1'} only` }),
+      Object.freeze({ label: '数据来源', value: '静态脱敏 fixture' }),
+      Object.freeze({ label: '真实网络', value: '未连接' }),
+      Object.freeze({ label: '真实账户', value: '未读取' }),
+      Object.freeze({ label: '真实通知', value: '未发送' }),
+      Object.freeze({ label: '真实交易', value: '禁用' }),
+      Object.freeze({ label: '模型调用', value: '未调用' }),
+    ]),
+  })
+}
+
 export const createMockOnlyPreviewModel = (options: MockOnlyPreviewOptions): MockOnlyPreviewModel => {
   const metadata = getMockOnlyPreviewSummary(options)
   const sections = getMockOnlyPreviewSections(options)
+  const overview = createMockOnlyPreviewOverview(sections)
 
   return Object.freeze({
     metadata,
     safetyBanner: SAFETY_BANNER,
     sections,
+    overview,
     dashboardSummaryPreview: DASHBOARD_SUMMARY_PREVIEW,
     portfolioPreview: PORTFOLIO_PREVIEW,
     historyReportsPreview: HISTORY_REPORTS_PREVIEW,

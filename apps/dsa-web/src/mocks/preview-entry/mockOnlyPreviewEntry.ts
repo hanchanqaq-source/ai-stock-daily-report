@@ -81,6 +81,13 @@ const appendSectionReturnLinks = (parent: HTMLElement): void => {
   parent.appendChild(actions)
 }
 
+const appendOverviewItem = (parent: HTMLElement, label: string, value: string): void => {
+  const item = document.createElement('li')
+  appendTextElement(item, 'span', label)
+  appendTextElement(item, 'strong', value)
+  parent.appendChild(item)
+}
+
 const appendMetric = (parent: HTMLElement, label: string, value: string): void => {
   const metric = document.createElement('div')
   metric.className = 'mock-preview-dashboard-metric'
@@ -109,6 +116,40 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   appendTextElement(hero, 'h2', 'AI股票基金每日信息报告', 'mock-preview-title').id = 'mock-only-preview-entry-title'
   appendTextElement(hero, 'p', '股票基金质量分析系统 mock-only 本地安全预览', 'mock-preview-subtitle')
   container.appendChild(hero)
+
+
+  const overview = model.overview
+  const overviewPanel = document.createElement('section')
+  overviewPanel.className = 'mock-preview-card mock-preview-overview-card'
+  overviewPanel.setAttribute('aria-labelledby', 'mock-preview-overview-title')
+  appendTextElement(overviewPanel, 'h3', '页面总览', 'mock-preview-dashboard-title').id = 'mock-preview-overview-title'
+  appendTextElement(overviewPanel, 'h4', 'mock-only 模块完成度')
+  appendTextElement(overviewPanel, 'p', overview.usageDescription)
+
+  const overviewList = document.createElement('ul')
+  overviewList.className = 'mock-preview-overview-list'
+  appendOverviewItem(overviewList, '当前模式', overview.modeLabel)
+  appendOverviewItem(overviewList, '项目名称', overview.projectName)
+  appendOverviewItem(overviewList, '页面显示名称', overview.pageDisplayName)
+  appendOverviewItem(overviewList, '总模块数量', String(overview.totalModuleCount))
+  appendOverviewItem(overviewList, '可预览模块数量', String(overview.previewableModuleCount))
+  appendOverviewItem(overviewList, '后续建设模块数量', String(overview.pendingModuleCount))
+  appendOverviewItem(overviewList, '完成度', `${overview.completionPercent}%`)
+  appendOverviewItem(overviewList, '数据来源', overview.dataSource)
+  appendOverviewItem(overviewList, '网络状态', overview.networkStatus)
+  appendOverviewItem(overviewList, '通知状态', overview.notificationStatus)
+  appendOverviewItem(overviewList, '交易状态', overview.tradingStatus)
+  appendOverviewItem(overviewList, 'Agent 状态', overview.agentStatus)
+  appendOverviewItem(overviewList, '安全边界', overview.safetyBoundary)
+  overviewPanel.appendChild(overviewList)
+
+  const safetySummary = document.createElement('ul')
+  safetySummary.className = 'mock-preview-overview-list mock-preview-overview-safety-list'
+  for (const item of overview.safetyStatus) {
+    appendOverviewItem(safetySummary, item.label, item.value)
+  }
+  overviewPanel.appendChild(safetySummary)
+  container.appendChild(overviewPanel)
 
   const navigationPanel = document.createElement('nav')
   navigationPanel.className = 'mock-preview-card mock-preview-navigation-card'

@@ -209,10 +209,29 @@ export interface MockOnlyEmptyErrorStatesPreview {
   readonly actionNotes: readonly string[]
 }
 
+export interface MockOnlyPreviewOverview {
+  readonly modeLabel: string
+  readonly projectName: string
+  readonly pageDisplayName: string
+  readonly previewableModuleCount: number
+  readonly pendingModuleCount: number
+  readonly totalModuleCount: number
+  readonly completionPercent: number
+  readonly dataSource: string
+  readonly networkStatus: string
+  readonly notificationStatus: string
+  readonly tradingStatus: string
+  readonly agentStatus: string
+  readonly safetyBoundary: string
+  readonly usageDescription: string
+  readonly safetyStatus: readonly { readonly label: string; readonly value: string }[]
+}
+
 export interface MockOnlyPreviewModel {
   readonly metadata: MockOnlyPreviewMetadata
   readonly safetyBanner: readonly string[]
   readonly sections: readonly MockOnlyPreviewSection[]
+  readonly overview: MockOnlyPreviewOverview
   readonly dashboardSummaryPreview: MockOnlyDashboardSummaryPreview
   readonly portfolioPreview: MockOnlyPortfolioPreview
   readonly historyReportsPreview: MockOnlyHistoryReportsPreview
