@@ -72,6 +72,7 @@
       .mock-preview-safety-list,
       .mock-preview-settings-list,
       .mock-preview-metadata-list,
+      .mock-preview-navigation-notes,
       .mock-preview-dashboard-labels {
         display: flex;
         flex-wrap: wrap;
@@ -86,6 +87,7 @@
       .mock-preview-safety-list li,
       .mock-preview-settings-list li,
       .mock-preview-metadata-list li,
+      .mock-preview-navigation-notes li,
       .mock-preview-dashboard-labels li {
         border-radius: 999px;
         padding: 8px 12px;
@@ -137,6 +139,11 @@
         color: #243b7a;
       }
 
+      .mock-preview-navigation-card {
+        border-color: rgba(49, 86, 212, 0.24);
+      }
+
+      .mock-preview-navigation-list,
       .mock-preview-section-list {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -146,6 +153,7 @@
         list-style: none;
       }
 
+      .mock-preview-navigation-list li,
       .mock-preview-section-list li {
         display: grid;
         gap: 6px;
@@ -178,7 +186,9 @@
         color: #5c667c;
       }
 
-      .mock-preview-link {
+      .mock-preview-navigation-link,
+      .mock-preview-link,
+      .mock-preview-return-link {
         width: fit-content;
         border-radius: 999px;
         padding: 8px 12px;
@@ -187,6 +197,26 @@
         font-size: 0.92rem;
         font-weight: 800;
         text-decoration: none;
+      }
+
+      .mock-preview-navigation-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .mock-preview-return-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(85, 108, 160, 0.14);
+      }
+
+      .mock-preview-return-link {
+        background: #eef4ff;
+        color: #3156d4;
       }
 
       .mock-preview-dashboard-grid {
