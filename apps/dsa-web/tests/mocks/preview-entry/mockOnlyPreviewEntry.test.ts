@@ -434,6 +434,44 @@ describe('mock-only preview independent web entry', () => {
     }
   })
 
+  it('keeps Web-P29 responsive CSS for tablet and mobile mock-only preview layouts', () => {
+    const source = readSource(indexPath)
+
+    for (const requiredText of [
+      'AI股票基金每日信息报告',
+      '股票基金质量分析系统',
+      '页面总览',
+      'mock-only 模块完成度',
+      '页面快速导航',
+      '返回顶部',
+      '返回模块列表',
+      '安全边界确认',
+      '设置与导入导出',
+      '仪表盘摘要',
+      '持仓预览',
+      '历史报告预览',
+      '提醒预览',
+      'Agent 对话预览',
+      '空状态与错误示例',
+    ]) {
+      expect(`${source}\n${readSource(entryPath)}`).toContain(requiredText)
+    }
+
+    for (const requiredCss of [
+      '@media (max-width: 900px)',
+      '@media (max-width: 640px)',
+      '@media (max-width: 420px)',
+      'grid-template-columns: 1fr',
+      'flex-wrap: wrap',
+      'overflow-wrap: anywhere',
+      'word-break: break-word',
+      'min-width: 0',
+      'min-height: 44px',
+    ]) {
+      expect(source).toContain(requiredCss)
+    }
+  })
+
   it('keeps the rendered preview page source free of forbidden runtime endpoints and network primitives', () => {
     const source = `${readSource(indexPath)}\n${readSource(entryPath)}`
 
