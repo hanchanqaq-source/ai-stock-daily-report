@@ -174,6 +174,41 @@ export interface MockOnlyAgentChatPreview {
   readonly actionNotes: readonly string[]
 }
 
+export interface MockOnlyEmptyStatePreview {
+  readonly title: string
+  readonly module: string
+  readonly status: string
+  readonly message: string
+  readonly recoveryHint: string
+}
+
+export interface MockOnlyErrorStatePreview {
+  readonly title: string
+  readonly module: string
+  readonly severity: string
+  readonly message: string
+  readonly recoveryHint: string
+  readonly safeBoundary: string
+}
+
+export interface MockOnlyDegradedStatePreview {
+  readonly title: string
+  readonly module: string
+  readonly status: string
+  readonly message: string
+  readonly note: string
+}
+
+export interface MockOnlyEmptyErrorStatesPreview {
+  readonly summary: readonly { readonly label: string; readonly value: string }[]
+  readonly labels: readonly string[]
+  readonly emptyStates: readonly MockOnlyEmptyStatePreview[]
+  readonly errorStates: readonly MockOnlyErrorStatePreview[]
+  readonly degradedStates: readonly MockOnlyDegradedStatePreview[]
+  readonly riskNotes: readonly string[]
+  readonly actionNotes: readonly string[]
+}
+
 export interface MockOnlyPreviewModel {
   readonly metadata: MockOnlyPreviewMetadata
   readonly safetyBanner: readonly string[]
@@ -183,4 +218,5 @@ export interface MockOnlyPreviewModel {
   readonly historyReportsPreview: MockOnlyHistoryReportsPreview
   readonly alertsPreview: MockOnlyAlertsPreview
   readonly agentChatPreview: MockOnlyAgentChatPreview
+  readonly emptyErrorStatesPreview: MockOnlyEmptyErrorStatesPreview
 }

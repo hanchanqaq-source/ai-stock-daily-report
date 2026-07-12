@@ -482,6 +482,95 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
   container.appendChild(agentPanel)
 
 
+  const emptyErrorStatesPreview = model.emptyErrorStatesPreview
+  const emptyErrorPanel = document.createElement('section')
+  emptyErrorPanel.className = 'mock-preview-card mock-preview-dashboard-card'
+  emptyErrorPanel.id = 'mock-empty-error-states-preview'
+  emptyErrorPanel.setAttribute('aria-labelledby', 'mock-empty-error-states-preview-title')
+  appendTextElement(emptyErrorPanel, 'h3', '空状态与错误示例', 'mock-preview-dashboard-title').id = 'mock-empty-error-states-preview-title'
+  appendTextElement(
+    emptyErrorPanel,
+    'p',
+    '本区域仅展示静态脱敏 fixture，用于本地页面渲染检查，不读取真实文件、真实配置、真实账户、真实 provider、真实通知或真实 AI。',
+  )
+  appendList(emptyErrorPanel, 'ul', emptyErrorStatesPreview.labels, 'mock-preview-dashboard-labels')
+
+  const emptyErrorMetrics = document.createElement('div')
+  emptyErrorMetrics.className = 'mock-preview-dashboard-grid'
+  for (const metric of emptyErrorStatesPreview.summary) {
+    appendMetric(emptyErrorMetrics, metric.label, metric.value)
+  }
+  emptyErrorPanel.appendChild(emptyErrorMetrics)
+
+  const emptyStatesBlock = document.createElement('div')
+  emptyStatesBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(emptyStatesBlock, 'h4', '空状态示例')
+  const emptyStatesList = document.createElement('ul')
+  emptyStatesList.className = 'mock-preview-portfolio-list'
+  for (const emptyState of emptyErrorStatesPreview.emptyStates) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${emptyState.title}｜模块：${emptyState.module}｜状态：${emptyState.status}｜说明：${emptyState.message}`,
+    )
+    appendTextElement(item, 'span', emptyState.recoveryHint)
+    emptyStatesList.appendChild(item)
+  }
+  emptyStatesBlock.appendChild(emptyStatesList)
+  emptyErrorPanel.appendChild(emptyStatesBlock)
+
+  const errorStatesBlock = document.createElement('div')
+  errorStatesBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(errorStatesBlock, 'h4', '错误示例')
+  const errorStatesList = document.createElement('ul')
+  errorStatesList.className = 'mock-preview-portfolio-list'
+  for (const errorState of emptyErrorStatesPreview.errorStates) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${errorState.title}｜模块：${errorState.module}｜级别：${errorState.severity}｜说明：${errorState.message}`,
+    )
+    appendTextElement(item, 'span', `${errorState.safeBoundary}｜${errorState.recoveryHint}`)
+    errorStatesList.appendChild(item)
+  }
+  errorStatesBlock.appendChild(errorStatesList)
+  emptyErrorPanel.appendChild(errorStatesBlock)
+
+  const degradedStatesBlock = document.createElement('div')
+  degradedStatesBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(degradedStatesBlock, 'h4', '降级状态示例')
+  const degradedStatesList = document.createElement('ul')
+  degradedStatesList.className = 'mock-preview-portfolio-list'
+  for (const degradedState of emptyErrorStatesPreview.degradedStates) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${degradedState.title}｜模块：${degradedState.module}｜状态：${degradedState.status}｜说明：${degradedState.message}`,
+    )
+    appendTextElement(item, 'span', degradedState.note)
+    degradedStatesList.appendChild(item)
+  }
+  degradedStatesBlock.appendChild(degradedStatesList)
+  emptyErrorPanel.appendChild(degradedStatesBlock)
+
+  const emptyErrorWarningBlock = document.createElement('div')
+  emptyErrorWarningBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(emptyErrorWarningBlock, 'h4', '风险提示')
+  appendList(emptyErrorWarningBlock, 'ul', emptyErrorStatesPreview.riskNotes, 'mock-preview-settings-list')
+  emptyErrorPanel.appendChild(emptyErrorWarningBlock)
+
+  const emptyErrorActionBlock = document.createElement('div')
+  emptyErrorActionBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(emptyErrorActionBlock, 'h4', '观察备注')
+  appendList(emptyErrorActionBlock, 'ol', emptyErrorStatesPreview.actionNotes, 'mock-preview-settings-list')
+  emptyErrorPanel.appendChild(emptyErrorActionBlock)
+
+  container.appendChild(emptyErrorPanel)
+
+
   root.appendChild(container)
 
   return {
