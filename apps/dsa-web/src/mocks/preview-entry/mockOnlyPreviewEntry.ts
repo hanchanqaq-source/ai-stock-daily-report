@@ -298,6 +298,95 @@ export const renderMockOnlyPreviewEntry = (root: HTMLElement): MockOnlyPreviewEn
 
   container.appendChild(historyPanel)
 
+
+  const alertsPreview = model.alertsPreview
+  const alertsPanel = document.createElement('section')
+  alertsPanel.className = 'mock-preview-card mock-preview-dashboard-card'
+  alertsPanel.id = 'mock-alerts-preview'
+  alertsPanel.setAttribute('aria-labelledby', 'mock-alerts-preview-title')
+  appendTextElement(alertsPanel, 'h3', '提醒预览', 'mock-preview-dashboard-title').id = 'mock-alerts-preview-title'
+  appendTextElement(
+    alertsPanel,
+    'p',
+    `本区域仅展示静态脱敏 fixture，用于本地页面渲染检查，不读取真实通知配置，不连接真实 provider，不发送任何通知。`,
+  )
+  appendList(alertsPanel, 'ul', alertsPreview.labels, 'mock-preview-dashboard-labels')
+
+  const alertsMetrics = document.createElement('div')
+  alertsMetrics.className = 'mock-preview-dashboard-grid'
+  for (const metric of alertsPreview.summary) {
+    appendMetric(alertsMetrics, metric.label, metric.value)
+  }
+  alertsPanel.appendChild(alertsMetrics)
+
+  const rulesBlock = document.createElement('div')
+  rulesBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(rulesBlock, 'h4', '提醒规则列表')
+  const rulesList = document.createElement('ul')
+  rulesList.className = 'mock-preview-portfolio-list'
+  for (const rule of alertsPreview.rules) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${rule.name}｜范围：${rule.scope}｜条件：${rule.condition}｜级别：${rule.severity}｜状态：${rule.status}`,
+    )
+    appendTextElement(item, 'span', rule.note)
+    rulesList.appendChild(item)
+  }
+  rulesBlock.appendChild(rulesList)
+  alertsPanel.appendChild(rulesBlock)
+
+  const triggersBlock = document.createElement('div')
+  triggersBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(triggersBlock, 'h4', '触发记录')
+  const triggersList = document.createElement('ul')
+  triggersList.className = 'mock-preview-portfolio-list'
+  for (const trigger of alertsPreview.triggers) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${trigger.triggeredAtLabel}｜${trigger.ruleName}｜状态：${trigger.status}｜结果：${trigger.decision}`,
+    )
+    appendTextElement(item, 'span', `${trigger.observedValue}｜${trigger.note}`)
+    triggersList.appendChild(item)
+  }
+  triggersBlock.appendChild(triggersList)
+  alertsPanel.appendChild(triggersBlock)
+
+  const deliveriesBlock = document.createElement('div')
+  deliveriesBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(deliveriesBlock, 'h4', '发送状态')
+  const deliveriesList = document.createElement('ul')
+  deliveriesList.className = 'mock-preview-portfolio-list'
+  for (const delivery of alertsPreview.deliveries) {
+    const item = document.createElement('li')
+    appendTextElement(
+      item,
+      'strong',
+      `${delivery.channel}｜状态：${delivery.status}｜目标：${delivery.targetLabel}｜时间：${delivery.sentAtLabel}`,
+    )
+    appendTextElement(item, 'span', delivery.message)
+    deliveriesList.appendChild(item)
+  }
+  deliveriesBlock.appendChild(deliveriesList)
+  alertsPanel.appendChild(deliveriesBlock)
+
+  const alertsWarningBlock = document.createElement('div')
+  alertsWarningBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(alertsWarningBlock, 'h4', '风险提示')
+  appendList(alertsWarningBlock, 'ul', alertsPreview.riskNotes, 'mock-preview-settings-list')
+  alertsPanel.appendChild(alertsWarningBlock)
+
+  const alertsActionBlock = document.createElement('div')
+  alertsActionBlock.className = 'mock-preview-dashboard-block'
+  appendTextElement(alertsActionBlock, 'h4', '今日观察备注')
+  appendList(alertsActionBlock, 'ol', alertsPreview.actionNotes, 'mock-preview-settings-list')
+  alertsPanel.appendChild(alertsActionBlock)
+
+  container.appendChild(alertsPanel)
+
   root.appendChild(container)
 
   return {

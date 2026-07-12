@@ -95,6 +95,42 @@ export interface MockOnlyHistoryReportsPreview {
   readonly actionNotes: readonly string[]
 }
 
+export interface MockOnlyAlertRulePreview {
+  readonly name: string
+  readonly scope: string
+  readonly condition: string
+  readonly severity: string
+  readonly status: string
+  readonly note: string
+}
+
+export interface MockOnlyAlertTriggerPreview {
+  readonly triggeredAtLabel: string
+  readonly ruleName: string
+  readonly status: string
+  readonly observedValue: string
+  readonly decision: string
+  readonly note: string
+}
+
+export interface MockOnlyAlertDeliveryPreview {
+  readonly channel: string
+  readonly status: string
+  readonly targetLabel: string
+  readonly sentAtLabel: string
+  readonly message: string
+}
+
+export interface MockOnlyAlertsPreview {
+  readonly summary: readonly { readonly label: string; readonly value: string }[]
+  readonly labels: readonly string[]
+  readonly rules: readonly MockOnlyAlertRulePreview[]
+  readonly triggers: readonly MockOnlyAlertTriggerPreview[]
+  readonly deliveries: readonly MockOnlyAlertDeliveryPreview[]
+  readonly riskNotes: readonly string[]
+  readonly actionNotes: readonly string[]
+}
+
 export interface MockOnlyPreviewModel {
   readonly metadata: MockOnlyPreviewMetadata
   readonly safetyBanner: readonly string[]
@@ -102,4 +138,5 @@ export interface MockOnlyPreviewModel {
   readonly dashboardSummaryPreview: MockOnlyDashboardSummaryPreview
   readonly portfolioPreview: MockOnlyPortfolioPreview
   readonly historyReportsPreview: MockOnlyHistoryReportsPreview
+  readonly alertsPreview: MockOnlyAlertsPreview
 }
