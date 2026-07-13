@@ -10,6 +10,7 @@ const boundarySourcePaths = [
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
   'src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts',
   'src/mocks/preview/dry-run/realDailyReportDryRunValidator.ts',
+  'src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts',
   'src/mocks/preview/adapters/dailyReportAdapter.ts',
   'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
@@ -225,6 +226,16 @@ describe('mock-only preview network boundary', () => {
     expect(model.metadata.safeForWindowsPreview).toBe(true)
   })
 
+
+  it('keeps the dry-run adapter free of provider names and secret marker text', () => {
+    const source = readSource('src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts')
+    const adapterForbiddenFragments = ['智谱', 'webhook', 'token', 'API key', '0.0.0.0', 'http://', 'https://'] as const
+
+    for (const forbiddenFragment of adapterForbiddenFragments) {
+      expect(source, `dry-run adapter must not contain ${forbiddenFragment}`).not.toContain(forbiddenFragment)
+    }
+  })
+
   it('keeps the dry-run schema type draft locked to safe literal switches', () => {
     const source = readSource('src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts')
     const requiredFragments = [
@@ -251,6 +262,7 @@ describe('mock-only preview network boundary', () => {
       'src/mocks/preview/mockOnlyPreviewTypes.ts',
       'src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts',
       'src/mocks/preview/dry-run/realDailyReportDryRunValidator.ts',
+      'src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts',
       'src/mocks/preview/adapters/dailyReportAdapter.ts',
       'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',
