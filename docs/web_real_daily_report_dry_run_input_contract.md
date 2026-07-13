@@ -364,3 +364,21 @@ Web-P41 validator 的默认结果仍固定为 mock-only 回退边界：
 - validator 不使用网络、通知、交易、AI、provider、账户或数据库能力；Web-P41 不代表真实日报接入已经开始。
 
 Web-P41 同时新增 `apps/dsa-web/tests/mocks/preview/realDailyReportDryRunValidator.test.ts`，使用明显虚构的静态测试 payload 覆盖 dry-run 模式、安全禁用开关、脱敏标记、mock-only 回退、sections 非空、可疑外部地址与可疑密钥/联系方式文案阻断。新增 validator 文件也被纳入 `apps/dsa-web/tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts` 的静态扫描范围，继续确认 mock-only preview 范围不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
+
+## 14. Web-P42 dry-run adapter 纯函数草案
+
+Web-P42 在 Web mock-only preview 范围内新增 `apps/dsa-web/src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts`，用于把 validator 已通过的 `RealDailyReportDryRunInput` 映射为与现有 `DailyReportViewModel` 兼容的展示模型。该 adapter 仍是 mock-only / dry-run 草案，只消费调用方静态传入的 payload，不读取任何外部来源，也不会被当前页面入口自动消费。
+
+Web-P42 adapter 的边界如下：
+
+- 先调用 `validateRealDailyReportDryRunInput`，只处理 validator passed 的 dry-run input。
+- validator blocked 时返回 `status: blocked`、`validationStatus: blocked`、`fallbackMode: mock-only`、`canFallbackToMockOnly: true`，不返回 `viewModel`，不抛异常，也不生成半真半假的展示模型。
+- validator passed 时返回 `status: adapted`，并继续保留 `fallbackMode: mock-only` 与 `canFallbackToMockOnly: true`。
+- 只映射 `reportId`、`reportDateLabel`、`generatedAtLabel`、`title`、`headline`、`marketMood`、`riskLevel`、`portfolioAction`、`sections`、数据来源标签、安全标签、脱敏标签和未发送语义。
+- `projectName` 固定为“股票基金质量分析系统”，`title` / `displayName` 固定为“AI股票基金每日信息报告”。
+- `dataSourceLabel` 必须标明 dry-run、REDACTED 和非真实运行；`deliveryStatus` 必须表达 dry-run 未发送、不通知、不交易、不调用 AI。
+- sections 保持输入顺序，只允许低敏 `title` / `summary` / `amountLabel` / `ratioLabel` 进入展示模型；金额和比例只允许 `MOCK_AMOUNT`、`MOCK_RATIO`、`REDACTED_VALUE` 等虚构占位。
+- adapter 不读取 `.env`、token、webhook、API key，不读取账户或数据库，不调用 provider / API / AI / Agent，不发送通知，不交易，不生成正式日报。
+- Web-P42 不代表真实日报接入已经开始，不改变当前 mock-only 页面运行链路，也不把 dry-run adapter 自动接入页面入口。
+
+Web-P42 同时新增 `apps/dsa-web/tests/mocks/preview/realDailyReportDryRunAdapter.test.ts`，使用明显虚构的静态 payload 覆盖 adapted、blocked fallback、安全标签、未发送语义、错误信息低敏、输入不可变和展示模型不写入 provider 原始响应、真实金额、真实基金代码或真实联系方式。新增 adapter 文件也纳入 `apps/dsa-web/tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts` 的静态扫描范围，继续确认 mock-only preview 范围不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
