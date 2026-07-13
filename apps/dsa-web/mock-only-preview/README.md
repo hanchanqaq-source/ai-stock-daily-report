@@ -1,14 +1,8 @@
 # Mock-only preview entry
 
-This directory contains the independent HTML entry for the mock-only local preview.
+This directory is the mock-only local page entry for safe preview checks.
 
-Safety boundaries:
+- HTML entry: `apps/dsa-web/mock-only-preview/index.html`
+- Entry script: `apps/dsa-web/src/mocks/preview-entry/mockOnlyPreviewEntry.ts`
 
-- MOCK ONLY
-- LOCAL PREVIEW ONLY
-- REDACTED FIXTURE DATA
-- NO REAL NETWORK
-- NO REAL ACCOUNT
-- NO OUTBOUND DELIVERY
-
-This entry is intentionally separate from the real Web App entry. It does not use the real App, router, apiClient, pages, stores, components, contexts, or utilities.
+This directory must stay mock-only and local-preview-only. Do not add real data, real API calls, provider access, AI / Agent access, notification delivery, account access, database access, trading behavior, or deployment instructions here.

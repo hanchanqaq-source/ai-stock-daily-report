@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [文档] Web-P37 新增 mock-only 页面预览入口与本地验收说明，明确入口 HTML、入口脚本、固定页面 / 项目名称、Windows 本地验收命令、127.0.0.1 人工预览方式和禁止读取凭据 / 启动后端 / 接真实 API / provider / AI / Agent / 通知 / 账户 / 数据库 / 交易的安全边界。
 - [文档] Web-P36 新增 mock-only 日报链路阶段收口与验收清单，汇总 Web-P31 到 Web-P35 的 fixture、adapter、DailyReportViewModel、guard、preview model/tests、核心文件、安全边界、Windows 本地验证命令和 PR 复核清单；本阶段仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [测试] Web-P35 新增 DailyReportViewModel mock-only 展示契约守卫，覆盖固定标题、数据来源、安全标签、section 顺序、旧真实精确值和敏感文本边界，并纳入 mock-only preview 与网络边界测试；本阶段仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [改进] Web-P34 新增前端 mock-only 日报 fixture 到 DailyReportViewModel 的同步纯适配层，页面预览改为通过统一展示模型消费日报字段，并补充映射、不可变性和网络边界测试；本阶段仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
