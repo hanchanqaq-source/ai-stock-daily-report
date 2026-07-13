@@ -8,6 +8,7 @@ const mockOptions = { mode: 'mock', source: 'local_preview_only' } as const
 const boundarySourcePaths = [
   'src/mocks/preview/mockOnlyPreviewModel.ts',
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
+  'src/mocks/preview/fixtures/dailyReportFixture.ts',
   'src/mocks/service/mockApiClient.ts',
   'src/mocks/service/mockApiService.ts',
   'src/mocks/service/mockApiServiceTypes.ts',
@@ -217,6 +218,7 @@ describe('mock-only preview network boundary', () => {
     expect(previewServicePaths).toEqual([
       'src/mocks/preview/mockOnlyPreviewModel.ts',
       'src/mocks/preview/mockOnlyPreviewTypes.ts',
+      'src/mocks/preview/fixtures/dailyReportFixture.ts',
       'src/mocks/service/mockApiClient.ts',
       'src/mocks/service/mockApiService.ts',
       'src/mocks/service/mockApiServiceTypes.ts',

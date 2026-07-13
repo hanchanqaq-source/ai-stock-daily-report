@@ -68,7 +68,38 @@ export interface MockOnlyPortfolioPreview {
   readonly actionNotes: readonly string[]
 }
 
+export interface MockOnlyDailyReportSectionFixture {
+  readonly title: string
+  readonly content: string
+}
+
+export interface MockOnlyDailyReportFixture {
+  readonly reportId: string
+  readonly projectName: string
+  readonly reportDateLabel: string
+  readonly title: string
+  readonly displayName: string
+  readonly modeLabel: string
+  readonly dataSourceLabel: string
+  readonly generatedAtLabel: string
+  readonly deliveryStatus: string
+  readonly marketMood: string
+  readonly headline: string
+  readonly portfolioAction: string
+  readonly riskLevel: string
+  readonly sections: {
+    readonly marketOverview: MockOnlyDailyReportSectionFixture
+    readonly portfolioObservation: MockOnlyDailyReportSectionFixture
+    readonly riskWarnings: MockOnlyDailyReportSectionFixture
+    readonly actionSuggestions: MockOnlyDailyReportSectionFixture
+  }
+  readonly safetyLabels: readonly string[]
+  readonly redactionLabels: readonly string[]
+  readonly mockOnlyNotes: readonly string[]
+}
+
 export interface MockOnlyHistoryReportItemPreview {
+  readonly reportId: string
   readonly reportDateLabel: string
   readonly title: string
   readonly status: string
@@ -80,6 +111,8 @@ export interface MockOnlyHistoryReportItemPreview {
 }
 
 export interface MockOnlyHistoryReportDetailPreview {
+  readonly reportId: string
+  readonly displayName: string
   readonly title: string
   readonly generatedAtLabel: string
   readonly headline: string
@@ -228,6 +261,7 @@ export interface MockOnlyPreviewOverview {
 }
 
 export interface MockOnlyPreviewModel {
+  readonly dailyReportFixture: MockOnlyDailyReportFixture
   readonly metadata: MockOnlyPreviewMetadata
   readonly safetyBanner: readonly string[]
   readonly sections: readonly MockOnlyPreviewSection[]
