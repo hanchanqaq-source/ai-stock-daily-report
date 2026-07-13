@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [文档] Web-P39 新增真实日报 dry-run 输入契约设计文档，明确 dry-run 输入字段、默认禁用开关、schema 校验失败阻断和 mock-only 回退规则，并确认当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [文档] Web-P38.1 完成 P31～P38 数据结构阶段总复核，移除 schema 文档中旧真实精确值的明文残留，继续确认 mock-only 日报 fixture / adapter / DailyReportViewModel / guard / preview model 边界不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [文档] Web-P38 新增真实日报接入前 schema 高规格复核文档，明确当前仍保持 mock-only，补充未来真实日报字段、provider、凭证密钥、通知 dry-run、真实账户持仓边界和回滚方案；本阶段不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [文档] Web-P37 新增 mock-only 页面预览入口与本地验收说明，明确入口 HTML、入口脚本、固定页面 / 项目名称、Windows 本地验收命令、127.0.0.1 人工预览方式和禁止读取凭据 / 启动后端 / 接真实 API / provider / AI / Agent / 通知 / 账户 / 数据库 / 交易的安全边界。
