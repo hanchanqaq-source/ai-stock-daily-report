@@ -14,6 +14,9 @@ import {
   evaluateProviderDryRunFeatureFlag,
 } from '../../../src/mocks/preview/provider/providerDryRunFeatureFlag'
 import { runProviderDryRunGate } from '../../../src/mocks/preview/provider/providerDryRunGate'
+import { inspectProviderCredentialBoundary } from '../../../src/mocks/preview/provider/providerCredentialBoundary'
+import { createDisabledProviderReadonlyPort } from '../../../src/mocks/preview/provider/providerReadonlyDisabledPort'
+import { runProviderReadonlyDryRunPipeline } from '../../../src/mocks/preview/provider/providerReadonlyDryRunPipeline'
 
 type Mutable<T> = { -readonly [P in keyof T]: T[P] extends readonly (infer U)[] ? Mutable<U>[] : T[P] }
 type MutableCandidate = Mutable<ProviderCandidatePayload> & Record<string, unknown>
@@ -36,6 +39,11 @@ const providerSourcePaths = [
   'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
   'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
   'src/mocks/preview/provider/providerDryRunGate.ts',
+  'src/mocks/preview/provider/providerReadonlyTypes.ts',
+  'src/mocks/preview/provider/providerReadonlyPort.ts',
+  'src/mocks/preview/provider/providerCredentialBoundary.ts',
+  'src/mocks/preview/provider/providerReadonlyDisabledPort.ts',
+  'src/mocks/preview/provider/providerReadonlyDryRunPipeline.ts',
 ] as const
 
 const collectTypeScriptFiles = (path: string): string[] => {
@@ -133,6 +141,8 @@ describe('Web-P48 pre-integration provider safety review', () => {
       'evaluateProviderDryRunFeatureFlag',
       'providerDryRunGate',
       'runProviderDryRunGate',
+      'providerReadonlyDryRunPipeline',
+      'runProviderReadonlyDryRunPipeline',
     ] as const
 
     for (const sourcePath of guardedPaths) {
@@ -180,7 +190,10 @@ describe('Web-P48 pre-integration provider safety review', () => {
       /\bprocess\.env\b/,
       /\bimport\.meta\.env\b/,
       /\bDate\.now\b/,
+      /\bnew Date\b/,
       /\bMath\.random\b/,
+      /\bsetTimeout\b/,
+      /\bsetInterval\b/,
       /\bOpenAI\b/,
       /\bDeepSeek\b/,
       /智谱/,
@@ -365,6 +378,28 @@ describe('Web-P48 pre-integration provider safety review', () => {
     )
     expect(result.fallbackMode).toBe('mock-only')
     expect(result.canFallbackToMockOnly).toBe(true)
+  })
+
+
+  it('keeps Core-M2 disabled provider, credential boundary, and pipeline mock-only NO-GO', async () => {
+    const credential = inspectProviderCredentialBoundary()
+    expect(credential).toMatchObject({ status: 'not-configured', hasCredential: false, secretMaterialAccessible: false, environmentReadAllowed: false, storageReadAllowed: false })
+
+    const provider = createDisabledProviderReadonlyPort()
+    expect(provider).toMatchObject({ networkEnabled: false, credentialReadEnabled: false, accountReadEnabled: false, providerLabel: 'REDACTED_PROVIDER_LABEL' })
+    const providerResult = await provider.readCandidate({} as never)
+    expect(providerResult).toMatchObject({ status: 'unavailable', fallbackMode: 'mock-only', canFallbackToMockOnly: true })
+    expect(providerResult).not.toHaveProperty('candidate')
+
+    const pipelineDisabled = await runProviderReadonlyDryRunPipeline()
+    expect(pipelineDisabled).toMatchObject({ status: 'disabled', providerAttempted: false, providerOutcome: 'not-attempted', fallbackMode: 'mock-only', allowRealProvider: false })
+    expect(pipelineDisabled).not.toHaveProperty('normalizedInput')
+
+    const pipelineFallback = await runProviderReadonlyDryRunPipeline({ featureFlag: { enabled: true } })
+    expect(pipelineFallback).toMatchObject({ status: 'completed-mock-only', providerOutcome: 'unavailable', fallbackUsed: true, allowRealProvider: false, allowRealAccountRead: false, allowNotificationSend: false, allowTrading: false, allowAiCall: false })
+    if (pipelineFallback.status !== 'completed-mock-only') throw new Error('expected completed mock-only')
+    expect(pipelineFallback.normalizedInput.source.sourceType).toBe('mock-only')
+    expect(pipelineFallback.normalizedInput.source.isRealReadOnly).toBe(false)
   })
 
   it('keeps normalizer isolated from adapter, ViewModel, page components, and raw provider output fields', () => {

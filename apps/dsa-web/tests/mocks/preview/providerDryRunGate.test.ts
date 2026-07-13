@@ -76,6 +76,24 @@ describe('provider dry-run gate', () => {
     expect(result).not.toHaveProperty('normalizedInput')
   })
 
+
+
+  it.each([undefined, null])('blocks %s candidate without calling normalizer', async (candidate) => {
+    const normalizerSpy = vi.fn()
+    vi.doMock('../../../src/mocks/preview/provider/providerCandidatePayloadNormalizer', () => ({
+      normalizeProviderCandidatePayloadToDryRunInput: normalizerSpy,
+    }))
+    const { runProviderDryRunGate: runGate } = await import('../../../src/mocks/preview/provider/providerDryRunGate')
+    const result = runGate({ featureFlag: enabledFlag, candidate })
+    expect(result).toMatchObject({
+      status: 'blocked',
+      blockedStage: 'gate-input',
+      candidateChainExecuted: false,
+      errors: ['provider-dry-run-gate.candidate-required'],
+    })
+    expect(normalizerSpy).not.toHaveBeenCalled()
+  })
+
   it('completes mock-only with fixture and produces dry-run validator passing normalizedInput', () => {
     const result = runProviderDryRunGate({ featureFlag: enabledFlag, candidate: MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE })
     expect(result.status).toBe('completed-mock-only')
@@ -128,7 +146,7 @@ describe('provider dry-run gate', () => {
     }))
     const { runProviderDryRunGate: runGate } = await import('../../../src/mocks/preview/provider/providerDryRunGate')
     const result = runGate({ featureFlag: enabledFlag, candidate: MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE })
-    expect(result).toMatchObject({ status: 'blocked', blockedStage: 'unexpected', errors: ['provider-dry-run-gate.failed'] })
+    expect(result).toMatchObject({ status: 'blocked', featureFlagState: 'enabled-mock-only', blockedStage: 'unexpected', candidateChainExecuted: true, errors: ['provider-dry-run-gate.failed'] })
     expect(JSON.stringify(result)).not.toContain('SECRET_STACK_SHOULD_NOT_LEAK')
     expect(result).not.toHaveProperty('normalizedInput')
   })
