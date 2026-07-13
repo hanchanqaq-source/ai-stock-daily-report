@@ -74,3 +74,8 @@ feature flag 只允许以下字段：`enabled`、`mode`、`allowRealProvider`、
 `providerDryRunGate` 仍位于 mock-only provider 目录，未被 preview entry、preview model、React 页面、store、context、utils、API client 或正式 runtime 导入。
 
 下一阶段如要进入真实只读 provider，仍必须先取得用户人工批准，并补齐凭证方案、只读权限、脱敏日志、网络边界、回滚方案与端到端验证。当前真实 provider 最终结论：**NO-GO**。
+
+
+## Core-M2 交叉引用
+
+Core-M2 已新增首个真实只读 Provider 本地 Dry-Run 基础框架，详见 [Core-M2 首个真实只读 Provider 本地 Dry-Run 基础框架](web_provider_readonly_local_dry_run_framework.md)。该框架继续保持不联网、不读取凭证、不接页面或 runtime，真实 Provider 状态仍为 **NO-GO**。

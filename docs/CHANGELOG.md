@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [里程碑] Core-M2 新增统一只读 Provider Port、默认禁用 Provider、凭证状态边界和本地 Dry-Run Pipeline；Provider unavailable、timeout 或 credential-unavailable 时可降级到固定 mock-only fixture，非法响应、阻断或异常不返回 normalizedInput；同时修复 Web-M1B candidate undefined 和 candidateChainExecuted 异常语义。当前框架不联网、不读取凭证、不接页面或 runtime，真实 Provider 仍为 NO-GO。
 - [里程碑] Web-M1B 完成 Provider Dry-Run 安全门禁闭环，合并 Web-P50 与 Web-P50.1：默认关闭 feature flag 只有 enabled-mock-only 才能进入现有 candidate validator → normalizer → dry-run validator 链路；disabled、非法 flag、candidate blocked、dry-run blocked 和异常均不返回 normalizedInput，并固定回退 mock-only；同时收紧非布尔真实能力字段与未知字段校验。当前未接入页面、runtime 或真实 provider，真实 provider 结论仍为 NO-GO。
 - [改进] Web-P49 新增默认关闭的 provider dry-run mock-only feature flag 和纯函数 evaluator；默认 disabled，显式启用仅允许 enabled-mock-only，任何真实 provider、账户读取、通知、AI 或交易能力请求均 blocked；当前未接入页面、runtime 或真实 provider，真实接入结论仍为 NO-GO。
 - [复核] Web-P48 完成真实 provider 接入前安全复核，确认 mock-only candidate、validator、normalizer、dry-run validator、blocked 传播、fallback 和 runtime 隔离边界；由于默认关闭 feature flag、凭证方案、真实只读权限、日志脱敏和人工确认尚未完成，真实 provider 接入结论保持 NO-GO。

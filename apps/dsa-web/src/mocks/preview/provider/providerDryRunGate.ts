@@ -135,6 +135,7 @@ const sanitizeCandidateChainErrors = (errors: readonly string[]): readonly strin
 }
 
 export const runProviderDryRunGate = (input?: unknown): ProviderDryRunGateResult => {
+  let candidateChainStarted = false
   try {
     if (input === undefined) {
       const featureFlag = evaluateProviderDryRunFeatureFlag(undefined)
@@ -161,10 +162,11 @@ export const runProviderDryRunGate = (input?: unknown): ProviderDryRunGateResult
       return blockedResult('blocked', 'feature-flag', false, featureFlag.errors, featureFlag.warnings)
     }
 
-    if (!('candidate' in input)) {
+    if (!('candidate' in input) || input.candidate === undefined || input.candidate === null) {
       return blockedResult('enabled-mock-only', 'gate-input', false, ['provider-dry-run-gate.candidate-required'])
     }
 
+    candidateChainStarted = true
     const normalization = normalizeProviderCandidatePayloadToDryRunInput(input.candidate as ProviderCandidatePayload)
     if (normalization.status === 'normalized' && normalization.normalizedInput) {
       return completedResult(normalization.normalizedInput, normalization.warnings)
@@ -178,6 +180,6 @@ export const runProviderDryRunGate = (input?: unknown): ProviderDryRunGateResult
       normalization.warnings,
     )
   } catch {
-    return blockedResult('blocked', 'unexpected', false, ['provider-dry-run-gate.failed'])
+    return blockedResult(candidateChainStarted ? 'enabled-mock-only' : 'blocked', 'unexpected', candidateChainStarted, ['provider-dry-run-gate.failed'])
   }
 }
