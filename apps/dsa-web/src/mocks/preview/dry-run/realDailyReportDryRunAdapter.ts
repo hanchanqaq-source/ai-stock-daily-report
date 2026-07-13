@@ -15,6 +15,7 @@ export interface RealDailyReportDryRunAdapterResult {
 const PROJECT_NAME = '股票基金质量分析系统'
 const REPORT_DISPLAY_NAME = 'AI股票基金每日信息报告'
 const REDACTED_VALUE = 'REDACTED_VALUE'
+const REDACTED_PROVIDER_LABEL = 'REDACTED_PROVIDER_LABEL'
 const MOCK_AMOUNT = 'MOCK_AMOUNT'
 const MOCK_RATIO = 'MOCK_RATIO'
 const ALLOWED_SECTION_VALUE_LABELS = new Set([MOCK_AMOUNT, MOCK_RATIO, REDACTED_VALUE])
@@ -66,7 +67,7 @@ export const adaptRealDailyReportDryRunInputToViewModel = (
       title: REPORT_DISPLAY_NAME,
       displayName: REPORT_DISPLAY_NAME,
       modeLabel: 'dry-run mock-only 草案',
-      dataSourceLabel: `${input.source.providerName} / dry-run / REDACTED / 非真实运行`,
+      dataSourceLabel: `${REDACTED_PROVIDER_LABEL} / dry-run / REDACTED / 非真实运行`,
       generatedAtLabel: input.report.generatedAtLabel,
       deliveryStatus: 'dry-run 未发送：不通知、不交易、不调用 AI',
       marketMood: toSafeDisplayText(input.report.marketMood),

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [chore] Web-P42.1 完成 P39～P42 dry-run 链路小总复核，确认类型、validator、adapter、测试和文档边界一致，并将 providerName / dataSourceLabel 收口为固定脱敏展示；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [改进] Web-P42 新增 dry-run adapter mock-only 草案，validator passed 后映射为 DailyReportViewModel 兼容展示模型，validator blocked 后保持 mock-only fallback；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [测试] Web-P41 新增 dry-run validator mock-only 测试，新增纯函数校验草案以阻断不安全 dry-run 输入，确认 schema 校验失败回退 mock-only；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [改进] Web-P40 新增 dry-run schema TypeScript 类型草案，使用字面量类型锁定 dry-run、安全禁用开关和 mock-only 回退，并更新 mock-only boundary 测试扫描范围；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
