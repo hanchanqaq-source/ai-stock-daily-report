@@ -427,3 +427,15 @@ ProviderCandidatePayload
 Web-P48 已补充真实 provider 接入前安全复核，详见 [Web-P48 真实 provider 接入前安全复核](web_provider_pre_integration_safety_review.md)。
 该复核确认 P45～P47.1 mock-only 链路、blocked 传播、fallback 与 runtime 隔离边界仍成立。
 当前真实 provider 接入结论保持 NO-GO；下一步仅允许默认关闭的 Web-P49 provider dry-run feature flag，且仍不得连接真实 provider。
+
+## 18. Web-P49 mock-only provider dry-run feature flag
+
+Web-P49 新增默认关闭的 mock-only provider dry-run feature flag 和纯函数 evaluator，用于在未来阶段进入 candidate 链路前先判断是否允许 mock-only dry-run。
+
+边界确认：
+
+- flag 默认 `disabled`，显式启用也只允许 `enabled-mock-only`。
+- flag 不读取环境变量、浏览器存储或 URL 参数，不加载凭证，不发起网络请求。
+- flag 不授权真实 provider、真实账户读取、真实行情、通知发送、AI 调用或交易能力。
+- flag 尚未接入 candidate validator、normalizer、dry-run validator、adapter、页面或正式 runtime。
+- 真实 provider 接入结论继续保持 **NO-GO**。

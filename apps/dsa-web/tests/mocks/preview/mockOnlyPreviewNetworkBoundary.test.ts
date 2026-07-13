@@ -14,6 +14,7 @@ const boundarySourcePaths = [
   'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
   'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
   'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
+  'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
   'src/mocks/preview/adapters/dailyReportAdapter.ts',
   'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
@@ -132,13 +133,13 @@ describe('mock-only preview network boundary', () => {
   })
 
 
-
-  it('includes provider candidate fixture, validator, and normalizer in the boundary source scan', () => {
+  it('includes provider candidate fixture, validator, normalizer, and dry-run feature flag in the boundary source scan', () => {
     expect(boundarySourcePaths).toEqual(
       expect.arrayContaining([
         'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
         'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
         'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
+        'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
       ]),
     )
   })
@@ -262,6 +263,25 @@ describe('mock-only preview network boundary', () => {
     }
   })
 
+  it('keeps provider dry-run feature flag out of preview entry, preview model, and runtime import paths', () => {
+    const featureFlagImportFragments = [
+      'providerDryRunFeatureFlag',
+      'evaluateProviderDryRunFeatureFlag',
+    ] as const
+    const guardedPaths = [
+      'src/mocks/preview-entry/mockOnlyPreviewEntry.ts',
+      'src/mocks/preview/mockOnlyPreviewModel.ts',
+      ...runtimeSearchRoots.flatMap((root) => collectTypeScriptFiles(root)),
+    ]
+
+    for (const sourcePath of guardedPaths) {
+      const source = readSource(sourcePath)
+      for (const forbiddenImport of featureFlagImportFragments) {
+        expect(source, `${sourcePath} must not import provider dry-run feature flag`).not.toContain(forbiddenImport)
+      }
+    }
+  })
+
   it('creates the preview model without touching global network functions or constructors', () => {
     const fetchSpy = vi.fn(() => {
       throw new Error('fetch must not be called by mock-only preview')
@@ -354,6 +374,7 @@ describe('mock-only preview network boundary', () => {
       'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
       'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
       'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
+      'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
       'src/mocks/preview/adapters/dailyReportAdapter.ts',
       'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',
