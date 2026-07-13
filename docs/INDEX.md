@@ -71,7 +71,7 @@
 | [Web-P36 mock-only 日报链路阶段收口与验收清单](web_mock_only_daily_report_acceptance.md) | Web-P31 到 Web-P35 mock-only 日报链路、核心文件、安全边界、Windows 本地验证命令和 PR 复核清单 |
 | [Web-P37 mock-only 页面预览入口与本地验收说明](web_mock_only_preview_entry_local_checks.md) | mock-only 页面入口、入口脚本、Windows 本地验收命令、127.0.0.1 人工预览方式和安全边界 |
 | [Web-P38 真实日报接入前 schema 高规格复核](web_real_daily_report_schema_review.md) | 真实日报接入前的 schema 高规格复核清单、provider 前置条件、凭证与密钥管理、通知 dry-run、真实账户边界和回滚方案；当前仍保持 mock-only |
-| [Web-P39 真实日报 dry-run 输入契约设计](web_real_daily_report_dry_run_input_contract.md) | 真实日报 dry-run 输入 payload 字段结构、默认禁用开关、schema 校验失败阻断、敏感字段边界和 mock-only 回退规则；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易 |
+| [Web-P39 / Web-P40 真实日报 dry-run 输入契约与类型草案](web_real_daily_report_dry_run_input_contract.md) | 真实日报 dry-run 输入 payload 字段结构、TypeScript 类型草案、默认禁用开关、schema 校验失败阻断、敏感字段边界和 mock-only 回退规则；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易 |
 
 ## 多语言
 

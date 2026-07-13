@@ -325,10 +325,30 @@ Web-P39 不做上述实现工作。
 - 不把真实数据写入 mock-only fixture 或测试快照。
 - 真实接入前必须先经过人工确认和单独 PR。
 
-## 11. Web-P39 Judge 结论
+## 11. Web-P40 TypeScript 类型草案
 
-- 本阶段是 dry-run design only。
+Web-P40 在 Web mock-only preview 范围内新增 `apps/dsa-web/src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts`，把 Web-P39 的 `RealDailyReportDryRunInput` 文档设计转换为 TypeScript 类型草案。该文件只提供静态契约类型，不包含 validator、adapter、parser、guard、fixture、示例 payload 运行代码或任何真实 provider / API / AI / Agent / 通知 / 账户 / 数据库 / 交易接入。
+
+Web-P40 类型草案的边界如下：
+
+- `mode` 固定为 `dry-run`，`dryRun` 固定为 `true`。
+- `projectName` 固定为“股票基金质量分析系统”。
+- `reportDisplayName` 与 `report.title` 固定为“AI股票基金每日信息报告”。
+- `safety` 里的真实 provider、真实账户读取、通知发送、交易和 AI 调用开关全部以字面量类型锁定为禁用，并要求 `requiresHumanApproval: true`。
+- `redaction` 里的 secret、webhook、token、API key 和个人联系方式标记全部以字面量类型锁定为 `false`。
+- `rollback.fallbackMode` 固定为 `mock-only`，`canFallbackToMockOnly` 固定为 `true`。
+- `source.sourceType` 只允许 `mock-only` / `dry-run` / `real-readonly`。
+- `validation.status` 只允许 `pending` / `passed` / `blocked`。
+- 所有字段使用只读结构和只读数组表达，避免把未来 dry-run 输入误设计成可变运行对象。
+
+这些类型不代表 schema validator 已实现，不代表 dry-run 可以接真实 provider，也不代表当前 mock-only 页面链路发生变化。真实接入仍需要后续 Web-P41 / Web-P42 / Web-P43 分阶段完成，并继续经过人工确认和单独 PR。当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
+
+Web-P40 同时把新增类型文件纳入 `apps/dsa-web/tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts` 的 mock-only boundary 静态扫描范围，用于确认该类型草案不包含网络、存储、通知、provider、AI、环境变量读取、真实请求目标或被正式 runtime 入口导入的风险。
+
+## 12. Web-P39 / Web-P40 Judge 结论
+
+- Web-P39 是 dry-run design only；Web-P40 只新增 TypeScript 类型草案。
 - 本阶段仍保持 mock-only。
 - 本阶段不启动后端、不自动打开浏览器、不接真实 API / provider / OpenAI / DeepSeek / 智谱 / 本地大模型 / Agent / 通知 / 账户 / 数据库 / 交易。
 - 本阶段不读取 `.env`、token、webhook、API key、真实历史日报文件或用户本地文件。
-- 本阶段只新增文档契约，不新增真实运行能力。
+- Web-P40 类型草案不代表 validator、adapter 或真实 provider 接入已经实现，不新增真实运行能力。
