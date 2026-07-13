@@ -352,8 +352,8 @@ provider 接口契约、示例和文档不得包含：
 
 - Web-P45：provider candidate payload mock-only fixture。
 - Web-P46：provider candidate validator 测试。
-- Web-P47：provider dry-run feature flag 文档。
-- Web-P48：provider schema normalization 文档。
+- Web-P47：provider candidate schema normalization mock-only 草案。
+- Web-P48：后续真实 provider 接入前复核文档。
 
 Web-P44 不做这些事项。Web-P44 只完成 provider 只读接口契约文档，不新增 TypeScript 运行代码、不新增 provider client、不新增 API client、不新增真实请求，也不改变当前 mock-only 页面运行链路。
 
@@ -385,4 +385,19 @@ Web-P46 新增 `ProviderCandidatePayload` mock-only validator 纯函数，仅用
 - validator 不生成 `RealDailyReportDryRunInput`。
 - validator 不生成 `DailyReportViewModel`。
 - validator 不接入页面入口、preview model 或正式 runtime。
+- 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
+
+
+## 16. Web-P47 provider candidate schema normalization mock-only 说明
+
+Web-P47 新增 `ProviderCandidatePayload` → `RealDailyReportDryRunInput` mock-only normalizer 草案，仅用于完全虚构、静态、脱敏的 provider candidate schema normalization。
+
+边界确认：
+
+- normalizer 必须先调用 candidate validator，只有 `validateProviderCandidatePayload` passed 后才允许构造 dry-run 输入。
+- normalization 后必须调用 dry-run validator，只有 `validateRealDailyReportDryRunInput` passed 后才返回 `normalizedInput`。
+- 任意 validator blocked 时不返回 `normalizedInput`，并固定 fallback mock-only。
+- normalizer 不调用 dry-run adapter。
+- normalizer 不生成 `DailyReportViewModel`。
+- normalizer 未接入页面入口、preview model 或正式 runtime。
 - 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
