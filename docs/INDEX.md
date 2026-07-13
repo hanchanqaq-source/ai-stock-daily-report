@@ -75,6 +75,7 @@
 | [Web-P43 provider 只读设计文档](web_provider_readonly_design.md) | provider 只读候选输入来源、安全边界、最小字段、输出脱敏、schema normalization、validator、adapter、mock-only fallback、凭证日志缓存超时重试降级和真实接入前置条件；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易 |
 | [Web-P44 provider 只读接口契约文档](web_provider_readonly_interface_contract.md) | provider 只读请求、响应、候选 payload、错误、超时重试缓存策略和日志字段的文档级契约；provider 输出仍必须经过脱敏、schema normalization、validator、adapter 和 mock-only fallback；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易 |
 | [Web-P48 真实 provider 接入前安全复核](web_provider_pre_integration_safety_review.md) | 复核 P45～P47.1 mock-only 链路，记录 Go / No-Go 条件；当前真实 provider 状态为 NO-GO，下一步仅允许默认关闭 feature flag |
+| [Web-M1B Provider Dry-Run 安全门禁闭环](web_provider_dry_run_gate_closure.md) | Provider Dry-Run feature flag、candidate normalizer、dry-run validator 的 mock-only 安全门禁闭环；当前未接页面、runtime 或真实 provider，真实 provider 状态仍为 NO-GO |
 
 ## 多语言
 

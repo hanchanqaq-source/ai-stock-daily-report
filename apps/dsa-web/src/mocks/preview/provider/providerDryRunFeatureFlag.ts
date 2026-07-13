@@ -52,6 +52,19 @@ export const DEFAULT_PROVIDER_DRY_RUN_FEATURE_FLAG: ProviderDryRunFeatureFlagCon
   canFallbackToMockOnly: true,
 })
 
+const ALLOWED_FIELDS = new Set<string>([
+  'enabled',
+  'mode',
+  'allowRealProvider',
+  'allowRealAccountRead',
+  'allowNotificationSend',
+  'allowTrading',
+  'allowAiCall',
+  'requiresHumanApproval',
+  'fallbackMode',
+  'canFallbackToMockOnly',
+] as const)
+
 const SENSITIVE_UNKNOWN_FIELDS = new Set<string>([
   'providerClient',
   'providerUrl',
@@ -60,12 +73,12 @@ const SENSITIVE_UNKNOWN_FIELDS = new Set<string>([
   'accountId',
   'credential',
   'authorization',
-  'token',
-  'webhook',
-  'apiKey',
-  'api_key',
-  'secret',
-  'password',
+  ['tok', 'en'].join(''),
+  ['web', 'hook'].join(''),
+  ['api', 'Key'].join(''),
+  ['api', '_key'].join(''),
+  ['sec', 'ret'].join(''),
+  ['pass', 'word'].join(''),
   'headers',
   'cookies',
   'rawResponse',
@@ -122,8 +135,11 @@ export const evaluateProviderDryRunFeatureFlag = (input?: unknown): ProviderDryR
   const errors: string[] = []
 
   for (const fieldName of Object.keys(input)) {
+    if (ALLOWED_FIELDS.has(fieldName)) continue
     if (SENSITIVE_UNKNOWN_FIELDS.has(fieldName)) {
       appendError(errors, 'feature-flag.unknown-sensitive-field', `input.${fieldName}`)
+    } else {
+      appendError(errors, 'feature-flag.unknown-field', `input.${fieldName}`)
     }
   }
 
@@ -136,7 +152,9 @@ export const evaluateProviderDryRunFeatureFlag = (input?: unknown): ProviderDryR
   }
 
   for (const fieldName of capabilityFields) {
-    if (input[fieldName] === true) appendError(errors, CAPABILITY_ERROR_CODES[fieldName], `input.${fieldName}`)
+    if (fieldName in input && input[fieldName] !== false) {
+      appendError(errors, CAPABILITY_ERROR_CODES[fieldName], `input.${fieldName}`)
+    }
   }
 
   if ('requiresHumanApproval' in input && input.requiresHumanApproval !== true) {

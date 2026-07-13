@@ -81,3 +81,11 @@ Web-P49 已实现默认关闭的 provider dry-run feature flag，仅作为纯函
 - 任意真实 provider、真实账户读取、通知、交易或 AI 能力请求均返回 `blocked`，并保持 `fallbackMode: mock-only`。
 - 真实 provider 接入结论仍为 **NO-GO**。
 - 下一步 Web-P50 才复核 feature flag 门禁与 mock-only fallback 链路组合。
+
+## Web-M1B mock-only gate 闭环补充
+
+Web-M1B 已完成 provider dry-run mock-only gate 闭环：feature flag 默认仍为 `disabled`，只有显式安全的 `enabled-mock-only` 才会运行既有 candidate validator → normalizer → dry-run validator 链路。
+
+该 gate 未接入页面、preview model、React runtime、API client 或后端接口；disabled、非法 feature flag、candidate blocked、dry-run blocked 和异常路径均不返回 `normalizedInput`，并固定回退 `mock-only`。
+
+真实 provider 仍未接入，最终状态保持 **NO-GO**。下一阶段进入真实只读 provider 前仍需用户人工批准。

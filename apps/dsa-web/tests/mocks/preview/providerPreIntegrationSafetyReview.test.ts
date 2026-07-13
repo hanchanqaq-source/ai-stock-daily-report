@@ -13,6 +13,7 @@ import {
   DEFAULT_PROVIDER_DRY_RUN_FEATURE_FLAG,
   evaluateProviderDryRunFeatureFlag,
 } from '../../../src/mocks/preview/provider/providerDryRunFeatureFlag'
+import { runProviderDryRunGate } from '../../../src/mocks/preview/provider/providerDryRunGate'
 
 type Mutable<T> = { -readonly [P in keyof T]: T[P] extends readonly (infer U)[] ? Mutable<U>[] : T[P] }
 type MutableCandidate = Mutable<ProviderCandidatePayload> & Record<string, unknown>
@@ -34,6 +35,7 @@ const providerSourcePaths = [
   'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
   'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
   'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
+  'src/mocks/preview/provider/providerDryRunGate.ts',
 ] as const
 
 const collectTypeScriptFiles = (path: string): string[] => {
@@ -129,6 +131,8 @@ describe('Web-P48 pre-integration provider safety review', () => {
       'normalizeProviderCandidatePayloadToDryRunInput',
       'providerDryRunFeatureFlag',
       'evaluateProviderDryRunFeatureFlag',
+      'providerDryRunGate',
+      'runProviderDryRunGate',
     ] as const
 
     for (const sourcePath of guardedPaths) {
@@ -263,6 +267,32 @@ describe('Web-P48 pre-integration provider safety review', () => {
       const source = readSource(sourcePath)
       expect(source).not.toContain('providerDryRunFeatureFlag')
       expect(source).not.toContain('evaluateProviderDryRunFeatureFlag')
+    }
+  })
+
+
+  it('keeps Web-M1B provider dry-run gate default-closed, mock-only, and disconnected from runtime', () => {
+    const disabled = runProviderDryRunGate()
+    expect(disabled.status).toBe('disabled')
+    expect(disabled.candidateChainExecuted).toBe(false)
+    expect(disabled).not.toHaveProperty('normalizedInput')
+
+    const completed = runProviderDryRunGate({ featureFlag: { enabled: true }, candidate: MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE })
+    expect(completed.status).toBe('completed-mock-only')
+    expect(completed.candidateChainExecuted).toBe(true)
+    expect(completed.allowRealProvider).toBe(false)
+    expect(completed.fallbackMode).toBe('mock-only')
+    if (completed.status === 'completed-mock-only') expect(completed.normalizedInput.source.sourceType).toBe('mock-only')
+
+    const gateSource = readSource('src/mocks/preview/provider/providerDryRunGate.ts')
+    for (const forbidden of [
+      'realDailyReportDryRunAdapter',
+      'adaptRealDailyReportDryRunInputToViewModel',
+      'DailyReportViewModel',
+      'src/pages',
+      'src/components',
+    ]) {
+      expect(gateSource).not.toContain(forbidden)
     }
   })
 
