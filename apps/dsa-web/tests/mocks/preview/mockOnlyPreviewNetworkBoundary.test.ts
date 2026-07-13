@@ -8,6 +8,7 @@ const mockOptions = { mode: 'mock', source: 'local_preview_only' } as const
 const boundarySourcePaths = [
   'src/mocks/preview/mockOnlyPreviewModel.ts',
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
+  'src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts',
   'src/mocks/preview/adapters/dailyReportAdapter.ts',
   'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
@@ -219,10 +220,31 @@ describe('mock-only preview network boundary', () => {
     expect(model.metadata.safeForWindowsPreview).toBe(true)
   })
 
+  it('keeps the dry-run schema type draft locked to safe literal switches', () => {
+    const source = readSource('src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts')
+    const requiredFragments = [
+      'RealDailyReportDryRunInput',
+      "mode: 'dry-run'",
+      'dryRun: true',
+      "projectName: '股票基金质量分析系统'",
+      "reportDisplayName: 'AI股票基金每日信息报告'",
+      'allowNotificationSend: false',
+      'allowTrading: false',
+      'allowAiCall: false',
+      'requiresHumanApproval: true',
+      'canFallbackToMockOnly: true',
+    ] as const
+
+    for (const requiredFragment of requiredFragments) {
+      expect(source).toContain(requiredFragment)
+    }
+  })
+
   it('documents the complete static boundary scan set', () => {
     expect(previewServicePaths).toEqual([
       'src/mocks/preview/mockOnlyPreviewModel.ts',
       'src/mocks/preview/mockOnlyPreviewTypes.ts',
+      'src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts',
       'src/mocks/preview/adapters/dailyReportAdapter.ts',
       'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',
