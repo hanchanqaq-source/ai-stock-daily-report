@@ -132,6 +132,17 @@ describe('mock-only preview network boundary', () => {
   })
 
 
+
+  it('includes provider candidate fixture, validator, and normalizer in the boundary source scan', () => {
+    expect(boundarySourcePaths).toEqual(
+      expect.arrayContaining([
+        'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
+        'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
+        'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
+      ]),
+    )
+  })
+
   it('keeps provider candidate normalizer free of expanded provider, time, random, and environment markers', () => {
     const source = readSource('src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts')
     const normalizerForbiddenPatterns = [/智谱/, /\bDate\.now\b/, /\bMath\.random\b/, /\bprocess\.env\b/] as const

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [复核] Web-P47.1 完成 provider candidate → validator → normalizer → dry-run validator 链路小总复核，确认 validator 顺序、blocked 传播、低敏错误、normalizedInput 隔离、mock-only fallback 和 runtime 隔离边界。
 - [改进] Web-P47 新增 provider candidate schema normalization mock-only 草案，candidate validator passed 后才允许构造 dry-run 输入，normalized dry-run 输入必须再次通过 dry-run validator；blocked 时不返回 normalizedInput，并回退 mock-only；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [测试] Web-P46 新增 provider candidate validator mock-only 测试，不安全 candidate payload 返回 blocked，blocked 时禁止 normalization 并回退 mock-only；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [测试] Web-P45 新增 provider candidate payload mock-only fixture，使用完全虚构、静态、脱敏占位数据，未接入页面或真实运行链路；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。

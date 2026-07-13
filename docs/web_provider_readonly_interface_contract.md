@@ -401,3 +401,23 @@ Web-P47 新增 `ProviderCandidatePayload` → `RealDailyReportDryRunInput` mock-
 - normalizer 不生成 `DailyReportViewModel`。
 - normalizer 未接入页面入口、preview model 或正式 runtime。
 - 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
+
+## Web-P47.1 mock-only 链路小总复核
+
+Web-P47.1 已完成 P45～P47 mock-only 链路小总复核，固定链路顺序为：
+
+```text
+ProviderCandidatePayload
+→ validateProviderCandidatePayload
+→ normalizeProviderCandidatePayloadToDryRunInput
+→ validateRealDailyReportDryRunInput
+```
+
+复核结论：
+
+- candidate validator 必须先于 normalization 执行；candidate blocked 时不执行 normalization，也不构造 dry-run input。
+- normalized input 必须再次经过 dry-run validator；dry-run validator blocked 时不返回 `normalizedInput`。
+- 全链路固定 fallback mock-only，blocked 结果只返回低敏错误码，不返回 candidate payload 或原始敏感值。
+- normalizer 不调用 dry-run adapter，不生成 `DailyReportViewModel`。
+- 当前未接入页面、preview model 或正式 runtime。
+- 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
