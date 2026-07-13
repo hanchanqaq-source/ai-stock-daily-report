@@ -356,3 +356,18 @@ provider 接口契约、示例和文档不得包含：
 - Web-P48：provider schema normalization 文档。
 
 Web-P44 不做这些事项。Web-P44 只完成 provider 只读接口契约文档，不新增 TypeScript 运行代码、不新增 provider client、不新增 API client、不新增真实请求，也不改变当前 mock-only 页面运行链路。
+
+## 14. Web-P45 mock-only candidate fixture 说明
+
+Web-P45 新增完全虚构、静态、脱敏的 `ProviderCandidatePayload` mock-only fixture，仅作为后续 validator 与 schema normalization 测试准备。
+
+边界确认：
+
+- 该 fixture 不是 `RealDailyReportDryRunInput`。
+- 该 fixture 不是 `DailyReportViewModel`。
+- 该 fixture 没有接入页面入口、preview model 或正式 runtime。
+- 该 fixture 不接 provider，不读取任何外部来源。
+- 后续若要进入日报 dry-run 链路，必须先经过 schema normalization；normalization 后才可能形成 `RealDailyReportDryRunInput`。
+- `RealDailyReportDryRunInput` 仍必须经过 validator；validator passed 后才允许 adapter 映射。
+- 任意失败、阻断、schema mismatch 或 validator 未通过时必须 fallback mock-only。
+- 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。

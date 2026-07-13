@@ -11,6 +11,7 @@ const boundarySourcePaths = [
   'src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts',
   'src/mocks/preview/dry-run/realDailyReportDryRunValidator.ts',
   'src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts',
+  'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
   'src/mocks/preview/adapters/dailyReportAdapter.ts',
   'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
@@ -174,6 +175,27 @@ describe('mock-only preview network boundary', () => {
     }
   })
 
+  it('keeps provider candidate fixture out of preview entry, preview model, and runtime import paths', () => {
+    const candidateImportFragments = [
+      'providerCandidatePayloadFixture',
+      'MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE',
+      './provider/',
+      '../preview/provider/',
+    ] as const
+    const guardedPaths = [
+      'src/mocks/preview-entry/mockOnlyPreviewEntry.ts',
+      'src/mocks/preview/mockOnlyPreviewModel.ts',
+      ...runtimeSearchRoots.flatMap((root) => collectTypeScriptFiles(root)),
+    ]
+
+    for (const sourcePath of guardedPaths) {
+      const source = readSource(sourcePath)
+      for (const forbiddenImport of candidateImportFragments) {
+        expect(source, `${sourcePath} must not import provider candidate fixture`).not.toContain(forbiddenImport)
+      }
+    }
+  })
+
   it('creates the preview model without touching global network functions or constructors', () => {
     const fetchSpy = vi.fn(() => {
       throw new Error('fetch must not be called by mock-only preview')
@@ -263,6 +285,7 @@ describe('mock-only preview network boundary', () => {
       'src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts',
       'src/mocks/preview/dry-run/realDailyReportDryRunValidator.ts',
       'src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts',
+      'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
       'src/mocks/preview/adapters/dailyReportAdapter.ts',
       'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',
