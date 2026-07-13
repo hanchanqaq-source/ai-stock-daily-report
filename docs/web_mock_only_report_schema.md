@@ -23,11 +23,12 @@ Web-P32 的边界仍然是 mock-only、127.0.0.1 only、只使用静态脱敏 fi
 当前 mock 报告 schema 参考以下前端 mock-only 文件和类型：
 
 - `apps/dsa-web/src/mocks/preview/fixtures/dailyReportFixture.ts`
+- `apps/dsa-web/src/mocks/preview/fixtures/index.ts`（fixture 目录统一导出入口，mock-only 页面模型应从该入口导入 fixture）
 - `apps/dsa-web/src/mocks/preview/mockOnlyPreviewTypes.ts`
 - `MockOnlyDailyReportFixture`
 - `MockOnlyDailyReportSectionFixture`
 
-Web-P31 已经建立统一 fixture，用于集中定义“AI股票基金每日信息报告”的 mock-only 字段、脱敏标签和安全边界。Web-P32 只补充文档契约，不修改 fixture、页面代码、测试代码或真实运行链路。
+Web-P31 已经建立统一 fixture，用于集中定义“AI股票基金每日信息报告”的 mock-only 字段、脱敏标签和安全边界。Web-P33 增加 `fixtures/index.ts` 作为目录统一导出入口，后续 mock-only 页面模型应通过该入口复用 fixture；类型仍集中在 `mockOnlyPreviewTypes.ts`。Web-P32 只补充文档契约，不修改 fixture、页面代码、测试代码或真实运行链路。
 
 ## 3. 顶层字段说明
 

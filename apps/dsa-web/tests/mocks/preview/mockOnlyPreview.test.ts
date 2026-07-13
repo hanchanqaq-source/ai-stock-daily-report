@@ -12,6 +12,7 @@ const previewSourcePaths = [
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
   'src/mocks/preview/mockOnlyPreviewModel.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
+  'src/mocks/preview/fixtures/index.ts',
 ]
 const previewSource = previewSourcePaths.map((sourcePath) => readFileSync(sourcePath, 'utf-8')).join('\n')
 const mockOptions: MockOnlyPreviewOptions = { mode: 'mock', source: 'local_preview_only' }
@@ -210,6 +211,18 @@ describe('mock-only preview model', () => {
     }
   })
 
+
+
+  it('uses the unified fixture barrel from mock-only preview pages', () => {
+    const previewSource = readFileSync('src/mocks/preview/mockOnlyPreviewModel.ts', 'utf-8')
+    const fixtureIndexSource = readFileSync('src/mocks/preview/fixtures/index.ts', 'utf-8')
+    const fixtureSource = readFileSync('src/mocks/preview/fixtures/dailyReportFixture.ts', 'utf-8')
+
+    expect(previewSource).toContain("from './fixtures'")
+    expect(previewSource).not.toContain("./fixtures/dailyReportFixture")
+    expect(fixtureIndexSource).toContain('mockOnlyDailyReportFixture')
+    expect(fixtureSource).toContain('export const mockOnlyDailyReportFixture')
+  })
 
   it('exposes unified mock-only daily report fixture data', () => {
     const fixture = createMockOnlyPreviewModel(mockOptions).dailyReportFixture
