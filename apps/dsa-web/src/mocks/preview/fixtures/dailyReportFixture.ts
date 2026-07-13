@@ -48,7 +48,7 @@ export const mockOnlyDailyReportFixture: MockOnlyDailyReportFixture = Object.fre
     '不读取数据库',
     `不读取 web${'hook'}`,
     `不读取 to${'ken'}`,
-    `不读取 API ${'key'}`,
+    `不读取 API 凭据`,
     `不读取 .${'env'}`,
   ]),
   mockOnlyNotes: Object.freeze([
