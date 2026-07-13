@@ -92,3 +92,8 @@ Core-M2 框架只位于 mock-only preview provider 目录，未接入页面、pr
 ## Core-M3 前置人工批准
 
 Core-M3 如要推进首个真实只读数据源端到端接入，必须再次获得用户人工批准，并重新评估真实网络、Provider SDK、凭证读取、日志脱敏、只读权限、回滚方案和端到端验证。Core-M2 的真实 Provider 最终结论仍为 **NO-GO**。
+
+
+## Core-M3 AkShare 公开 A 股真实只读 Dry-Run
+
+Core-M3 新增默认关闭的 AkShare 公开 A 股单标的真实只读 Dry-Run 链路。该链路仅允许本地人工批准后经 127.0.0.1 FastAPI endpoint 复用 Python data_provider/AkShare 日线入口，并通过后端与 Web 双重 sanitizer 生成 sourceType=real-readonly 的 RealDailyReportDryRunInput；Provider unavailable/timeout 可回退 mock-only，invalid-response/非法结构必须 blocked。当前不读取账户、不使用凭证、不调用 AI/通知/交易、不写数据库、不接正式页面或定时 runtime。详见 core_m3_akshare_public_market_readonly_dry_run.md。

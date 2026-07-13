@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+
+- [新功能] [里程碑] Core-M3 新增 AkShare 公开 A 股单标的真实只读 Dry-Run 链路：通过默认关闭和人工批准门禁，由现有 Python data_provider 获取最新可用公开行情，经后端及 Web 双重 sanitizer 后生成 sourceType=real-readonly 的 RealDailyReportDryRunInput；失败可回退 mock-only，非法响应明确阻断。当前不读取账户、不使用凭证、不调用 AI/通知/交易、不写数据库、不接正式页面或定时 runtime。
 - [安全修复] Core-M2.1 完成 Provider Result 脱敏和输入契约收口：新增运行时 Provider Result sanitizer，禁止透传 Provider 原始 errors/warnings，并将 unavailable、timeout、credential-unavailable、invalid-response 和 blocked 映射为固定低敏状态；未知或非法 Provider Result 明确阻断。同时将 Pipeline 顶层未知字段校验提前，避免 disabled 状态静默忽略非法字段。当前仍不联网、不读取凭证、不接页面或 runtime，真实 Provider 保持 NO-GO。
 - [里程碑] Core-M2 新增统一只读 Provider Port、默认禁用 Provider、凭证状态边界和本地 Dry-Run Pipeline；Provider unavailable、timeout 或 credential-unavailable 时可降级到固定 mock-only fixture，非法响应、阻断或异常不返回 normalizedInput；同时修复 Web-M1B candidate undefined 和 candidateChainExecuted 异常语义。当前框架不联网、不读取凭证、不接页面或 runtime，真实 Provider 仍为 NO-GO。
 - [里程碑] Web-M1B 完成 Provider Dry-Run 安全门禁闭环，合并 Web-P50 与 Web-P50.1：默认关闭 feature flag 只有 enabled-mock-only 才能进入现有 candidate validator → normalizer → dry-run validator 链路；disabled、非法 flag、candidate blocked、dry-run blocked 和异常均不返回 normalizedInput，并固定回退 mock-only；同时收紧非布尔真实能力字段与未知字段校验。当前未接入页面、runtime 或真实 provider，真实 provider 结论仍为 NO-GO。

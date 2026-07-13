@@ -23,6 +23,7 @@ from api.v1.endpoints import (
     history,
     intelligence,
     portfolio,
+    provider_readonly,
     stocks,
     system_config,
     usage,
@@ -84,6 +85,12 @@ router.include_router(
     portfolio.router,
     prefix="/portfolio",
     tags=["Portfolio"]
+)
+
+router.include_router(
+    provider_readonly.router,
+    prefix="/provider-readonly",
+    tags=["ProviderReadonly"]
 )
 
 router.include_router(
