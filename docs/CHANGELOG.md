@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [测试] Web-P45 新增 provider candidate payload mock-only fixture，使用完全虚构、静态、脱敏占位数据，未接入页面或真实运行链路；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [文档] Web-P44 新增 provider 只读接口契约文档，明确 ProviderReadonlyRequest / ProviderReadonlyResponse / ProviderCandidatePayload / ProviderReadonlyError / ProviderReadonlyPolicy / ProviderReadonlyLogEvent 的文档级契约，确认 provider 输出仍必须经过脱敏、schema normalization、validator、adapter 和 mock-only fallback；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [文档] Web-P43 新增 provider 只读设计文档，明确 provider 未来只能作为只读候选输入来源，输出必须经过脱敏、schema normalization、validator、adapter 和 mock-only fallback；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [chore] Web-P42.1 完成 P39～P42 dry-run 链路小总复核，确认类型、validator、adapter、测试和文档边界一致，并将 providerName / dataSourceLabel 收口为固定脱敏展示；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
