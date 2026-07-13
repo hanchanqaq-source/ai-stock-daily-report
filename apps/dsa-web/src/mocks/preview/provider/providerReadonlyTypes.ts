@@ -8,6 +8,7 @@ export type ProviderReadonlyOutcome =
   | 'credential-unavailable'
   | 'invalid-response'
   | 'blocked'
+  | 'invalid-provider-result'
 
 export interface ProviderReadonlyRequest {
   readonly requestId: 'LOCAL_DRY_RUN_REQUEST'
@@ -30,11 +31,11 @@ export interface ProviderReadonlyCandidateResult {
   readonly redacted: true
   readonly candidate: ProviderCandidatePayload
   readonly errors: readonly []
-  readonly warnings: readonly string[]
+  readonly warnings: readonly []
 }
 
 export interface ProviderReadonlyFailureResult {
-  readonly status: Exclude<ProviderReadonlyOutcome, 'candidate'>
+  readonly status: Exclude<ProviderReadonlyOutcome, 'candidate' | 'invalid-provider-result'>
   readonly providerLabel: 'REDACTED_PROVIDER_LABEL'
   readonly readOnly: true
   readonly redacted: true

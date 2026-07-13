@@ -3,6 +3,7 @@ import { MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE } from './providerCandidat
 import { evaluateProviderDryRunFeatureFlag } from './providerDryRunFeatureFlag'
 import { runProviderDryRunGate } from './providerDryRunGate'
 import { inspectProviderCredentialBoundary } from './providerCredentialBoundary'
+import { sanitizeProviderReadonlyPortResult } from './providerReadonlyResultSanitizer'
 import type { ProviderReadonlyPort } from './providerReadonlyPort'
 import { createDisabledProviderReadonlyPort } from './providerReadonlyDisabledPort'
 import {
@@ -21,6 +22,23 @@ interface ProviderReadonlyDryRunPipelineInput {
 }
 
 const allowedInputFields = new Set(['featureFlag', 'request', 'provider'] as const)
+const sensitiveInputFields = new Set([
+  'token',
+  'apiKey',
+  'api_key',
+  'secret',
+  'password',
+  'credential',
+  'credentials',
+  'endpoint',
+  'requestUrl',
+  'headers',
+  'cookies',
+  'rawResponse',
+  'responseBody',
+  'accountId',
+  'accountNumber',
+])
 const allowedRequestFields = new Set(Object.keys(DEFAULT_PROVIDER_READONLY_REQUEST))
 const sensitiveRequestFields = new Set([
   'accountNumber',
@@ -37,8 +55,7 @@ const sensitiveRequestFields = new Set([
   'phone',
 ])
 
-const isRecord = (value: unknown): value is UnknownRecord =>
-  typeof value === 'object' && value !== null && !Array.isArray(value)
+const isRecord = (value: unknown): value is UnknownRecord => typeof value === 'object' && value !== null && !Array.isArray(value)
 
 const freezeStringArray = (items: readonly string[]): readonly string[] => Object.freeze([...items])
 
@@ -102,11 +119,7 @@ export const runProviderReadonlyDryRunPipeline = async (input?: unknown): Promis
     return buildResult('blocked', false, 'blocked', false, false, ['provider-readonly-pipeline.invalid-input:input'])
   }
 
-  const featureFlag = evaluateProviderDryRunFeatureFlag(input === undefined ? undefined : input.featureFlag)
-  if (featureFlag.state === 'disabled') return buildResult('disabled', false, 'not-attempted', false, false, [], featureFlag.warnings)
-  if (featureFlag.state === 'blocked') return buildResult('blocked', false, 'blocked', false, false, featureFlag.errors, featureFlag.warnings)
-
-  const record = input as ProviderReadonlyDryRunPipelineInput & UnknownRecord
+  const record = (input ?? {}) as ProviderReadonlyDryRunPipelineInput & UnknownRecord
   const unknownInputFields = Object.keys(record).filter((fieldName) => !allowedInputFields.has(fieldName as never))
   if (unknownInputFields.length > 0) {
     return buildResult(
@@ -115,9 +128,18 @@ export const runProviderReadonlyDryRunPipeline = async (input?: unknown): Promis
       'blocked',
       false,
       false,
-      unknownInputFields.map((fieldName) => `provider-readonly-pipeline.unknown-field:input.${fieldName}`),
+      unknownInputFields.map((fieldName) =>
+        sensitiveInputFields.has(fieldName)
+          ? `provider-readonly-pipeline.sensitive-field:input.${fieldName}`
+          : `provider-readonly-pipeline.unknown-field:input.${fieldName}`,
+      ),
     )
   }
+
+  const featureFlag = evaluateProviderDryRunFeatureFlag(input === undefined ? undefined : record.featureFlag)
+  if (featureFlag.state === 'disabled') return buildResult('disabled', false, 'not-attempted', false, false, [], featureFlag.warnings)
+  if (featureFlag.state === 'blocked')
+    return buildResult('blocked', false, 'blocked', false, false, featureFlag.errors, featureFlag.warnings)
 
   const requestValidation = validateProviderReadonlyRequest(record.request)
   if (!requestValidation.request) return buildResult('blocked', false, 'blocked', false, false, requestValidation.errors)
@@ -130,9 +152,13 @@ export const runProviderReadonlyDryRunPipeline = async (input?: unknown): Promis
   const provider = record.provider ?? createDisabledProviderReadonlyPort()
   try {
     providerAttempted = true
-    const providerResult = await provider.readCandidate(requestValidation.request)
+    const rawProviderResult = await provider.readCandidate(requestValidation.request)
+    const providerResult = sanitizeProviderReadonlyPortResult(rawProviderResult)
     if (providerResult.status === 'candidate') {
-      const gate = runProviderDryRunGate({ featureFlag: { enabled: true }, candidate: providerResult.candidate })
+      const gate = runProviderDryRunGate({
+        featureFlag: { enabled: true },
+        candidate: providerResult.candidate,
+      })
       if (gate.status === 'completed-mock-only') {
         return buildResult('completed-mock-only', true, 'candidate', false, true, [], gate.warnings, gate.normalizedInput)
       }
@@ -140,12 +166,27 @@ export const runProviderReadonlyDryRunPipeline = async (input?: unknown): Promis
     }
 
     if (['unavailable', 'timeout', 'credential-unavailable'].includes(providerResult.status)) {
-      const gate = runProviderDryRunGate({ featureFlag: { enabled: true }, candidate: MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE })
+      const gate = runProviderDryRunGate({
+        featureFlag: { enabled: true },
+        candidate: MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE,
+      })
       const warning = `provider-readonly.fallback-after-${providerResult.status}`
       if (gate.status === 'completed-mock-only') {
-        return buildResult('completed-mock-only', true, providerResult.status, true, true, [], [warning, ...gate.warnings], gate.normalizedInput)
+        return buildResult(
+          'completed-mock-only',
+          true,
+          providerResult.status,
+          true,
+          true,
+          [],
+          [warning, ...gate.warnings],
+          gate.normalizedInput,
+        )
       }
-      return buildResult('blocked', true, providerResult.status, true, gate.candidateChainExecuted, gate.errors, [warning, ...gate.warnings])
+      return buildResult('blocked', true, providerResult.status, true, gate.candidateChainExecuted, gate.errors, [
+        warning,
+        ...gate.warnings,
+      ])
     }
 
     return buildResult('blocked', true, providerResult.status, false, false, providerResult.errors, providerResult.warnings)
