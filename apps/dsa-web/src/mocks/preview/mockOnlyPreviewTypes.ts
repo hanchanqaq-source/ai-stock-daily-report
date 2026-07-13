@@ -73,6 +73,31 @@ export interface MockOnlyDailyReportSectionFixture {
   readonly content: string
 }
 
+export interface DailyReportViewSection {
+  readonly title: string
+  readonly content: string
+}
+
+export interface DailyReportViewModel {
+  readonly id: string
+  readonly projectName: string
+  readonly reportDateLabel: string
+  readonly title: string
+  readonly displayName: string
+  readonly modeLabel: string
+  readonly dataSourceLabel: string
+  readonly generatedAtLabel: string
+  readonly deliveryStatus: string
+  readonly marketMood: string
+  readonly headline: string
+  readonly portfolioAction: string
+  readonly riskLevel: string
+  readonly sections: readonly DailyReportViewSection[]
+  readonly safetyLabels: readonly string[]
+  readonly redactionLabels: readonly string[]
+  readonly notes: readonly string[]
+}
+
 export interface MockOnlyDailyReportFixture {
   readonly reportId: string
   readonly projectName: string
@@ -262,6 +287,7 @@ export interface MockOnlyPreviewOverview {
 
 export interface MockOnlyPreviewModel {
   readonly dailyReportFixture: MockOnlyDailyReportFixture
+  readonly dailyReportViewModel: DailyReportViewModel
   readonly metadata: MockOnlyPreviewMetadata
   readonly safetyBanner: readonly string[]
   readonly sections: readonly MockOnlyPreviewSection[]

@@ -1,6 +1,8 @@
 import { createMockApiService } from '../service/mockApiService'
+import { adaptMockOnlyDailyReportFixture } from './adapters'
 import { mockOnlyDailyReportFixture } from './fixtures'
 import type {
+  DailyReportViewModel,
   MockOnlyAgentChatPreview,
   MockOnlyAlertsPreview,
   MockOnlyDashboardSummaryPreview,
@@ -31,15 +33,16 @@ const REQUIRED_OPTIONS: MockOnlyPreviewOptions = {
 
 
 const DAILY_REPORT_FIXTURE = mockOnlyDailyReportFixture
+const DAILY_REPORT_VIEW_MODEL: DailyReportViewModel = adaptMockOnlyDailyReportFixture(DAILY_REPORT_FIXTURE)
 
 const DASHBOARD_SUMMARY_PREVIEW: MockOnlyDashboardSummaryPreview = Object.freeze({
-  headline: DAILY_REPORT_FIXTURE.headline,
-  marketStatus: DAILY_REPORT_FIXTURE.marketMood,
+  headline: DAILY_REPORT_VIEW_MODEL.headline,
+  marketStatus: DAILY_REPORT_VIEW_MODEL.marketMood,
   totalHoldingAmount: '¥88,888.88',
   dailyChange: '+0.68%',
   positionRatio: '44.4%',
-  riskLevel: DAILY_REPORT_FIXTURE.riskLevel,
-  labels: Object.freeze([...DAILY_REPORT_FIXTURE.safetyLabels.filter((label) => label !== `127.${'0.0.1'} only`), 'REDACTED FIXTURE DATA']),
+  riskLevel: DAILY_REPORT_VIEW_MODEL.riskLevel,
+  labels: Object.freeze([...DAILY_REPORT_VIEW_MODEL.safetyLabels.filter((label) => label !== `127.${'0.0.1'} only`), 'REDACTED FIXTURE DATA']),
   holdingStructure: Object.freeze([
     Object.freeze({ name: '硬科技', ratio: '62%' }),
     Object.freeze({ name: '海外科技', ratio: '18%' }),
@@ -114,20 +117,20 @@ const PORTFOLIO_PREVIEW: MockOnlyPortfolioPreview = Object.freeze({
 const HISTORY_REPORTS_PREVIEW: MockOnlyHistoryReportsPreview = Object.freeze({
   summary: Object.freeze([
     Object.freeze({ label: '模拟报告数量', value: '3' }),
-    Object.freeze({ label: '最新模拟报告', value: DAILY_REPORT_FIXTURE.reportDateLabel }),
+    Object.freeze({ label: '最新模拟报告', value: DAILY_REPORT_VIEW_MODEL.reportDateLabel }),
     Object.freeze({ label: '模拟发送状态', value: '未发送' }),
-    Object.freeze({ label: '模拟数据来源', value: DAILY_REPORT_FIXTURE.dataSourceLabel }),
+    Object.freeze({ label: '模拟数据来源', value: DAILY_REPORT_VIEW_MODEL.dataSourceLabel }),
   ]),
   reports: Object.freeze([
     Object.freeze({
-      reportId: DAILY_REPORT_FIXTURE.reportId,
-      reportDateLabel: DAILY_REPORT_FIXTURE.reportDateLabel,
-      title: DAILY_REPORT_FIXTURE.title,
+      reportId: DAILY_REPORT_VIEW_MODEL.id,
+      reportDateLabel: DAILY_REPORT_VIEW_MODEL.reportDateLabel,
+      title: DAILY_REPORT_VIEW_MODEL.title,
       status: '本地预览',
-      marketMood: DAILY_REPORT_FIXTURE.marketMood,
-      portfolioAction: DAILY_REPORT_FIXTURE.portfolioAction,
-      riskLevel: DAILY_REPORT_FIXTURE.riskLevel,
-      deliveryStatus: DAILY_REPORT_FIXTURE.deliveryStatus,
+      marketMood: DAILY_REPORT_VIEW_MODEL.marketMood,
+      portfolioAction: DAILY_REPORT_VIEW_MODEL.portfolioAction,
+      riskLevel: DAILY_REPORT_VIEW_MODEL.riskLevel,
+      deliveryStatus: DAILY_REPORT_VIEW_MODEL.deliveryStatus,
       note: '静态脱敏 fixture 示例，不读取真实历史日报文件。',
     }),
     Object.freeze({
@@ -154,13 +157,13 @@ const HISTORY_REPORTS_PREVIEW: MockOnlyHistoryReportsPreview = Object.freeze({
     }),
   ]),
   selectedReport: Object.freeze({
-    reportId: DAILY_REPORT_FIXTURE.reportId,
-    displayName: DAILY_REPORT_FIXTURE.displayName,
-    title: `${DAILY_REPORT_FIXTURE.title} mock-only 历史详情`,
-    generatedAtLabel: DAILY_REPORT_FIXTURE.generatedAtLabel,
-    headline: DAILY_REPORT_FIXTURE.headline,
-    sections: Object.freeze(Object.values(DAILY_REPORT_FIXTURE.sections)),
-    tags: Object.freeze([...DAILY_REPORT_FIXTURE.safetyLabels.filter((label) => label !== `127.${'0.0.1'} only`), ...DAILY_REPORT_FIXTURE.redactionLabels, '非真实日报']),
+    reportId: DAILY_REPORT_VIEW_MODEL.id,
+    displayName: DAILY_REPORT_VIEW_MODEL.displayName,
+    title: `${DAILY_REPORT_VIEW_MODEL.title} mock-only 历史详情`,
+    generatedAtLabel: DAILY_REPORT_VIEW_MODEL.generatedAtLabel,
+    headline: DAILY_REPORT_VIEW_MODEL.headline,
+    sections: DAILY_REPORT_VIEW_MODEL.sections,
+    tags: Object.freeze([...DAILY_REPORT_VIEW_MODEL.safetyLabels.filter((label) => label !== `127.${'0.0.1'} only`), ...DAILY_REPORT_VIEW_MODEL.redactionLabels, '非真实日报']),
   }),
   riskNotes: Object.freeze([
     '本区域只展示静态脱敏 fixture，不读取真实历史报告。',
@@ -547,8 +550,8 @@ const createMockOnlyPreviewOverview = (
 
   return Object.freeze({
     modeLabel: 'mock-only 本地预览',
-    projectName: '股票基金质量分析系统',
-    pageDisplayName: 'AI股票基金每日信息报告',
+    projectName: DAILY_REPORT_VIEW_MODEL.projectName,
+    pageDisplayName: DAILY_REPORT_VIEW_MODEL.displayName,
     previewableModuleCount,
     pendingModuleCount,
     totalModuleCount,
@@ -580,6 +583,7 @@ export const createMockOnlyPreviewModel = (options: MockOnlyPreviewOptions): Moc
 
   return Object.freeze({
     dailyReportFixture: DAILY_REPORT_FIXTURE,
+    dailyReportViewModel: DAILY_REPORT_VIEW_MODEL,
     metadata,
     safetyBanner: SAFETY_BANNER,
     sections,

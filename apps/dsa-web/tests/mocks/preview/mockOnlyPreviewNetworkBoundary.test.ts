@@ -8,6 +8,8 @@ const mockOptions = { mode: 'mock', source: 'local_preview_only' } as const
 const boundarySourcePaths = [
   'src/mocks/preview/mockOnlyPreviewModel.ts',
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
+  'src/mocks/preview/adapters/dailyReportAdapter.ts',
+  'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
   'src/mocks/preview/fixtures/index.ts',
   'src/mocks/service/mockApiClient.ts',
@@ -146,10 +148,10 @@ describe('mock-only preview network boundary', () => {
     }
   })
 
-  it('keeps preview model dependent on mock service rather than adapter or safety directly', () => {
+  it('keeps preview model dependent on mock service and the daily report adapter only', () => {
     const previewSource = readSource('src/mocks/preview/mockOnlyPreviewModel.ts')
     expect(previewSource).toContain('../service/mockApiService')
-    expect(previewSource).not.toContain('../adapter/')
+    expect(previewSource).toContain('./adapters')
     expect(previewSource).not.toContain('../safety/')
   })
 
@@ -219,6 +221,8 @@ describe('mock-only preview network boundary', () => {
     expect(previewServicePaths).toEqual([
       'src/mocks/preview/mockOnlyPreviewModel.ts',
       'src/mocks/preview/mockOnlyPreviewTypes.ts',
+      'src/mocks/preview/adapters/dailyReportAdapter.ts',
+      'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',
       'src/mocks/preview/fixtures/index.ts',
       'src/mocks/service/mockApiClient.ts',
