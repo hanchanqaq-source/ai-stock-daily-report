@@ -352,3 +352,15 @@ Web-P40 同时把新增类型文件纳入 `apps/dsa-web/tests/mocks/preview/mock
 - 本阶段不启动后端、不自动打开浏览器、不接真实 API / provider / OpenAI / DeepSeek / 智谱 / 本地大模型 / Agent / 通知 / 账户 / 数据库 / 交易。
 - 本阶段不读取 `.env`、token、webhook、API key、真实历史日报文件或用户本地文件。
 - Web-P40 类型草案不代表 validator、adapter 或真实 provider 接入已经实现，不新增真实运行能力。
+## 13. Web-P41 mock-only validator 草案
+
+Web-P41 在 Web mock-only preview 范围内新增 `apps/dsa-web/src/mocks/preview/dry-run/realDailyReportDryRunValidator.ts`，用于把 Web-P40 的 `RealDailyReportDryRunInput` 类型草案补充为纯函数 validator 草案。该 validator 只做静态输入校验，不接真实 provider，不读取真实账户，不读取数据库，不调用 AI / Agent，不发送通知，不交易，也不改变当前 mock-only 页面渲染链路。
+
+Web-P41 validator 的默认结果仍固定为 mock-only 回退边界：
+
+- 校验通过时返回 `passed`，并保留 `fallbackMode: mock-only` 与 `canFallbackToMockOnly: true`。
+- 校验失败时返回 `blocked`，不抛真实运行异常，不触发任何真实能力，并且必须 fallback mock-only。
+- validator 不读取 `.env`，不读取 token / webhook / API key，不从浏览器存储、文件或外部服务加载数据。
+- validator 不使用网络、通知、交易、AI、provider、账户或数据库能力；Web-P41 不代表真实日报接入已经开始。
+
+Web-P41 同时新增 `apps/dsa-web/tests/mocks/preview/realDailyReportDryRunValidator.test.ts`，使用明显虚构的静态测试 payload 覆盖 dry-run 模式、安全禁用开关、脱敏标记、mock-only 回退、sections 非空、可疑外部地址与可疑密钥/联系方式文案阻断。新增 validator 文件也被纳入 `apps/dsa-web/tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts` 的静态扫描范围，继续确认 mock-only preview 范围不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
