@@ -70,6 +70,7 @@
 | [Web-P32 mock 报告 schema 说明](web_mock_only_report_schema.md) | AI股票基金每日信息报告 mock-only schema、字段契约、字段映射、脱敏规则和未来真实日报接入前置条件 |
 | [Web-P36 mock-only 日报链路阶段收口与验收清单](web_mock_only_daily_report_acceptance.md) | Web-P31 到 Web-P35 mock-only 日报链路、核心文件、安全边界、Windows 本地验证命令和 PR 复核清单 |
 | [Web-P37 mock-only 页面预览入口与本地验收说明](web_mock_only_preview_entry_local_checks.md) | mock-only 页面入口、入口脚本、Windows 本地验收命令、127.0.0.1 人工预览方式和安全边界 |
+| [Web-P38 真实日报接入前 schema 高规格复核](web_real_daily_report_schema_review.md) | 真实日报接入前的 schema 高规格复核清单、provider 前置条件、凭证与密钥管理、通知 dry-run、真实账户边界和回滚方案；当前仍保持 mock-only |
 
 ## 多语言
 
