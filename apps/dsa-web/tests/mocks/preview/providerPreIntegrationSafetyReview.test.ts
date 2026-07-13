@@ -16,9 +16,12 @@ import {
 import { runProviderDryRunGate } from '../../../src/mocks/preview/provider/providerDryRunGate'
 import { inspectProviderCredentialBoundary } from '../../../src/mocks/preview/provider/providerCredentialBoundary'
 import { createDisabledProviderReadonlyPort } from '../../../src/mocks/preview/provider/providerReadonlyDisabledPort'
+import type { ProviderReadonlyPort } from '../../../src/mocks/preview/provider/providerReadonlyPort'
 import { runProviderReadonlyDryRunPipeline } from '../../../src/mocks/preview/provider/providerReadonlyDryRunPipeline'
 
-type Mutable<T> = { -readonly [P in keyof T]: T[P] extends readonly (infer U)[] ? Mutable<U>[] : T[P] }
+type Mutable<T> = {
+  -readonly [P in keyof T]: T[P] extends readonly (infer U)[] ? Mutable<U>[] : T[P]
+}
 type MutableCandidate = Mutable<ProviderCandidatePayload> & Record<string, unknown>
 type MutableDryRunInput = Mutable<RealDailyReportDryRunInput> & Record<string, unknown>
 
@@ -43,6 +46,7 @@ const providerSourcePaths = [
   'src/mocks/preview/provider/providerReadonlyPort.ts',
   'src/mocks/preview/provider/providerCredentialBoundary.ts',
   'src/mocks/preview/provider/providerReadonlyDisabledPort.ts',
+  'src/mocks/preview/provider/providerReadonlyResultSanitizer.ts',
   'src/mocks/preview/provider/providerReadonlyDryRunPipeline.ts',
 ] as const
 
@@ -251,7 +255,10 @@ describe('Web-P48 pre-integration provider safety review', () => {
     expect(enabledResult.fallbackMode).toBe('mock-only')
     expect(enabledResult.canFallbackToMockOnly).toBe(true)
 
-    const blockedResult = evaluateProviderDryRunFeatureFlag({ enabled: true, allowRealProvider: true })
+    const blockedResult = evaluateProviderDryRunFeatureFlag({
+      enabled: true,
+      allowRealProvider: true,
+    })
     expect(blockedResult.state).toBe('blocked')
     expect(blockedResult.enabled).toBe(false)
     expect(blockedResult.canRunMockOnlyCandidateChain).toBe(false)
@@ -283,14 +290,16 @@ describe('Web-P48 pre-integration provider safety review', () => {
     }
   })
 
-
   it('keeps Web-M1B provider dry-run gate default-closed, mock-only, and disconnected from runtime', () => {
     const disabled = runProviderDryRunGate()
     expect(disabled.status).toBe('disabled')
     expect(disabled.candidateChainExecuted).toBe(false)
     expect(disabled).not.toHaveProperty('normalizedInput')
 
-    const completed = runProviderDryRunGate({ featureFlag: { enabled: true }, candidate: MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE })
+    const completed = runProviderDryRunGate({
+      featureFlag: { enabled: true },
+      candidate: MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE,
+    })
     expect(completed.status).toBe('completed-mock-only')
     expect(completed.candidateChainExecuted).toBe(true)
     expect(completed.allowRealProvider).toBe(false)
@@ -308,7 +317,6 @@ describe('Web-P48 pre-integration provider safety review', () => {
       expect(gateSource).not.toContain(forbidden)
     }
   })
-
 
   it('propagates blocked candidate validation without normalizedInput or raw error leakage', () => {
     const candidate = cloneCandidate()
@@ -380,26 +388,115 @@ describe('Web-P48 pre-integration provider safety review', () => {
     expect(result.canFallbackToMockOnly).toBe(true)
   })
 
-
   it('keeps Core-M2 disabled provider, credential boundary, and pipeline mock-only NO-GO', async () => {
     const credential = inspectProviderCredentialBoundary()
-    expect(credential).toMatchObject({ status: 'not-configured', hasCredential: false, secretMaterialAccessible: false, environmentReadAllowed: false, storageReadAllowed: false })
+    expect(credential).toMatchObject({
+      status: 'not-configured',
+      hasCredential: false,
+      secretMaterialAccessible: false,
+      environmentReadAllowed: false,
+      storageReadAllowed: false,
+    })
 
     const provider = createDisabledProviderReadonlyPort()
-    expect(provider).toMatchObject({ networkEnabled: false, credentialReadEnabled: false, accountReadEnabled: false, providerLabel: 'REDACTED_PROVIDER_LABEL' })
+    expect(provider).toMatchObject({
+      networkEnabled: false,
+      credentialReadEnabled: false,
+      accountReadEnabled: false,
+      providerLabel: 'REDACTED_PROVIDER_LABEL',
+    })
     const providerResult = await provider.readCandidate({} as never)
-    expect(providerResult).toMatchObject({ status: 'unavailable', fallbackMode: 'mock-only', canFallbackToMockOnly: true })
+    expect(providerResult).toMatchObject({
+      status: 'unavailable',
+      fallbackMode: 'mock-only',
+      canFallbackToMockOnly: true,
+    })
     expect(providerResult).not.toHaveProperty('candidate')
 
     const pipelineDisabled = await runProviderReadonlyDryRunPipeline()
-    expect(pipelineDisabled).toMatchObject({ status: 'disabled', providerAttempted: false, providerOutcome: 'not-attempted', fallbackMode: 'mock-only', allowRealProvider: false })
+    expect(pipelineDisabled).toMatchObject({
+      status: 'disabled',
+      providerAttempted: false,
+      providerOutcome: 'not-attempted',
+      fallbackMode: 'mock-only',
+      allowRealProvider: false,
+    })
     expect(pipelineDisabled).not.toHaveProperty('normalizedInput')
 
-    const pipelineFallback = await runProviderReadonlyDryRunPipeline({ featureFlag: { enabled: true } })
-    expect(pipelineFallback).toMatchObject({ status: 'completed-mock-only', providerOutcome: 'unavailable', fallbackUsed: true, allowRealProvider: false, allowRealAccountRead: false, allowNotificationSend: false, allowTrading: false, allowAiCall: false })
+    const pipelineFallback = await runProviderReadonlyDryRunPipeline({
+      featureFlag: { enabled: true },
+    })
+    expect(pipelineFallback).toMatchObject({
+      status: 'completed-mock-only',
+      providerOutcome: 'unavailable',
+      fallbackUsed: true,
+      allowRealProvider: false,
+      allowRealAccountRead: false,
+      allowNotificationSend: false,
+      allowTrading: false,
+      allowAiCall: false,
+    })
     if (pipelineFallback.status !== 'completed-mock-only') throw new Error('expected completed mock-only')
     expect(pipelineFallback.normalizedInput.source.sourceType).toBe('mock-only')
     expect(pipelineFallback.normalizedInput.source.isRealReadOnly).toBe(false)
+  })
+
+  it('keeps Core-M2.1 provider result sanitizer blocking raw errors, warnings, and invalid results', async () => {
+    const provider = (result: unknown): ProviderReadonlyPort => ({
+      mode: 'local-dry-run',
+      providerLabel: 'REDACTED_PROVIDER_LABEL',
+      networkEnabled: false,
+      credentialReadEnabled: false,
+      accountReadEnabled: false,
+      readCandidate: async () => result as never,
+    })
+
+    const invalidResponse = await runProviderReadonlyDryRunPipeline({
+      featureFlag: { enabled: true },
+      provider: provider({
+        status: 'invalid-response',
+        providerLabel: 'REDACTED_PROVIDER_LABEL',
+        readOnly: true,
+        redacted: true,
+        errors: ['token=SECRET_TOKEN_MARKER'],
+        warnings: ['requestUrl=SECRET_URL_MARKER'],
+        fallbackMode: 'mock-only',
+        canFallbackToMockOnly: true,
+      }),
+    })
+    expect(invalidResponse).toMatchObject({
+      status: 'blocked',
+      errors: ['provider-readonly.invalid-response'],
+      warnings: [],
+    })
+    expect(JSON.stringify(invalidResponse)).not.toContain('SECRET_TOKEN_MARKER')
+    expect(JSON.stringify(invalidResponse)).not.toContain('SECRET_URL_MARKER')
+
+    const invalidProviderResult = await runProviderReadonlyDryRunPipeline({
+      featureFlag: { enabled: true },
+      provider: provider({
+        status: 'success',
+        providerLabel: 'REDACTED_PROVIDER_LABEL',
+        readOnly: true,
+        redacted: true,
+      }),
+    })
+    expect(invalidProviderResult).toMatchObject({
+      status: 'blocked',
+      providerOutcome: 'invalid-provider-result',
+      errors: ['provider-readonly.invalid-provider-result'],
+      fallbackUsed: false,
+    })
+    expect(invalidProviderResult).not.toHaveProperty('normalizedInput')
+
+    const ignoredDisabledField = await runProviderReadonlyDryRunPipeline({
+      featureFlag: { enabled: false },
+      token: 'SECRET',
+    })
+    expect(ignoredDisabledField).toMatchObject({
+      status: 'blocked',
+      errors: ['provider-readonly-pipeline.sensitive-field:input.token'],
+    })
   })
 
   it('keeps normalizer isolated from adapter, ViewModel, page components, and raw provider output fields', () => {

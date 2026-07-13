@@ -448,3 +448,8 @@ Provider 只读接口在进入真实实现前，需先满足 [Web-M1B Provider D
 ## Core-M2 交叉引用
 
 Core-M2 已新增首个真实只读 Provider 本地 Dry-Run 基础框架，详见 [Core-M2 首个真实只读 Provider 本地 Dry-Run 基础框架](web_provider_readonly_local_dry_run_framework.md)。该框架继续保持不联网、不读取凭证、不接页面或 runtime，真实 Provider 状态仍为 **NO-GO**。
+
+
+## Core-M2.1 交叉引用
+
+Core-M2.1 已在 [Core-M2 首个真实只读 Provider 本地 Dry-Run 基础框架](web_provider_readonly_local_dry_run_framework.md#core-m21-provider-result-脱敏与输入契约收口) 中补充 Provider Result runtime sanitizer、固定低敏错误映射和 Pipeline 顶层未知字段优先阻断；真实 Provider 仍为 **NO-GO**。

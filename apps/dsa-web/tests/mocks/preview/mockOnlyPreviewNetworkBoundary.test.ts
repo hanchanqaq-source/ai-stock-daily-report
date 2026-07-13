@@ -20,6 +20,7 @@ const boundarySourcePaths = [
   'src/mocks/preview/provider/providerReadonlyPort.ts',
   'src/mocks/preview/provider/providerCredentialBoundary.ts',
   'src/mocks/preview/provider/providerReadonlyDisabledPort.ts',
+  'src/mocks/preview/provider/providerReadonlyResultSanitizer.ts',
   'src/mocks/preview/provider/providerReadonlyDryRunPipeline.ts',
   'src/mocks/preview/adapters/dailyReportAdapter.ts',
   'src/mocks/preview/adapters/index.ts',
@@ -37,9 +38,7 @@ const boundarySourcePaths = [
 ] as const
 
 const previewServiceAdapterPaths = boundarySourcePaths.filter((sourcePath) => !sourcePath.includes('/safety/'))
-const previewServicePaths = boundarySourcePaths.filter(
-  (sourcePath) => sourcePath.includes('/preview/') || sourcePath.includes('/service/'),
-)
+const previewServicePaths = boundarySourcePaths.filter((sourcePath) => sourcePath.includes('/preview/') || sourcePath.includes('/service/'))
 const runtimeSearchRoots = [
   'src/main.tsx',
   'src/App.tsx',
@@ -78,14 +77,7 @@ const forbiddenNetworkPrimitives = [
   /\bsetInterval\b/,
 ] as const
 
-const forbiddenRequestTargets = [
-  'http://',
-  'https://',
-  '/api/v1',
-  '127.0.0.1',
-  'localhost',
-  '0.0.0.0',
-] as const
+const forbiddenRequestTargets = ['http://', 'https://', '/api/v1', '127.0.0.1', 'localhost', '0.0.0.0'] as const
 
 const forbiddenRuntimeImports = [
   /from ['"].*src\/api(?:\/|['"])/,
@@ -141,7 +133,6 @@ describe('mock-only preview network boundary', () => {
     }
   })
 
-
   it('includes provider candidate fixture, validator, normalizer, and dry-run feature flag in the boundary source scan', () => {
     expect(boundarySourcePaths).toEqual(
       expect.arrayContaining([
@@ -154,12 +145,8 @@ describe('mock-only preview network boundary', () => {
         'src/mocks/preview/provider/providerReadonlyPort.ts',
         'src/mocks/preview/provider/providerCredentialBoundary.ts',
         'src/mocks/preview/provider/providerReadonlyDisabledPort.ts',
+        'src/mocks/preview/provider/providerReadonlyResultSanitizer.ts',
         'src/mocks/preview/provider/providerReadonlyDryRunPipeline.ts',
-  'src/mocks/preview/provider/providerReadonlyTypes.ts',
-  'src/mocks/preview/provider/providerReadonlyPort.ts',
-  'src/mocks/preview/provider/providerCredentialBoundary.ts',
-  'src/mocks/preview/provider/providerReadonlyDisabledPort.ts',
-  'src/mocks/preview/provider/providerReadonlyDryRunPipeline.ts',
       ]),
     )
   })
@@ -189,9 +176,7 @@ describe('mock-only preview network boundary', () => {
     for (const sourcePath of previewServiceAdapterPaths) {
       const source = readSource(sourcePath)
       for (const blockedMarker of forbiddenRequestTargets) {
-        expect(source, `${sourcePath} must not reuse safety marker ${blockedMarker} as a target`).not.toContain(
-          blockedMarker,
-        )
+        expect(source, `${sourcePath} must not reuse safety marker ${blockedMarker} as a target`).not.toContain(blockedMarker)
       }
     }
   })
@@ -243,7 +228,6 @@ describe('mock-only preview network boundary', () => {
     }
   })
 
-
   it('keeps provider candidate normalizer out of preview entry, preview model, and runtime import paths', () => {
     const candidateNormalizerImportFragments = [
       'providerCandidatePayloadNormalizer',
@@ -263,12 +247,8 @@ describe('mock-only preview network boundary', () => {
     }
   })
 
-
   it('keeps provider candidate validator out of preview entry, preview model, and runtime import paths', () => {
-    const candidateValidatorImportFragments = [
-      'providerCandidatePayloadValidator',
-      'validateProviderCandidatePayload',
-    ] as const
+    const candidateValidatorImportFragments = ['providerCandidatePayloadValidator', 'validateProviderCandidatePayload'] as const
     const guardedPaths = [
       'src/mocks/preview-entry/mockOnlyPreviewEntry.ts',
       'src/mocks/preview/mockOnlyPreviewModel.ts',
@@ -284,10 +264,7 @@ describe('mock-only preview network boundary', () => {
   })
 
   it('keeps provider dry-run feature flag out of preview entry, preview model, and runtime import paths', () => {
-    const featureFlagImportFragments = [
-      'providerDryRunFeatureFlag',
-      'evaluateProviderDryRunFeatureFlag',
-    ] as const
+    const featureFlagImportFragments = ['providerDryRunFeatureFlag', 'evaluateProviderDryRunFeatureFlag'] as const
     const guardedPaths = [
       'src/mocks/preview-entry/mockOnlyPreviewEntry.ts',
       'src/mocks/preview/mockOnlyPreviewModel.ts',
@@ -301,7 +278,6 @@ describe('mock-only preview network boundary', () => {
       }
     }
   })
-
 
   it('keeps provider dry-run gate out of preview entry, preview model, and runtime import paths', () => {
     const gateImportFragments = ['providerDryRunGate', 'runProviderDryRunGate'] as const
@@ -353,12 +329,18 @@ describe('mock-only preview network boundary', () => {
   })
 
   it('rejects non-mock modes before exposing fixture-backed preview data', () => {
-    expect(() => createMockOnlyPreviewModel({ mode: 'production', source: 'local_preview_only' } as never)).toThrow(
-      /mode=mock/i,
-    )
-    expect(() => createMockOnlyPreviewModel({ mode: 'preview', source: 'local_preview_only' } as never)).toThrow(
-      /mode=mock/i,
-    )
+    expect(() =>
+      createMockOnlyPreviewModel({
+        mode: 'production',
+        source: 'local_preview_only',
+      } as never),
+    ).toThrow(/mode=mock/i)
+    expect(() =>
+      createMockOnlyPreviewModel({
+        mode: 'preview',
+        source: 'local_preview_only',
+      } as never),
+    ).toThrow(/mode=mock/i)
     expect(() => createMockOnlyPreviewModel({ source: 'local_preview_only' } as never)).toThrow(/mode=mock/i)
   })
 
@@ -370,7 +352,6 @@ describe('mock-only preview network boundary', () => {
     expect(model.metadata.containsSecrets).toBe(false)
     expect(model.metadata.safeForWindowsPreview).toBe(true)
   })
-
 
   it('keeps the dry-run adapter free of provider names and secret marker text', () => {
     const source = readSource('src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts')
@@ -412,12 +393,13 @@ describe('mock-only preview network boundary', () => {
       'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
       'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
       'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
-  'src/mocks/preview/provider/providerDryRunGate.ts',
-  'src/mocks/preview/provider/providerReadonlyTypes.ts',
-  'src/mocks/preview/provider/providerReadonlyPort.ts',
-  'src/mocks/preview/provider/providerCredentialBoundary.ts',
-  'src/mocks/preview/provider/providerReadonlyDisabledPort.ts',
-  'src/mocks/preview/provider/providerReadonlyDryRunPipeline.ts',
+      'src/mocks/preview/provider/providerDryRunGate.ts',
+      'src/mocks/preview/provider/providerReadonlyTypes.ts',
+      'src/mocks/preview/provider/providerReadonlyPort.ts',
+      'src/mocks/preview/provider/providerCredentialBoundary.ts',
+      'src/mocks/preview/provider/providerReadonlyDisabledPort.ts',
+      'src/mocks/preview/provider/providerReadonlyResultSanitizer.ts',
+      'src/mocks/preview/provider/providerReadonlyDryRunPipeline.ts',
       'src/mocks/preview/adapters/dailyReportAdapter.ts',
       'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',

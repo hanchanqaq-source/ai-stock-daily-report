@@ -38,15 +38,18 @@ Core-M2 属于“股票基金质量分析系统”的本地 dry-run 基础设施
 
 执行顺序：
 
-1. 先调用 `evaluateProviderDryRunFeatureFlag(input.featureFlag)`。
-2. flag disabled 时立即返回 `disabled`，不读取 request getter、provider getter、candidate 或凭证边界。
-3. flag blocked 时立即返回 `blocked`，不调用 Provider。
-4. flag enabled-mock-only 后才验证 request；缺失 request 使用冻结的 `DEFAULT_PROVIDER_READONLY_REQUEST`。
-5. request 必须保持 dry-run、readOnly、固定项目名、固定日报名、全部真实能力关闭、需要人工批准；未知字段或敏感字段 blocked。
-6. 调用 Credential Boundary，仅确认当前 `not-configured` 状态。
-7. 调用 Provider Port；默认 Provider 是禁用 Provider。
-8. Provider candidate 成功时进入既有 `runProviderDryRunGate`，继续执行 candidate validator、normalizer 和 dry-run validator。
-9. Provider transport 类失败允许使用固定 mock-only fixture fallback。
+1. 先校验 input 类型。
+2. 使用 `Object.keys(input)` 检查顶层字段白名单，只允许 `featureFlag`、`request`、`provider`；未知字段或敏感未知字段立即 `blocked`，错误只包含字段路径。
+3. 再调用 `evaluateProviderDryRunFeatureFlag(input.featureFlag)`。
+4. flag disabled 时立即返回 `disabled`，不读取 request getter、provider getter、candidate 或凭证边界。
+5. flag blocked 时立即返回 `blocked`，不读取 request getter、provider getter，也不调用 Provider。
+6. flag enabled-mock-only 后才验证 request；缺失 request 使用冻结的 `DEFAULT_PROVIDER_READONLY_REQUEST`。
+7. request 必须保持 dry-run、readOnly、固定项目名、固定日报名、全部真实能力关闭、需要人工批准；未知字段或敏感字段 blocked。
+8. 调用 Credential Boundary，仅确认当前 `not-configured` 状态。
+9. 调用 Provider Port；默认 Provider 是禁用 Provider。
+10. Provider 原始结果必须先经过 `sanitizeProviderReadonlyPortResult()` 运行时 sanitizer。
+11. Provider candidate 成功时进入既有 `runProviderDryRunGate`，继续执行 candidate validator、normalizer 和 dry-run validator。
+12. Provider transport 类失败允许使用固定 mock-only fixture fallback。
 
 ## Provider outcome 状态
 
@@ -59,7 +62,7 @@ Provider Port 结果支持：
 - `invalid-response`
 - `blocked`
 
-Pipeline 额外使用 `not-attempted` 和 `unexpected` 描述未调用 Provider 或 Provider 抛异常。
+Pipeline 额外使用 `invalid-provider-result`、`not-attempted` 和 `unexpected` 描述非法 Provider Result、未调用 Provider 或 Provider 抛异常。
 
 ## fallback 与阻断规则
 
@@ -69,7 +72,7 @@ Pipeline 额外使用 `not-attempted` 和 `unexpected` 描述未调用 Provider 
 - `provider-readonly.fallback-after-timeout`
 - `provider-readonly.fallback-after-credential-unavailable`
 
-`invalid-response` 与 `blocked` 不会伪装成成功，不会自动返回 `normalizedInput`。Provider 抛异常时返回低敏 `provider-readonly-pipeline.failed`，不回显 Error message、stack、Provider 名称、请求内容或路径。
+`invalid-response`、`blocked` 与 `invalid-provider-result` 不会伪装成成功，不会自动返回 `normalizedInput`。Provider 抛异常时返回低敏 `provider-readonly-pipeline.failed`，不回显 Error message、stack、Provider 名称、请求内容或路径。
 
 ## normalizedInput 存在条件
 
