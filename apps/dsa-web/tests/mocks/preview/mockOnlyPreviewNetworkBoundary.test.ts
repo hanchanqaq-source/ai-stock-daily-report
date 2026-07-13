@@ -13,6 +13,7 @@ const boundarySourcePaths = [
   'src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts',
   'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
   'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
+  'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
   'src/mocks/preview/adapters/dailyReportAdapter.ts',
   'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
@@ -50,17 +51,21 @@ const forbiddenNetworkPrimitives = [
   /\bEventSource\b/,
   /\bWebSocket\b/,
   /\bimport\.meta\.env\b/,
+  /\bprocess\.env\b/,
   /\bwindow\.location\b/,
   /\blocalStorage\b/,
   /\bsessionStorage\b/,
   /\bindexedDB\b/,
   /\bNotification\s*\(/,
   /\bserviceWorker\b/,
+  /\bServiceWorker\b/,
   /\bsendBeacon\b/,
   /\bFileReader\b/,
   /\bOpenAI\b/,
   /\bDeepSeek\b/,
   /\bLangChain\b/,
+  /\bDate\.now\b/,
+  /\bMath\.random\b/,
 ] as const
 
 const forbiddenRequestTargets = [
@@ -123,6 +128,15 @@ describe('mock-only preview network boundary', () => {
       for (const forbiddenPattern of forbiddenNetworkPrimitives) {
         expect(source, `${sourcePath} must not contain ${forbiddenPattern}`).not.toMatch(forbiddenPattern)
       }
+    }
+  })
+
+
+  it('keeps provider candidate normalizer free of expanded provider, time, random, and environment markers', () => {
+    const source = readSource('src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts')
+    const normalizerForbiddenPatterns = [/智谱/, /\bDate\.now\b/, /\bMath\.random\b/, /\bprocess\.env\b/] as const
+    for (const forbiddenPattern of normalizerForbiddenPatterns) {
+      expect(source, `normalizer must not contain ${forbiddenPattern}`).not.toMatch(forbiddenPattern)
     }
   })
 
@@ -193,6 +207,26 @@ describe('mock-only preview network boundary', () => {
       const source = readSource(sourcePath)
       for (const forbiddenImport of candidateImportFragments) {
         expect(source, `${sourcePath} must not import provider candidate fixture`).not.toContain(forbiddenImport)
+      }
+    }
+  })
+
+
+  it('keeps provider candidate normalizer out of preview entry, preview model, and runtime import paths', () => {
+    const candidateNormalizerImportFragments = [
+      'providerCandidatePayloadNormalizer',
+      'normalizeProviderCandidatePayloadToDryRunInput',
+    ] as const
+    const guardedPaths = [
+      'src/mocks/preview-entry/mockOnlyPreviewEntry.ts',
+      'src/mocks/preview/mockOnlyPreviewModel.ts',
+      ...runtimeSearchRoots.flatMap((root) => collectTypeScriptFiles(root)),
+    ]
+
+    for (const sourcePath of guardedPaths) {
+      const source = readSource(sourcePath)
+      for (const forbiddenImport of candidateNormalizerImportFragments) {
+        expect(source, `${sourcePath} must not import provider candidate normalizer`).not.toContain(forbiddenImport)
       }
     }
   })
@@ -308,6 +342,7 @@ describe('mock-only preview network boundary', () => {
       'src/mocks/preview/dry-run/realDailyReportDryRunAdapter.ts',
       'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
       'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
+      'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
       'src/mocks/preview/adapters/dailyReportAdapter.ts',
       'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',
