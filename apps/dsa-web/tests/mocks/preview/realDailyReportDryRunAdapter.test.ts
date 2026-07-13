@@ -117,6 +117,17 @@ describe('real daily report dry-run adapter', () => {
     expect(result.viewModel?.redactionLabels).toEqual(expect.arrayContaining(['REDACTED dry-run input', '不读取凭据']))
   })
 
+  it('redacts providerName before it can enter the view model', () => {
+    const providerName = '真实来源占位名称'
+    const result = adaptMutation((payload) => {
+      payload.source.providerName = providerName
+    })
+
+    expect(result.status).toBe('adapted')
+    expect(result.viewModel?.dataSourceLabel).toBe(`${REDACTED_PROVIDER_LABEL} / dry-run / REDACTED / 非真实运行`)
+    expect(JSON.stringify(result.viewModel)).not.toContain(providerName)
+  })
+
   it('keeps section order stable and maps only low-sensitivity section labels', () => {
     const result = adaptRealDailyReportDryRunInputToViewModel(createValidPayload())
 

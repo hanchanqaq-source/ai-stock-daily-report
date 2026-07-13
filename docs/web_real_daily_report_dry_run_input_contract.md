@@ -1,4 +1,4 @@
-# Web-P39 真实日报 dry-run 输入契约设计
+# Web-P39～Web-P42.1 真实日报 dry-run 输入契约与小总复核
 
 ## 1. 阶段定位
 
@@ -382,3 +382,18 @@ Web-P42 adapter 的边界如下：
 - Web-P42 不代表真实日报接入已经开始，不改变当前 mock-only 页面运行链路，也不把 dry-run adapter 自动接入页面入口。
 
 Web-P42 同时新增 `apps/dsa-web/tests/mocks/preview/realDailyReportDryRunAdapter.test.ts`，使用明显虚构的静态 payload 覆盖 adapted、blocked fallback、安全标签、未发送语义、错误信息低敏、输入不可变和展示模型不写入 provider 原始响应、真实金额、真实基金代码或真实联系方式。新增 adapter 文件也纳入 `apps/dsa-web/tests/mocks/preview/mockOnlyPreviewNetworkBoundary.test.ts` 的静态扫描范围，继续确认 mock-only preview 范围不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
+
+
+## 15. Web-P42.1 P39～P42 dry-run 链路小总复核
+
+Web-P42.1 对 Web-P39～Web-P42 的 dry-run 链路完成小总复核，检查范围包括类型草案、validator、adapter、测试、mock-only network boundary、文档索引和变更记录。复核结论如下：
+
+- `RealDailyReportDryRunInput` 继续锁定 `mode: dry-run`、`dryRun: true`、固定项目名称“股票基金质量分析系统”和日报 / 推送显示名称“AI股票基金每日信息报告”。
+- validator 继续保持纯函数、低敏错误码、`fallbackMode: mock-only`、`canFallbackToMockOnly: true`，blocked 时不抛真实运行异常、不读取外部来源、不回显敏感原文。
+- adapter 继续先调用 validator；validator blocked 时返回 mock-only fallback，不返回 `viewModel`；validator passed 时只输出低敏 `DailyReportViewModel` 兼容展示模型。
+- adapter 的 `dataSourceLabel` 不再直接拼接 `source.providerName`，统一使用 `REDACTED_PROVIDER_LABEL`，避免真实 provider 名称或可识别来源原文进入展示模型。
+- dry-run 类型、validator 和 adapter 均保留在 mock-only preview 静态扫描范围内，继续禁止网络、浏览器存储、通知、AI、provider、真实请求目标和 runtime 页面入口导入。
+- 当前 adapter 没有自动接入 mock-only preview 页面入口、Windows one-click 脚本、正式前端页面入口、provider / API / 后端 / 通知 / Agent / 交易相关代码。
+- 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易，不读取 `.env`、token、webhook 或 API key。
+
+因此，Web-P42.1 只做安全收口和文档复核，不新增真实功能，不改变当前 mock-only 页面运行链路，也不把 dry-run adapter 接入页面入口。
