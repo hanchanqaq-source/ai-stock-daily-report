@@ -109,3 +109,10 @@ npm run dev -- --host 127.0.0.1
 - [ ] 没有读取或打印 `.env`、token、webhook、API 凭据。
 - [ ] 没有新增真实 API、provider、AI / Agent、通知、账户、数据库或交易接入。
 - [ ] 如果只改文档，PR 描述说明未跑 npm test / build / lint 的原因。
+
+
+## 7. Web-P38 后续阶段说明
+
+Web-P38 已由 `docs/web_real_daily_report_schema_review.md` 承接，只允许进行真实日报接入前的 schema 高规格复核。该阶段用于确认未来真实日报字段语义、必填性、默认值、空值、错误态、时间 / 金额 / 收益率格式、风险等级、sections 顺序、数据来源标签、生成时间、发送状态、脱敏标签、安全标签以及是否可稳定映射到 `DailyReportViewModel`。
+
+Web-P38 仍保持 mock-only，不接真实 provider / API / AI / Agent / 通知 / 账户 / 数据库 / 交易，不修改页面视觉设计，不修改 TypeScript 运行逻辑，不修改 fixture、adapter 或 guard，不读取或打印 `.env`、token、webhook、API 凭据，也不新增真实日报 JSON 示例。
