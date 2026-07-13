@@ -561,6 +561,13 @@ class TestEnvExampleWebSettingsCoverage(unittest.TestCase):
             [],
         )
 
+    def test_real_readonly_provider_flag_is_hidden_and_default_off(self) -> None:
+        content = self._ENV_EXAMPLE.read_text(encoding="utf-8")
+        self.assertIn("REAL_READONLY_PROVIDER_ENABLED=false", content)
+        self.assertIn("REAL_READONLY_PROVIDER_ENABLED", WEB_SETTINGS_HIDDEN_FROM_UI)
+        self.assertNotIn("REAL_READONLY_PROVIDER_ENABLED", set(get_registered_field_keys()))
+
+
 
 class TestSettingsHelpContract(unittest.TestCase):
     """Help keys must map to registry metadata or be editor-only.

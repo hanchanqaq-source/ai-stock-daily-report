@@ -1,5 +1,7 @@
 # Core-M2 首个真实只读 Provider 本地 Dry-Run 基础框架
 
+> Core-M3.1 交叉引用：Core-M3.1 在 Core-M2 框架之后增加 AkShare 单源真实只读 Dry-Run，仍默认关闭、仅 localhost 人工批准、不可读取账户/通知/AI/交易/数据库，并通过前后端固定超时回退 mock-only。
+
 Core-M2 属于“股票基金质量分析系统”的本地 dry-run 基础设施里程碑，日报显示名称固定为“AI股票基金每日信息报告”。本阶段只搭建未来真实只读 Provider 接入前的类型、Port、凭证状态边界、默认禁用 Provider 和 Provider → candidate → gate 的本地管线；真实 Provider 继续 **NO-GO**。
 
 ## Provider Port 接口
