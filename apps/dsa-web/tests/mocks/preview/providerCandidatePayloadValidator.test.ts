@@ -38,20 +38,22 @@ describe('provider candidate payload validator', () => {
 
   it('blocks null and non-object input without throwing', () => {
     expect(() => validateProviderCandidatePayload(null as never)).not.toThrow()
-    expectBlocked(null).errors.includes('input.invalid-object')
-    expectBlocked('MOCK_EXTERNAL_VALUE').errors.includes('input.invalid-object')
+    expect(expectBlocked(null).errors).toContain('input.invalid-object')
+    expect(expectBlocked('MOCK_EXTERNAL_VALUE').errors).toContain('input.invalid-object')
   })
 
-  it('blocks fixed mock-only identity drift', () => {
+  it('blocks fixed mock-only identity drift with low-sensitivity paths', () => {
     const candidateIdPayload = clonePayload()
     candidateIdPayload.candidateId = 'MOCK_EXTERNAL_VALUE'
-    expectBlocked(candidateIdPayload).errors.join('|')
+    expect(expectBlocked(candidateIdPayload).errors).toContain('candidate.not-mock-only:input.candidateId')
+
     const providerTypePayload = clonePayload()
     providerTypePayload.providerType = 'MOCK_EXTERNAL_VALUE'
-    expectBlocked(providerTypePayload).errors.join('|')
+    expect(expectBlocked(providerTypePayload).errors).toContain('candidate.not-mock-only:input.providerType')
+
     const sourceLabelPayload = clonePayload()
     sourceLabelPayload.sourceLabel = 'MOCK_EXTERNAL_VALUE'
-    expectBlocked(sourceLabelPayload).errors.join('|')
+    expect(expectBlocked(sourceLabelPayload).errors).toContain('candidate.not-mock-only:input.sourceLabel')
   })
 
   it('blocks required collection and label omissions', () => {
@@ -85,6 +87,10 @@ describe('provider candidate payload validator', () => {
     sectionPayload.sections[0].summary = ''
     expect(expectBlocked(sectionPayload).errors).toContain('section.invalid:input.sections[0]')
 
+    const invalidNotesPayload = clonePayload()
+    invalidNotesPayload.sections[0].notes = [123 as never]
+    expect(expectBlocked(invalidNotesPayload).errors).toContain('section.invalid:input.sections[0]')
+
     const amountPayload = clonePayload()
     amountPayload.metrics[0].valueLabel = '123456.78'
     expect(expectBlocked(amountPayload).errors).toContain('metric.valueLabel.invalid:input.metrics[0].valueLabel')
@@ -103,16 +109,27 @@ describe('provider candidate payload validator', () => {
     const emailMarker = ['mock-user', '@', 'example.invalid'].join('')
     const phoneMarker = ['139', '0000', '0000'].join('')
     const secretMarker = ['MOCK_', 'api', '_key', '_MARKER'].join('')
-    const rawFieldMarker = ['raw', 'Response'].join('')
+    const rawValueMarker = ['raw', 'Response'].join('')
     const codeMarker = ['123', '456'].join('')
+    const preciseValueMarker = ['1234', '.56'].join('')
 
-    const cases = [urlMarker, emailMarker, phoneMarker, secretMarker, rawFieldMarker, codeMarker]
+    const cases = [urlMarker, emailMarker, phoneMarker, secretMarker, rawValueMarker, codeMarker, preciseValueMarker]
     for (const marker of cases) {
       const payload = clonePayload()
       payload.sections[0].summary = marker
       const result = expectBlocked(payload)
       expect(result.errors.join('|')).not.toContain(marker)
     }
+  })
+
+  it('blocks raw provider and credential-like field names without returning their values', () => {
+    const payload = clonePayload() as MutableProviderCandidatePayload & Record<string, unknown>
+    const rawFieldName = ['raw', 'Response'].join('')
+    payload[rawFieldName] = 'MOCK_EXTERNAL_VALUE'
+
+    const result = expectBlocked(payload)
+    expect(result.errors).toContain(`sensitive-pattern.raw-provider-field:input.${rawFieldName}`)
+    expect(result.errors.join('|')).not.toContain('MOCK_EXTERNAL_VALUE')
   })
 
   it('does not mutate the input object and works with the frozen fixture', () => {
