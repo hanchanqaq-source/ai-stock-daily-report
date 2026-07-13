@@ -11,6 +11,7 @@ import type { MockOnlyPreviewOptions } from '../../../src/mocks/preview/mockOnly
 const previewSourcePaths = [
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
   'src/mocks/preview/mockOnlyPreviewModel.ts',
+  'src/mocks/preview/fixtures/dailyReportFixture.ts',
 ]
 const previewSource = previewSourcePaths.map((sourcePath) => readFileSync(sourcePath, 'utf-8')).join('\n')
 const mockOptions: MockOnlyPreviewOptions = { mode: 'mock', source: 'local_preview_only' }
@@ -210,16 +211,55 @@ describe('mock-only preview model', () => {
   })
 
 
+  it('exposes unified mock-only daily report fixture data', () => {
+    const fixture = createMockOnlyPreviewModel(mockOptions).dailyReportFixture
+    const fixtureText = JSON.stringify(fixture)
+
+    expect(fixture).toMatchObject({
+      projectName: '股票基金质量分析系统',
+      title: 'AI股票基金每日信息报告',
+      displayName: 'AI股票基金每日信息报告',
+      modeLabel: 'mock-only 本地预览',
+      dataSourceLabel: expect.stringContaining('REDACTED FIXTURE DATA'),
+      reportDateLabel: '2026-07-12 本地静态预览',
+      deliveryStatus: '未发送',
+      marketMood: '震荡观察',
+      portfolioAction: '不调仓',
+      riskLevel: '中等',
+    })
+    expect(Object.keys(fixture.sections)).toEqual([
+      'marketOverview',
+      'portfolioObservation',
+      'riskWarnings',
+      'actionSuggestions',
+    ])
+
+    for (const requiredText of [
+      'AI股票基金每日信息报告',
+      '股票基金质量分析系统',
+      'REDACTED FIXTURE DATA',
+      '模拟数据',
+      '非真实账户',
+      '非投资建议',
+      '不会发送通知',
+      '不会交易',
+      '不会调用模型',
+    ]) {
+      expect(fixtureText).toContain(requiredText)
+    }
+  })
+
+
   it('exposes static redacted history reports preview fixture data', () => {
     expect(createMockOnlyPreviewModel(mockOptions).historyReportsPreview).toMatchObject({
       summary: expect.arrayContaining([
         expect.objectContaining({ label: '模拟报告数量', value: '3' }),
-        expect.objectContaining({ label: '最新模拟报告', value: '2026-07-12' }),
-        expect.objectContaining({ label: '模拟数据来源', value: 'REDACTED FIXTURE DATA' }),
+        expect.objectContaining({ label: '最新模拟报告', value: '2026-07-12 本地静态预览' }),
+        expect.objectContaining({ label: '模拟数据来源', value: 'REDACTED FIXTURE DATA - 静态脱敏 fixture' }),
       ]),
       reports: expect.arrayContaining([
         expect.objectContaining({
-          reportDateLabel: '2026-07-12',
+          reportDateLabel: '2026-07-12 本地静态预览',
           title: 'AI股票基金每日信息报告',
           status: '本地预览',
           marketMood: '震荡观察',
@@ -230,7 +270,7 @@ describe('mock-only preview model', () => {
       ]),
       selectedReport: expect.objectContaining({
         title: 'AI股票基金每日信息报告 mock-only 历史详情',
-        headline: '科技方向维持震荡，模拟组合以观察为主，不执行主动调仓。',
+        headline: '科技方向保持震荡，模拟组合以观察为主，暂不进行主动调仓。',
         tags: expect.arrayContaining(['模拟数据', 'REDACTED FIXTURE DATA', '非真实日报', '非真实账户', '非投资建议', '不会发送通知', '不会交易']),
       }),
       riskNotes: expect.arrayContaining(['本区域只展示静态脱敏 fixture，不读取真实历史报告。']),

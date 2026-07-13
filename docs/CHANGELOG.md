@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [改进] Web-P31 统一 mock-only 日报 fixture 结构，集中定义“AI股票基金每日信息报告”的字段、脱敏标签和安全边界，并补充文档与静态测试。
 - [修复] Web-P30.1 将 mock-only 持仓 fixture 中疑似真实精确金额和收益率替换为明显虚构示例，补充脱敏保护测试，并将安全边界、设置与导入导出定义为页面基础设施，不纳入业务模块完成度统计。
 - [文档] Web-P30 新增 mock-only 页面阶段收口文档，汇总 Web-P21 到 Web-P29 完成情况，补充 Windows 本地验证流程和安全边界总表，并明确下一阶段仍不得接真实 API / provider / AI / 通知 / 账户 / 交易。
 - [改进] Web-P29 优化 mock-only 预览页移动端与窄屏响应式布局，页面总览、快速导航、模块卡片和返回入口在平板 / 手机宽度下自动换行或单列展示，并补充文档与静态测试。
