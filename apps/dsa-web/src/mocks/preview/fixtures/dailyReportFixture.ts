@@ -1,6 +1,6 @@
 import type { MockOnlyDailyReportFixture } from '../mockOnlyPreviewTypes'
 
-export const MOCK_ONLY_DAILY_REPORT_FIXTURE: MockOnlyDailyReportFixture = Object.freeze({
+export const mockOnlyDailyReportFixture: MockOnlyDailyReportFixture = Object.freeze({
   reportId: 'mock-daily-report-2026-07-12-local-preview',
   projectName: '股票基金质量分析系统',
   reportDateLabel: '2026-07-12 本地静态预览',
@@ -58,3 +58,5 @@ export const MOCK_ONLY_DAILY_REPORT_FIXTURE: MockOnlyDailyReportFixture = Object
     '当前仍不得接真实 API、provider、AI、通知、账户、数据库或交易。',
   ]),
 })
+
+export { mockOnlyDailyReportFixture as MOCK_ONLY_DAILY_REPORT_FIXTURE }

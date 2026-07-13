@@ -1,5 +1,5 @@
 import { createMockApiService } from '../service/mockApiService'
-import { MOCK_ONLY_DAILY_REPORT_FIXTURE } from './fixtures/dailyReportFixture'
+import { mockOnlyDailyReportFixture } from './fixtures'
 import type {
   MockOnlyAgentChatPreview,
   MockOnlyAlertsPreview,
@@ -30,7 +30,7 @@ const REQUIRED_OPTIONS: MockOnlyPreviewOptions = {
 }
 
 
-const DAILY_REPORT_FIXTURE = MOCK_ONLY_DAILY_REPORT_FIXTURE
+const DAILY_REPORT_FIXTURE = mockOnlyDailyReportFixture
 
 const DASHBOARD_SUMMARY_PREVIEW: MockOnlyDashboardSummaryPreview = Object.freeze({
   headline: DAILY_REPORT_FIXTURE.headline,
