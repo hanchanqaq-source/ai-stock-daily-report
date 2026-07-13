@@ -9,6 +9,10 @@ import {
 } from '../../../src/mocks/preview/provider/providerCandidatePayloadFixture'
 import { normalizeProviderCandidatePayloadToDryRunInput } from '../../../src/mocks/preview/provider/providerCandidatePayloadNormalizer'
 import { validateProviderCandidatePayload } from '../../../src/mocks/preview/provider/providerCandidatePayloadValidator'
+import {
+  DEFAULT_PROVIDER_DRY_RUN_FEATURE_FLAG,
+  evaluateProviderDryRunFeatureFlag,
+} from '../../../src/mocks/preview/provider/providerDryRunFeatureFlag'
 
 type Mutable<T> = { -readonly [P in keyof T]: T[P] extends readonly (infer U)[] ? Mutable<U>[] : T[P] }
 type MutableCandidate = Mutable<ProviderCandidatePayload> & Record<string, unknown>
@@ -29,6 +33,7 @@ const providerSourcePaths = [
   'src/mocks/preview/provider/providerCandidatePayloadFixture.ts',
   'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
   'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
+  'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
 ] as const
 
 const collectTypeScriptFiles = (path: string): string[] => {
@@ -122,6 +127,8 @@ describe('Web-P48 pre-integration provider safety review', () => {
       'MOCK_ONLY_PROVIDER_CANDIDATE_PAYLOAD_FIXTURE',
       'validateProviderCandidatePayload',
       'normalizeProviderCandidatePayloadToDryRunInput',
+      'providerDryRunFeatureFlag',
+      'evaluateProviderDryRunFeatureFlag',
     ] as const
 
     for (const sourcePath of guardedPaths) {
@@ -205,6 +212,60 @@ describe('Web-P48 pre-integration provider safety review', () => {
       }
     }
   })
+
+  it('keeps Web-P49 provider dry-run feature flag default-closed and mock-only', () => {
+    expect(DEFAULT_PROVIDER_DRY_RUN_FEATURE_FLAG.enabled).toBe(false)
+    expect(Object.isFrozen(DEFAULT_PROVIDER_DRY_RUN_FEATURE_FLAG)).toBe(true)
+
+    const defaultResult = evaluateProviderDryRunFeatureFlag()
+    expect(defaultResult.state).toBe('disabled')
+    expect(defaultResult.enabled).toBe(false)
+    expect(defaultResult.canRunMockOnlyCandidateChain).toBe(false)
+
+    const enabledResult = evaluateProviderDryRunFeatureFlag({ enabled: true })
+    expect(enabledResult.state).toBe('enabled-mock-only')
+    expect(enabledResult.canRunMockOnlyCandidateChain).toBe(true)
+    expect(enabledResult.allowRealProvider).toBe(false)
+    expect(enabledResult.allowRealAccountRead).toBe(false)
+    expect(enabledResult.allowNotificationSend).toBe(false)
+    expect(enabledResult.allowTrading).toBe(false)
+    expect(enabledResult.allowAiCall).toBe(false)
+    expect(enabledResult.requiresHumanApproval).toBe(true)
+    expect(enabledResult.fallbackMode).toBe('mock-only')
+    expect(enabledResult.canFallbackToMockOnly).toBe(true)
+
+    const blockedResult = evaluateProviderDryRunFeatureFlag({ enabled: true, allowRealProvider: true })
+    expect(blockedResult.state).toBe('blocked')
+    expect(blockedResult.enabled).toBe(false)
+    expect(blockedResult.canRunMockOnlyCandidateChain).toBe(false)
+    expect(blockedResult.errors.length).toBeGreaterThan(0)
+  })
+
+  it('keeps Web-P49 feature flag disconnected from candidate chain and runtime', () => {
+    const featureFlagSource = readSource('src/mocks/preview/provider/providerDryRunFeatureFlag.ts')
+    for (const forbidden of [
+      'validateProviderCandidatePayload',
+      'normalizeProviderCandidatePayloadToDryRunInput',
+      'validateRealDailyReportDryRunInput',
+      'realDailyReportDryRunAdapter',
+      'adaptRealDailyReportDryRunInputToViewModel',
+      'DailyReportViewModel',
+    ]) {
+      expect(featureFlagSource).not.toContain(forbidden)
+    }
+
+    const guardedPaths = [
+      'src/mocks/preview-entry/mockOnlyPreviewEntry.ts',
+      'src/mocks/preview/mockOnlyPreviewModel.ts',
+      ...runtimeSearchRoots.flatMap((root) => collectTypeScriptFiles(root)),
+    ]
+    for (const sourcePath of guardedPaths) {
+      const source = readSource(sourcePath)
+      expect(source).not.toContain('providerDryRunFeatureFlag')
+      expect(source).not.toContain('evaluateProviderDryRunFeatureFlag')
+    }
+  })
+
 
   it('propagates blocked candidate validation without normalizedInput or raw error leakage', () => {
     const candidate = cloneCandidate()

@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [改进] Web-P49 新增默认关闭的 provider dry-run mock-only feature flag 和纯函数 evaluator；默认 disabled，显式启用仅允许 enabled-mock-only，任何真实 provider、账户读取、通知、AI 或交易能力请求均 blocked；当前未接入页面、runtime 或真实 provider，真实接入结论仍为 NO-GO。
 - [复核] Web-P48 完成真实 provider 接入前安全复核，确认 mock-only candidate、validator、normalizer、dry-run validator、blocked 传播、fallback 和 runtime 隔离边界；由于默认关闭 feature flag、凭证方案、真实只读权限、日志脱敏和人工确认尚未完成，真实 provider 接入结论保持 NO-GO。
 - [复核] Web-P47.1 完成 provider candidate → validator → normalizer → dry-run validator 链路小总复核，确认 validator 顺序、blocked 传播、低敏错误、normalizedInput 隔离、mock-only fallback 和 runtime 隔离边界。
 - [改进] Web-P47 新增 provider candidate schema normalization mock-only 草案，candidate validator passed 后才允许构造 dry-run 输入，normalized dry-run 输入必须再次通过 dry-run validator；blocked 时不返回 normalizedInput，并回退 mock-only；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
