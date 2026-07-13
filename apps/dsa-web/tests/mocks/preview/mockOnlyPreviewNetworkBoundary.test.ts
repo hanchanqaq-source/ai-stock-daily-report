@@ -9,6 +9,7 @@ const boundarySourcePaths = [
   'src/mocks/preview/mockOnlyPreviewModel.ts',
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
   'src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts',
+  'src/mocks/preview/dry-run/realDailyReportDryRunValidator.ts',
   'src/mocks/preview/adapters/dailyReportAdapter.ts',
   'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
@@ -53,6 +54,10 @@ const forbiddenNetworkPrimitives = [
   /\bNotification\s*\(/,
   /\bserviceWorker\b/,
   /\bsendBeacon\b/,
+  /\bFileReader\b/,
+  /\bOpenAI\b/,
+  /\bDeepSeek\b/,
+  /\bLangChain\b/,
 ] as const
 
 const forbiddenRequestTargets = [
@@ -245,6 +250,7 @@ describe('mock-only preview network boundary', () => {
       'src/mocks/preview/mockOnlyPreviewModel.ts',
       'src/mocks/preview/mockOnlyPreviewTypes.ts',
       'src/mocks/preview/dry-run/realDailyReportDryRunTypes.ts',
+      'src/mocks/preview/dry-run/realDailyReportDryRunValidator.ts',
       'src/mocks/preview/adapters/dailyReportAdapter.ts',
       'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',
