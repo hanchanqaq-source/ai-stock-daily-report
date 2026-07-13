@@ -15,6 +15,7 @@ const boundarySourcePaths = [
   'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
   'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
   'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
+  'src/mocks/preview/provider/providerDryRunGate.ts',
   'src/mocks/preview/adapters/dailyReportAdapter.ts',
   'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
@@ -140,6 +141,7 @@ describe('mock-only preview network boundary', () => {
         'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
         'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
         'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
+  'src/mocks/preview/provider/providerDryRunGate.ts',
       ]),
     )
   })
@@ -282,6 +284,23 @@ describe('mock-only preview network boundary', () => {
     }
   })
 
+
+  it('keeps provider dry-run gate out of preview entry, preview model, and runtime import paths', () => {
+    const gateImportFragments = ['providerDryRunGate', 'runProviderDryRunGate'] as const
+    const guardedPaths = [
+      'src/mocks/preview-entry/mockOnlyPreviewEntry.ts',
+      'src/mocks/preview/mockOnlyPreviewModel.ts',
+      ...runtimeSearchRoots.flatMap((root) => collectTypeScriptFiles(root)),
+    ]
+
+    for (const sourcePath of guardedPaths) {
+      const source = readSource(sourcePath)
+      for (const forbiddenImport of gateImportFragments) {
+        expect(source, `${sourcePath} must not import provider dry-run gate`).not.toContain(forbiddenImport)
+      }
+    }
+  })
+
   it('creates the preview model without touching global network functions or constructors', () => {
     const fetchSpy = vi.fn(() => {
       throw new Error('fetch must not be called by mock-only preview')
@@ -375,6 +394,7 @@ describe('mock-only preview network boundary', () => {
       'src/mocks/preview/provider/providerCandidatePayloadValidator.ts',
       'src/mocks/preview/provider/providerCandidatePayloadNormalizer.ts',
       'src/mocks/preview/provider/providerDryRunFeatureFlag.ts',
+  'src/mocks/preview/provider/providerDryRunGate.ts',
       'src/mocks/preview/adapters/dailyReportAdapter.ts',
       'src/mocks/preview/adapters/index.ts',
       'src/mocks/preview/fixtures/dailyReportFixture.ts',

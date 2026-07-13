@@ -136,6 +136,43 @@ describe('provider dry-run feature flag', () => {
     }
   })
 
+
+  it('blocks every non-false real capability field value and allows only false', () => {
+    const capabilityCases = [
+      ['allowRealProvider', 'feature-flag.real-provider-forbidden'],
+      ['allowRealAccountRead', 'feature-flag.real-account-read-forbidden'],
+      ['allowNotificationSend', 'feature-flag.notification-forbidden'],
+      ['allowTrading', 'feature-flag.trading-forbidden'],
+      ['allowAiCall', 'feature-flag.ai-call-forbidden'],
+    ] as const
+    const blockedValues = [true, 'true', 'false', 1, 0, null, undefined, {}, []] as const
+
+    for (const [fieldName, errorCode] of capabilityCases) {
+      for (const value of blockedValues) {
+        const result = expectBlocked({ enabled: true, [fieldName]: value })
+        expect(result.errors).toContain(`${errorCode}:input.${fieldName}`)
+        if (String(value).length > 0) expect(JSON.stringify(result.errors)).not.toContain(String(value))
+      }
+      const allowed = evaluateProviderDryRunFeatureFlag({ enabled: true, [fieldName]: false })
+      expect(allowed.state).toBe('enabled-mock-only')
+      expect(allowed.errors).toEqual([])
+    }
+  })
+
+  it('blocks ordinary unknown fields and keeps empty object disabled', () => {
+    const unknown = expectBlocked({ enabled: true, unexpectedField: 'VALUE_SHOULD_NOT_LEAK' })
+    expect(unknown.errors).toContain('feature-flag.unknown-field:input.unexpectedField')
+    expect(JSON.stringify(unknown.errors)).not.toContain('VALUE_SHOULD_NOT_LEAK')
+
+    const sensitive = expectBlocked({ enabled: true, rawResponse: 'RAW_VALUE_SHOULD_NOT_LEAK' })
+    expect(sensitive.errors).toContain('feature-flag.unknown-sensitive-field:input.rawResponse')
+    expect(JSON.stringify(sensitive.errors)).not.toContain('RAW_VALUE_SHOULD_NOT_LEAK')
+
+    const empty = evaluateProviderDryRunFeatureFlag({})
+    expect(empty.state).toBe('disabled')
+    expect(empty.errors).toEqual([])
+  })
+
   it('does not mutate input and returns deterministic results for repeated calls', () => {
     const input = { enabled: true, mode: 'mock-only' }
     const before = JSON.stringify(input)
