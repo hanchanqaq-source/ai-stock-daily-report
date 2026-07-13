@@ -74,6 +74,7 @@
 | [Web-P39～Web-P42.1 真实日报 dry-run 输入契约与链路复核](web_real_daily_report_dry_run_input_contract.md) | 真实日报 dry-run 输入 payload 字段结构、TypeScript 类型草案、validator、adapter、P39～P42 链路小总复核、providerName 脱敏、敏感字段边界和 mock-only 回退规则；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易 |
 | [Web-P43 provider 只读设计文档](web_provider_readonly_design.md) | provider 只读候选输入来源、安全边界、最小字段、输出脱敏、schema normalization、validator、adapter、mock-only fallback、凭证日志缓存超时重试降级和真实接入前置条件；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易 |
 | [Web-P44 provider 只读接口契约文档](web_provider_readonly_interface_contract.md) | provider 只读请求、响应、候选 payload、错误、超时重试缓存策略和日志字段的文档级契约；provider 输出仍必须经过脱敏、schema normalization、validator、adapter 和 mock-only fallback；当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易 |
+| [Web-P48 真实 provider 接入前安全复核](web_provider_pre_integration_safety_review.md) | 复核 P45～P47.1 mock-only 链路，记录 Go / No-Go 条件；当前真实 provider 状态为 NO-GO，下一步仅允许默认关闭 feature flag |
 
 ## 多语言
 

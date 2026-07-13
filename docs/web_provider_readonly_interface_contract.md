@@ -421,3 +421,9 @@ ProviderCandidatePayload
 - normalizer 不调用 dry-run adapter，不生成 `DailyReportViewModel`。
 - 当前未接入页面、preview model 或正式 runtime。
 - 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
+
+## 17. Web-P48 接入前安全复核交叉引用
+
+Web-P48 已补充真实 provider 接入前安全复核，详见 [Web-P48 真实 provider 接入前安全复核](web_provider_pre_integration_safety_review.md)。
+该复核确认 P45～P47.1 mock-only 链路、blocked 传播、fallback 与 runtime 隔离边界仍成立。
+当前真实 provider 接入结论保持 NO-GO；下一步仅允许默认关闭的 Web-P49 provider dry-run feature flag，且仍不得连接真实 provider。
