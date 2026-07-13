@@ -1,5 +1,7 @@
 # Web-P48 真实 provider 接入前安全复核
 
+> Core-M3.1 交叉引用：真实只读 AkShare dry-run 已收口为后端单一 `AkshareFetcher`、固定 Provider 身份校验、后端 10 秒请求级超时与前端 12 秒 localhost AbortController 超时；timeout 统一回退 mock-only，仍不接正式页面。
+
 ## 1. 定位
 
 Web-P48 是“股票基金质量分析系统”在真实 provider 接入前的安全复核阶段。本阶段只复核 Web-P45～Web-P47.1 已完成的 mock-only provider candidate 链路，并补充静态与单元测试证据；不新增真实 provider client、API client、凭证配置、feature flag、页面入口或正式 runtime 接入。

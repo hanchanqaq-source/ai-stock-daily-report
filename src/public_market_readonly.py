@@ -1,6 +1,7 @@
 """Core-M3 public A-share readonly dry-run service."""
 from __future__ import annotations
 
+import asyncio
 import math, os, re
 from dataclasses import dataclass
 from datetime import datetime
@@ -8,7 +9,7 @@ from typing import Any, Mapping
 
 import pandas as pd
 
-from data_provider import DataFetcherManager
+from data_provider.base import DataFetcherManager
 from data_provider.base import DataFetchError
 
 REDACTED_PROVIDER_LABEL = "REDACTED_PROVIDER_LABEL"
@@ -25,6 +26,8 @@ ERROR_INVALID_PRICE_RANGE = "real-readonly.invalid-price-range"
 ERROR_PROVIDER_UNAVAILABLE = "real-readonly.provider-unavailable"
 ERROR_PROVIDER_TIMEOUT = "real-readonly.provider-timeout"
 ERROR_PROVIDER_FAILED = "real-readonly.provider-failed"
+ERROR_PROVIDER_IDENTITY_MISMATCH = "real-readonly.provider-identity-mismatch"
+PUBLIC_MARKET_READONLY_TIMEOUT_SECONDS = 10
 
 @dataclass(frozen=True)
 class PublicMarketReadonlyRequest:
@@ -142,8 +145,14 @@ def _latest_row_to_snapshot(symbol: str, df: pd.DataFrame, provider_name: str) -
     })
 
 
+def create_akshare_only_manager() -> DataFetcherManager:
+    from data_provider.akshare_fetcher import AkshareFetcher
+
+    return DataFetcherManager(fetchers=[AkshareFetcher()])
+
+
 def fetch_public_market_readonly_snapshot(req: PublicMarketReadonlyRequest, manager: Any | None = None) -> dict[str, Any]:
-    manager = manager or DataFetcherManager()
+    manager = manager or create_akshare_only_manager()
     try:
         df, provider_name = manager.get_daily_data(req.symbol, days=8)
     except TimeoutError as exc:
@@ -156,6 +165,8 @@ def fetch_public_market_readonly_snapshot(req: PublicMarketReadonlyRequest, mana
         text = str(exc).lower()
         code = ERROR_PROVIDER_TIMEOUT if "timeout" in text or "timed out" in text else ERROR_PROVIDER_FAILED
         raise PublicMarketReadonlyError(code) from exc
+    if provider_name != "AkshareFetcher":
+        raise PublicMarketReadonlyError(ERROR_PROVIDER_IDENTITY_MISMATCH)
     return _latest_row_to_snapshot(req.symbol, df, provider_name)
 
 
@@ -169,3 +180,23 @@ def run_public_market_readonly(payload: Mapping[str, Any], manager: Any | None =
     except PublicMarketReadonlyError as exc:
         status = "timeout" if exc.code == ERROR_PROVIDER_TIMEOUT else "unavailable" if exc.code == ERROR_PROVIDER_UNAVAILABLE else "invalid-response" if exc.code.startswith("real-readonly.invalid") else "blocked"
         return {"status":status,"errorCode":exc.code,"providerLabel":REDACTED_PROVIDER_LABEL,"readOnly":True,"redacted":True}
+
+
+async def run_public_market_readonly_with_timeout(
+    payload: Mapping[str, Any],
+    manager: Any | None = None,
+    timeout_seconds: float = PUBLIC_MARKET_READONLY_TIMEOUT_SECONDS,
+) -> dict[str, Any]:
+    try:
+        return await asyncio.wait_for(
+            asyncio.to_thread(run_public_market_readonly, payload, manager),
+            timeout=timeout_seconds,
+        )
+    except asyncio.TimeoutError:
+        return {
+            "status": "timeout",
+            "errorCode": ERROR_PROVIDER_TIMEOUT,
+            "providerLabel": REDACTED_PROVIDER_LABEL,
+            "readOnly": True,
+            "redacted": True,
+        }

@@ -4,7 +4,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Extra
 
-from src.public_market_readonly import run_public_market_readonly, REDACTED_PROVIDER_LABEL
+from src.public_market_readonly import run_public_market_readonly_with_timeout, REDACTED_PROVIDER_LABEL
 
 router = APIRouter()
 
@@ -31,4 +31,4 @@ def _is_local(request: Request) -> bool:
 async def akshare_public_market_dry_run(payload: PublicMarketReadonlyRequestModel, request: Request) -> Dict[str, Any]:
     if not _is_local(request):
         return {"status":"blocked","errorCode":"real-readonly.localhost-only","providerLabel":REDACTED_PROVIDER_LABEL,"readOnly":True,"redacted":True}
-    return run_public_market_readonly(payload.dict())
+    return await run_public_market_readonly_with_timeout(payload.dict())

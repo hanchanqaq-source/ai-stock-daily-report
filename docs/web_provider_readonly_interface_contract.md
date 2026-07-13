@@ -1,5 +1,7 @@
 # Web-P44 provider 只读接口契约文档
 
+> Core-M3.1 交叉引用：当前唯一允许的真实只读实现是 AkShare 公开 A 股单标的 Dry-Run，后端只实例化 `AkshareFetcher`，Provider 身份不匹配即阻断；前后端 timeout 均安全降级为 mock-only。
+
 ## 1. 阶段定位
 
 Web-P44 是“股票基金质量分析系统”在 Web dry-run 链路上的 provider 只读接口契约文档阶段。本阶段只定义未来接口的文档级形状和安全约束，用于约束后续候选数据进入“AI股票基金每日信息报告”前的只读边界。
