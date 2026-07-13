@@ -1,0 +1,1 @@
+export { adaptMockOnlyDailyReportFixture } from './dailyReportAdapter'

@@ -1,6 +1,8 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { adaptMockOnlyDailyReportFixture } from '../../../src/mocks/preview/adapters'
+import { mockOnlyDailyReportFixture } from '../../../src/mocks/preview/fixtures'
 import {
   createMockOnlyPreviewModel,
   getMockOnlyPreviewSections,
@@ -11,6 +13,8 @@ import type { MockOnlyPreviewOptions } from '../../../src/mocks/preview/mockOnly
 const previewSourcePaths = [
   'src/mocks/preview/mockOnlyPreviewTypes.ts',
   'src/mocks/preview/mockOnlyPreviewModel.ts',
+  'src/mocks/preview/adapters/dailyReportAdapter.ts',
+  'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
   'src/mocks/preview/fixtures/index.ts',
 ]
@@ -224,6 +228,41 @@ describe('mock-only preview model', () => {
     expect(fixtureSource).toContain('export const mockOnlyDailyReportFixture')
   })
 
+  it('adapts mock-only daily report fixture to the stable daily report view model', () => {
+    const fixtureSnapshot = JSON.stringify(mockOnlyDailyReportFixture)
+    const viewModel = adaptMockOnlyDailyReportFixture(mockOnlyDailyReportFixture)
+    const viewModelText = JSON.stringify(viewModel)
+
+    expect(viewModel.id).toBe(mockOnlyDailyReportFixture.reportId)
+    expect(viewModel).toMatchObject({
+      projectName: mockOnlyDailyReportFixture.projectName,
+      reportDateLabel: mockOnlyDailyReportFixture.reportDateLabel,
+      title: mockOnlyDailyReportFixture.title,
+      displayName: mockOnlyDailyReportFixture.displayName,
+      modeLabel: mockOnlyDailyReportFixture.modeLabel,
+      dataSourceLabel: mockOnlyDailyReportFixture.dataSourceLabel,
+      generatedAtLabel: mockOnlyDailyReportFixture.generatedAtLabel,
+      deliveryStatus: mockOnlyDailyReportFixture.deliveryStatus,
+      marketMood: mockOnlyDailyReportFixture.marketMood,
+      headline: mockOnlyDailyReportFixture.headline,
+      portfolioAction: mockOnlyDailyReportFixture.portfolioAction,
+      riskLevel: mockOnlyDailyReportFixture.riskLevel,
+      notes: mockOnlyDailyReportFixture.mockOnlyNotes,
+    })
+    expect(viewModel.sections).toEqual([
+      mockOnlyDailyReportFixture.sections.marketOverview,
+      mockOnlyDailyReportFixture.sections.portfolioObservation,
+      mockOnlyDailyReportFixture.sections.riskWarnings,
+      mockOnlyDailyReportFixture.sections.actionSuggestions,
+    ])
+    expect(viewModel.notes).toEqual(mockOnlyDailyReportFixture.mockOnlyNotes)
+    expect(JSON.stringify(mockOnlyDailyReportFixture)).toBe(fixtureSnapshot)
+
+    for (const requiredText of ['mock-only', 'REDACTED FIXTURE DATA', '非真实账户']) {
+      expect(viewModelText).toContain(requiredText)
+    }
+  })
+
   it('exposes unified mock-only daily report fixture data', () => {
     const fixture = createMockOnlyPreviewModel(mockOptions).dailyReportFixture
     const fixtureText = JSON.stringify(fixture)
@@ -262,6 +301,16 @@ describe('mock-only preview model', () => {
     }
   })
 
+
+  it('exposes adapted daily report view model and uses it for page previews', () => {
+    const model = createMockOnlyPreviewModel(mockOptions)
+
+    expect(model.dailyReportViewModel.id).toBe(model.dailyReportFixture.reportId)
+    expect(model.dashboardSummaryPreview.headline).toBe(model.dailyReportViewModel.headline)
+    expect(model.dashboardSummaryPreview.marketStatus).toBe(model.dailyReportViewModel.marketMood)
+    expect(model.historyReportsPreview.reports[0].reportId).toBe(model.dailyReportViewModel.id)
+    expect(model.historyReportsPreview.selectedReport.sections).toEqual(model.dailyReportViewModel.sections)
+  })
 
   it('exposes static redacted history reports preview fixture data', () => {
     expect(createMockOnlyPreviewModel(mockOptions).historyReportsPreview).toMatchObject({
@@ -455,7 +504,7 @@ describe('mock-only preview safety boundary', () => {
 
   it('uses only the mock service and preview-local type imports', () => {
     expect(previewSource).toContain('../service/mockApiService')
-    expect(previewSource).not.toContain('../adapter/')
+    expect(previewSource).toContain('./adapters')
     expect(previewSource).not.toContain('../safety/')
   })
 

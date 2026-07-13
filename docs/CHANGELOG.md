@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [改进] Web-P34 新增前端 mock-only 日报 fixture 到 DailyReportViewModel 的同步纯适配层，页面预览改为通过统一展示模型消费日报字段，并补充映射、不可变性和网络边界测试；本阶段仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [改进] Web-P33 统一 mock-only fixture 目录导出入口，新增 preview fixtures barrel，页面模型改为通过统一入口导入，并补充静态测试保护 mock-only、脱敏和禁止真实接入边界。
 - [文档] Web-P32 新增 mock 报告 schema 文档，说明 MockOnlyDailyReportFixture 字段契约、字段映射、脱敏规则和未来真实日报接入前置条件，并明确当前仍保持 mock-only，不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
 - [改进] Web-P31 统一 mock-only 日报 fixture 结构，集中定义“AI股票基金每日信息报告”的字段、脱敏标签和安全边界，并补充文档与静态测试。
