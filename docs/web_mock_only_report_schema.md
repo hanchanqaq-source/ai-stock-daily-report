@@ -280,5 +280,7 @@ mock 报告 schema 和 fixture 不得包含：
 
 - Web-P33 已完成 fixture 目录统一导出入口，继续保持静态脱敏 fixture 的文件边界、命名、复用与测试保护。
 - Web-P34 已建立前端 mock 原始结构到 `DailyReportViewModel` 的兼容层，重点是字段语义、固定 sections 顺序、脱敏标签与页面展示契约稳定性。
-- Web-P34 不代表真实 provider 已设计或接入；后续真实日报接入必须另行完成 schema 高规格复核、provider 边界、凭证管理、通知 dry-run、账户授权和日志脱敏设计。
+- Web-P35 已新增 `DailyReportViewModel` mock-only 契约守卫，用测试保护固定项目名、固定日报名、数据来源、section 顺序、安全标签、旧真实精确值和敏感文本边界。
+- Web-P36 已新增阶段收口与验收清单，汇总 Web-P31 到 Web-P35 的链路、核心文件、安全边界、Windows 本地验证命令和 PR 复核清单，方便后续继续开发前先确认当前 mock-only 契约。
+- Web-P34 / Web-P35 / Web-P36 不代表真实 provider 已设计或接入；后续真实日报接入必须另行完成 schema 高规格复核、provider 边界、凭证管理、通知 dry-run、账户授权和日志脱敏设计。
 - 后续阶段仍然不得接真实 API、provider、AI、通知、账户、数据库或交易，除非任务明确改变阶段边界并完成高规格复核与用户确认。

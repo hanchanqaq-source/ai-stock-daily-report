@@ -68,6 +68,7 @@
 | [贡献指南](CONTRIBUTING.md) | Issue、PR、测试、文档同步和协作要求 |
 | [Web mock-only 页面阶段收口说明](web_mock_only_phase_closeout.md) | Web-P21 到 Web-P29 mock-only 页面阶段完成内容、Windows 本地验证流程、安全边界总表和 Web-P31 前复核要求 |
 | [Web-P32 mock 报告 schema 说明](web_mock_only_report_schema.md) | AI股票基金每日信息报告 mock-only schema、字段契约、字段映射、脱敏规则和未来真实日报接入前置条件 |
+| [Web-P36 mock-only 日报链路阶段收口与验收清单](web_mock_only_daily_report_acceptance.md) | Web-P31 到 Web-P35 mock-only 日报链路、核心文件、安全边界、Windows 本地验证命令和 PR 复核清单 |
 
 ## 多语言
 
