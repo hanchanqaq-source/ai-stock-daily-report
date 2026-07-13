@@ -1,0 +1,1 @@
+export { validateMockOnlyDailyReportViewModel } from './dailyReportViewModelGuard'

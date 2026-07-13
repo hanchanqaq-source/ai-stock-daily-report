@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { adaptMockOnlyDailyReportFixture } from '../../../src/mocks/preview/adapters'
+import { validateMockOnlyDailyReportViewModel } from '../../../src/mocks/preview/guards'
 import { mockOnlyDailyReportFixture } from '../../../src/mocks/preview/fixtures'
 import {
   createMockOnlyPreviewModel,
@@ -17,6 +18,8 @@ const previewSourcePaths = [
   'src/mocks/preview/adapters/index.ts',
   'src/mocks/preview/fixtures/dailyReportFixture.ts',
   'src/mocks/preview/fixtures/index.ts',
+  'src/mocks/preview/guards/dailyReportViewModelGuard.ts',
+  'src/mocks/preview/guards/index.ts',
 ]
 const previewSource = previewSourcePaths.map((sourcePath) => readFileSync(sourcePath, 'utf-8')).join('\n')
 const mockOptions: MockOnlyPreviewOptions = { mode: 'mock', source: 'local_preview_only' }
@@ -261,6 +264,12 @@ describe('mock-only preview model', () => {
     for (const requiredText of ['mock-only', 'REDACTED FIXTURE DATA', '非真实账户']) {
       expect(viewModelText).toContain(requiredText)
     }
+  })
+
+  it('keeps the DailyReportViewModel mock-only display contract guarded', () => {
+    const model = createMockOnlyPreviewModel(mockOptions)
+
+    expect(validateMockOnlyDailyReportViewModel(model.dailyReportViewModel)).toEqual([])
   })
 
   it('exposes unified mock-only daily report fixture data', () => {
