@@ -371,3 +371,18 @@ Web-P45 新增完全虚构、静态、脱敏的 `ProviderCandidatePayload` mock-
 - `RealDailyReportDryRunInput` 仍必须经过 validator；validator passed 后才允许 adapter 映射。
 - 任意失败、阻断、schema mismatch 或 validator 未通过时必须 fallback mock-only。
 - 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
+
+## 15. Web-P46 provider candidate validator mock-only 说明
+
+Web-P46 新增 `ProviderCandidatePayload` mock-only validator 纯函数，仅用于校验完全虚构、静态、脱敏的 candidate payload 是否仍满足 Web-P45 边界。
+
+边界确认：
+
+- validator 只校验完全虚构、脱敏的 candidate payload。
+- validator `passed` 只代表允许进入后续 schema normalization 设计阶段，不代表已经完成 normalization。
+- validator `blocked` 时 `normalizationAllowed=false`，并固定 fallback mock-only。
+- validator 不实现 schema normalization。
+- validator 不生成 `RealDailyReportDryRunInput`。
+- validator 不生成 `DailyReportViewModel`。
+- validator 不接入页面入口、preview model 或正式 runtime。
+- 当前仍不接真实 API / provider / AI / 通知 / 账户 / 数据库 / 交易。
