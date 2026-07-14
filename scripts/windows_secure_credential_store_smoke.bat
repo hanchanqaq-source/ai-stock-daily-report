@@ -85,14 +85,13 @@ if not defined NPM_CMD (
 )
 
 echo [CHECK] Electron dependency
-if not exist "apps\dsa-desktop\node_modules\electron" (
-    echo [FAIL] Electron dependency is missing
-    echo [TIP] Run these commands manually, then rerun this script:
-    echo cd /d "%CD%\apps\dsa-desktop"
-    echo npm ci
+if not exist "apps\dsa-desktop\node_modules\electron\dist\electron.exe" (
+    echo [FAIL] Electron executable is missing
+    echo [TIP] Double-click the one-click first setup tool, then retry:
+    echo "%CD%\scripts\windows_desktop_first_setup.bat"
     set /a FAIL_COUNT+=1
 ) else (
-    echo [OK] Electron dependency found
+    echo [OK] Electron executable found
 )
 
 if not "!FAIL_COUNT!"=="0" (
