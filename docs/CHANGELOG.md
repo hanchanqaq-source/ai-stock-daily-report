@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [安全修复] Core-M3.2 为 AkshareFetcher 增加显式东财补丁控制参数。公开 A 股真实只读 Dry-Run 路径固定以 enable_eastmoney_patch=False 创建 AkshareFetcher，不再进入通用 Config、不读取其他 Provider 凭证状态，也不执行东财 NID/Cookie 补丁；普通程序的默认 AkShare 配置行为保持兼容。
 - [安全修复] Core-M3.1 将公开 A 股真实只读链路严格隔离为 AkshareFetcher 单一数据源，禁止默认 DataFetcherManager 初始化其他 Provider 或读取其凭证状态；增加后端请求级超时和前端 localhost AbortController 超时，统一将 timeout 安全降级为 mock-only。同时恢复默认关闭配置模板，并将该开关登记为通用 Web 设置隐藏项。
 - [新功能] [里程碑] Core-M3 新增 AkShare 公开 A 股单标的真实只读 Dry-Run 链路：通过默认关闭和人工批准门禁，由现有 Python data_provider 获取最新可用公开行情，经后端及 Web 双重 sanitizer 后生成 sourceType=real-readonly 的 RealDailyReportDryRunInput；失败可回退 mock-only，非法响应明确阻断。当前不读取账户、不使用凭证、不调用 AI/通知/交易、不写数据库、不接正式页面或定时 runtime。
 - [安全修复] Core-M2.1 完成 Provider Result 脱敏和输入契约收口：新增运行时 Provider Result sanitizer，禁止透传 Provider 原始 errors/warnings，并将 unavailable、timeout、credential-unavailable、invalid-response 和 blocked 映射为固定低敏状态；未知或非法 Provider Result 明确阻断。同时将 Pipeline 顶层未知字段校验提前，避免 disabled 状态静默忽略非法字段。当前仍不联网、不读取凭证、不接页面或 runtime，真实 Provider 保持 NO-GO。

@@ -8,7 +8,7 @@ Core-M3 为“股票基金质量分析系统”增加首个范围受限的真实
 
 ## 为什么选择 AkShare
 
-仓库既有 `data_provider` 已包含 AkShare fetcher 和 `DataFetcherManager` 统一日线获取入口。Core-M3.1 后端只通过 `create_akshare_only_manager()` 显式实例化单个 `AkshareFetcher`，并把该列表传给 `DataFetcherManager(fetchers=[...])`；不会走默认 `DataFetcherManager()`，也不会初始化 Efinance、Tushare、TickFlow、Longbridge、Finnhub、AlphaVantage 等其他 Provider 或读取它们的 Token/API Key 状态。Core-M3.1 继续不在 Web 端直接调用 AkShare，不硬编码东方财富 URL，也不复制新的行情抓取实现。
+仓库既有 `data_provider` 已包含 AkShare fetcher 和 `DataFetcherManager` 统一日线获取入口。Core-M3.2 后端只通过 `create_akshare_only_manager()` 显式实例化单个 `AkshareFetcher(enable_eastmoney_patch=False)`，并把该列表传给 `DataFetcherManager(fetchers=[...])`；不会走默认 `DataFetcherManager()`，也不会初始化 Efinance、Tushare、TickFlow、Longbridge、Finnhub、AlphaVantage 等其他 Provider 或读取它们的 Token/API Key 状态。该真实只读路径不会调用通用 `get_config()`，不读取通知、AI、账户配置或 `ENABLE_EASTMONEY_PATCH`，也不执行东财 NID 获取流程、不注入 Cookie。普通程序中未显式传参的 `AkshareFetcher()` 默认行为保持不变，仍可按通用 Config 判断是否启用原有东财补丁。Core-M3.2 继续不在 Web 端直接调用 AkShare，不硬编码东方财富 URL，也不复制新的行情抓取实现。
 
 ## 链路
 
