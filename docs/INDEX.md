@@ -78,6 +78,7 @@
 | [Core-M2 首个真实只读 Provider 本地 Dry-Run 基础框架](web_provider_readonly_local_dry_run_framework.md) | 统一只读 Provider Port、默认禁用 Provider、凭证状态边界、本地 Dry-Run Pipeline、mock-only fallback 与真实 Provider NO-GO 结论 |
 | [Core-M2.1 Provider 结果脱敏与输入契约收口](web_provider_readonly_local_dry_run_framework.md#core-m21-provider-result-脱敏与输入契约收口) | Provider Result runtime sanitizer、固定低敏错误映射、非法 Provider Result blocked 与 Pipeline 顶层未知字段优先阻断 |
 | [Web-M1B Provider Dry-Run 安全门禁闭环](web_provider_dry_run_gate_closure.md) | Provider Dry-Run feature flag、candidate normalizer、dry-run validator 的 mock-only 安全门禁闭环；当前未接页面、runtime 或真实 provider，真实 provider 状态仍为 NO-GO |
+| [App-M4.1 设置工作台骨架](app_m4_1_settings_workspace_shell.md) | Web 设置工作台三个静态页签、无真实密钥保存、无持久化、无网络请求和后续 App-M4.2 边界 |
 
 ## 多语言
 
