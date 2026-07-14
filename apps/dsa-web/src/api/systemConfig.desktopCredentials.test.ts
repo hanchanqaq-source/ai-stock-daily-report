@@ -131,7 +131,8 @@ describe('systemConfigApi desktop credential separation', () => {
     });
 
     expect(apiClientMock.put).toHaveBeenCalledTimes(1);
-    const backendPayload = apiClientMock.put.mock.calls[0]?.[1];
+    const putCalls = apiClientMock.put.mock.calls as unknown as Array<[string, Record<string, unknown>]>;
+    const backendPayload = putCalls[0]?.[1];
     expect(backendPayload).toMatchObject({
       config_version: 'v1',
       items: [{ key: 'STOCK_LIST', value: '600519,000001' }],
