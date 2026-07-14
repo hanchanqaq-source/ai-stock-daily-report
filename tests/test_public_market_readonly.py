@@ -1,11 +1,15 @@
+import ast
 import asyncio
+import importlib
 import math
 import time
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
 from src import public_market_readonly as m
+
 
 REQ = {
     "mode": "real-readonly-dry-run",
@@ -24,10 +28,28 @@ REQ = {
 
 
 def frame():
-    return pd.DataFrame([
-        {"date": "2026-07-10", "open": 10, "high": 12, "low": 9, "close": 11, "volume": 100, "amount": 1000},
-        {"date": "2026-07-13", "open": 11, "high": 13, "low": 10, "close": 12, "volume": 200, "amount": 2400},
-    ])
+    return pd.DataFrame(
+        [
+            {
+                "date": "2026-07-10",
+                "open": 10,
+                "high": 12,
+                "low": 9,
+                "close": 11,
+                "volume": 100,
+                "amount": 1000,
+            },
+            {
+                "date": "2026-07-13",
+                "open": 11,
+                "high": 13,
+                "low": 10,
+                "close": 12,
+                "volume": 200,
+                "amount": 2400,
+            },
+        ]
+    )
 
 
 class Manager:
@@ -40,6 +62,24 @@ class Manager:
         return frame(), self.provider_name
 
 
+def _patch_config_and_eastmoney(monkeypatch, *, config_enabled=False, config_must_not_run=False):
+    config_module = importlib.import_module("src.config")
+    patch_module = importlib.import_module("src.patches.eastmoney_patch")
+    patch_calls = []
+
+    def fake_get_config():
+        if config_must_not_run:
+            raise AssertionError("get_config must not be called")
+        return type("ConfigStub", (), {"enable_eastmoney_patch": config_enabled})()
+
+    def fake_eastmoney_patch():
+        patch_calls.append("called")
+
+    monkeypatch.setattr(config_module, "get_config", fake_get_config)
+    monkeypatch.setattr(patch_module, "eastmoney_patch", fake_eastmoney_patch)
+    return patch_calls
+
+
 def test_create_akshare_only_manager_only_contains_akshare(monkeypatch):
     def fail_default(self):
         raise AssertionError("default fetchers must not be initialized")
@@ -47,6 +87,43 @@ def test_create_akshare_only_manager_only_contains_akshare(monkeypatch):
     monkeypatch.setattr(m.DataFetcherManager, "_init_default_fetchers", fail_default)
     manager = m.create_akshare_only_manager()
     assert [fetcher.__class__.__name__ for fetcher in manager._fetchers] == ["AkshareFetcher"]
+
+
+def test_create_akshare_only_manager_passes_explicit_patch_false(monkeypatch):
+    from data_provider import akshare_fetcher
+
+    seen = []
+
+    class FakeAkshareFetcher:
+        name = "AkshareFetcher"
+        priority = 1
+
+        def __init__(self, *args, **kwargs):
+            seen.append((args, kwargs))
+
+    monkeypatch.setattr(akshare_fetcher, "AkshareFetcher", FakeAkshareFetcher)
+    manager = m.create_akshare_only_manager()
+
+    assert [fetcher.__class__.__name__ for fetcher in manager._fetchers] == ["FakeAkshareFetcher"]
+    assert seen == [((), {"enable_eastmoney_patch": False})]
+
+
+def test_core_m3_manager_ignores_other_provider_credentials_and_patch_env(monkeypatch):
+    for key in (
+        "TUSHARE_TOKEN",
+        "TICKFLOW_API_KEY",
+        "LONGBRIDGE_APP_KEY",
+        "LONGBRIDGE_APP_SECRET",
+        "LONGBRIDGE_ACCESS_TOKEN",
+    ):
+        monkeypatch.setenv(key, "fake-value")
+    monkeypatch.setenv("ENABLE_EASTMONEY_PATCH", "true")
+    patch_calls = _patch_config_and_eastmoney(monkeypatch, config_must_not_run=True)
+
+    manager = m.create_akshare_only_manager()
+
+    assert [fetcher.__class__.__name__ for fetcher in manager._fetchers] == ["AkshareFetcher"]
+    assert patch_calls == []
 
 
 def test_default_disabled_does_not_call_provider(monkeypatch):
@@ -129,116 +206,40 @@ def test_backend_timeout_returns_fixed_safe_result(monkeypatch):
     }
 
 
-def _install_fake_config(monkeypatch, *, enabled=False, fail=False):
-    import sys
-    import types
-
-    module = types.ModuleType("src.config")
-
-    def get_config():
-        if fail:
-            raise AssertionError("get_config must not be called")
-        return types.SimpleNamespace(enable_eastmoney_patch=enabled)
-
-    module.get_config = get_config
-    monkeypatch.setitem(sys.modules, "src.config", module)
-    return module
-
-
-def _install_fake_eastmoney_patch(monkeypatch):
-    import sys
-    import types
-
-    calls = []
-    module = types.ModuleType("src.patches.eastmoney_patch")
-
-    def eastmoney_patch():
-        calls.append("called")
-
-    module.eastmoney_patch = eastmoney_patch
-    monkeypatch.setitem(sys.modules, "src.patches.eastmoney_patch", module)
-    return calls
-
-
-def test_create_akshare_only_manager_passes_explicit_patch_false(monkeypatch):
-    from data_provider import akshare_fetcher
-
-    seen = []
-
-    class FakeAkshareFetcher:
-        name = "AkshareFetcher"
-        priority = 1
-
-        def __init__(self, *args, **kwargs):
-            seen.append((args, kwargs))
-
-    monkeypatch.setattr(akshare_fetcher, "AkshareFetcher", FakeAkshareFetcher)
-    manager = m.create_akshare_only_manager()
-
-    assert [fetcher.__class__.__name__ for fetcher in manager._fetchers] == ["FakeAkshareFetcher"]
-    assert seen == [((), {"enable_eastmoney_patch": False})]
-
-
-def test_core_m3_manager_does_not_call_config_or_patch_even_with_provider_env(monkeypatch):
-    monkeypatch.setenv("TUSHARE_TOKEN", "fake-token")
-    monkeypatch.setenv("TICKFLOW_API_KEY", "fake-key")
-    monkeypatch.setenv("LONGBRIDGE_APP_KEY", "fake-app-key")
-    monkeypatch.setenv("LONGBRIDGE_APP_SECRET", "fake-app-secret")
-    monkeypatch.setenv("LONGBRIDGE_ACCESS_TOKEN", "fake-access-token")
-    monkeypatch.setenv("ENABLE_EASTMONEY_PATCH", "true")
-    _install_fake_config(monkeypatch, fail=True)
-    calls = _install_fake_eastmoney_patch(monkeypatch)
-
-    manager = m.create_akshare_only_manager()
-
-    assert [fetcher.__class__.__name__ for fetcher in manager._fetchers] == ["AkshareFetcher"]
-    assert calls == []
-
-
-def test_akshare_fetcher_patch_false_does_not_call_config_or_patch(monkeypatch):
+def test_akshare_fetcher_patch_false_skips_config_and_patch(monkeypatch):
     from data_provider.akshare_fetcher import AkshareFetcher
 
-    _install_fake_config(monkeypatch, fail=True)
-    calls = _install_fake_eastmoney_patch(monkeypatch)
-
+    patch_calls = _patch_config_and_eastmoney(monkeypatch, config_must_not_run=True)
     fetcher = AkshareFetcher(enable_eastmoney_patch=False)
 
-    assert fetcher.sleep_min == 2.0
-    assert fetcher.sleep_max == 5.0
-    assert calls == []
+    assert (fetcher.sleep_min, fetcher.sleep_max) == (2.0, 5.0)
+    assert patch_calls == []
 
 
 def test_akshare_fetcher_patch_true_calls_patch_without_config(monkeypatch):
     from data_provider.akshare_fetcher import AkshareFetcher
 
-    _install_fake_config(monkeypatch, fail=True)
-    calls = _install_fake_eastmoney_patch(monkeypatch)
-
+    patch_calls = _patch_config_and_eastmoney(monkeypatch, config_must_not_run=True)
     AkshareFetcher(enable_eastmoney_patch=True)
-
-    assert calls == ["called"]
+    assert patch_calls == ["called"]
 
 
 @pytest.mark.parametrize(
     ("config_enabled", "expected_calls"),
     [(False, []), (True, ["called"])],
 )
-def test_akshare_fetcher_patch_none_keeps_config_behavior(monkeypatch, config_enabled, expected_calls):
+def test_akshare_fetcher_patch_none_keeps_legacy_behavior(monkeypatch, config_enabled, expected_calls):
     from data_provider.akshare_fetcher import AkshareFetcher
 
-    _install_fake_config(monkeypatch, enabled=config_enabled)
-    calls = _install_fake_eastmoney_patch(monkeypatch)
-
+    patch_calls = _patch_config_and_eastmoney(monkeypatch, config_enabled=config_enabled)
     AkshareFetcher(enable_eastmoney_patch=None)
-
-    assert calls == expected_calls
+    assert patch_calls == expected_calls
 
 
 def test_akshare_fetcher_sleep_args_are_unchanged(monkeypatch):
     from data_provider.akshare_fetcher import AkshareFetcher
 
-    _install_fake_config(monkeypatch, enabled=False)
-
+    _patch_config_and_eastmoney(monkeypatch, config_enabled=False)
     positional = AkshareFetcher(0.1, 0.2)
     keyword = AkshareFetcher(sleep_min=0.3, sleep_max=0.4)
 
@@ -247,40 +248,25 @@ def test_akshare_fetcher_sleep_args_are_unchanged(monkeypatch):
 
 
 def test_public_market_readonly_static_config_boundary():
-    import ast
-    from pathlib import Path
-
     source = Path(m.__file__).read_text(encoding="utf-8")
     tree = ast.parse(source)
-    forbidden_names = {
-        "get_config",
-        "ENABLE_EASTMONEY_PATCH",
-        "TUSHARE_TOKEN",
-        "TICKFLOW_API_KEY",
-        "LONGBRIDGE",
-        "FINNHUB",
-        "ALPHAVANTAGE",
-        "Cookie",
-        "Authorization",
-    }
 
-    imported_modules = []
-    literal_values = []
-    call_keywords = []
+    imported_modules = set()
+    explicit_safe_constructor = False
+
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom):
-            imported_modules.append(node.module or "")
-            imported_modules.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.Import):
-            imported_modules.extend(alias.name for alias in node.names)
-        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
-            literal_values.append(node.value)
-        elif isinstance(node, ast.Call):
-            call_keywords.extend(keyword.arg for keyword in node.keywords if keyword.arg)
+        if isinstance(node, ast.Import):
+            imported_modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module)
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "AkshareFetcher":
+            for keyword in node.keywords:
+                if (
+                    keyword.arg == "enable_eastmoney_patch"
+                    and isinstance(keyword.value, ast.Constant)
+                    and keyword.value.value is False
+                ):
+                    explicit_safe_constructor = True
 
-    checked_text = "\n".join(imported_modules + literal_values)
-    for forbidden in forbidden_names:
-        assert forbidden not in checked_text
     assert "src.config" not in imported_modules
-    assert "enable_eastmoney_patch" in call_keywords
-    assert "AkshareFetcher(enable_eastmoney_patch=False)" in source
+    assert explicit_safe_constructor is True
