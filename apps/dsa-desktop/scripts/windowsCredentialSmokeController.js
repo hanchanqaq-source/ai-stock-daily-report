@@ -7,12 +7,39 @@ const { spawn } = require('node:child_process');
 const ERROR_CODES = Object.freeze({
   UNSUPPORTED_PLATFORM: 'unsupported_platform',
   CHILD_PROCESS_FAILED: 'child_process_failed',
+  CHILD_PROCESS_TIMEOUT: 'child_process_timeout',
   INVALID_RESULT: 'invalid_result',
+  TEMP_DIRECTORY_FAILED: 'temp_directory_failed',
   CLEANUP_FAILED: 'cleanup_failed',
 });
 
 const PHASES = Object.freeze(['write', 'restart-read-clear']);
 const TEST_KEY = 'DSA_SMOKE_TEST_KEY';
+const SMOKE_TEMP_PREFIX = 'dsa-secure-credential-smoke-';
+const DEFAULT_PHASE_TIMEOUT_MS = 30000;
+const MAX_CHILD_STDOUT_BYTES = 16 * 1024;
+const STAGE_RESULT_KEYS = Object.freeze([
+  'phase',
+  'success',
+  'encryptionAvailable',
+  'configured',
+  'plaintextAbsent',
+  'statusConfiguredOnly',
+  'cleared',
+  'errorCode',
+]);
+const ALLOWED_STAGE_ERROR_CODES = new Set([
+  ERROR_CODES.CHILD_PROCESS_FAILED,
+  ERROR_CODES.CHILD_PROCESS_TIMEOUT,
+  ERROR_CODES.INVALID_RESULT,
+  'unsupported_platform',
+  'encryption_unavailable',
+  'invalid_temp_directory',
+  'set_failed',
+  'restart_read_failed',
+  'plaintext_detected',
+  'clear_failed',
+]);
 const FORBIDDEN_RESULT_KEYS = new Set([
   'value',
   'plaintext',
@@ -73,15 +100,18 @@ function containsForbiddenResultKey(value) {
   ));
 }
 
+function hasExactStageResultKeys(result) {
+  const actual = Object.keys(result).sort();
+  const expected = [...STAGE_RESULT_KEYS].sort();
+  return actual.length === expected.length
+    && actual.every((key, index) => key === expected[index]);
+}
+
 function validateStageResult(result, expectedPhase) {
   if (!result || typeof result !== 'object' || Array.isArray(result)) {
     return makeStageResult(expectedPhase, { errorCode: ERROR_CODES.INVALID_RESULT });
   }
-  if (containsForbiddenResultKey(result)) {
-    return makeStageResult(expectedPhase, { errorCode: ERROR_CODES.INVALID_RESULT });
-  }
-  const required = ['phase', 'success', 'encryptionAvailable', 'configured', 'plaintextAbsent', 'statusConfiguredOnly', 'cleared', 'errorCode'];
-  if (!required.every((key) => Object.prototype.hasOwnProperty.call(result, key))) {
+  if (containsForbiddenResultKey(result) || !hasExactStageResultKeys(result)) {
     return makeStageResult(expectedPhase, { errorCode: ERROR_CODES.INVALID_RESULT });
   }
   if (result.phase !== expectedPhase) {
@@ -92,7 +122,10 @@ function validateStageResult(result, expectedPhase) {
       return makeStageResult(expectedPhase, { errorCode: ERROR_CODES.INVALID_RESULT });
     }
   }
-  if (result.errorCode !== null && typeof result.errorCode !== 'string') {
+  if (result.errorCode !== null && !ALLOWED_STAGE_ERROR_CODES.has(result.errorCode)) {
+    return makeStageResult(expectedPhase, { errorCode: ERROR_CODES.INVALID_RESULT });
+  }
+  if ((result.success && result.errorCode !== null) || (!result.success && result.errorCode === null)) {
     return makeStageResult(expectedPhase, { errorCode: ERROR_CODES.INVALID_RESULT });
   }
   return makeStageResult(expectedPhase, result);
@@ -110,6 +143,44 @@ function parseChildResult(stdout, expectedPhase) {
   }
 }
 
+function isPathInside(rootPath, candidatePath) {
+  const relative = path.relative(rootPath, candidatePath);
+  return Boolean(relative)
+    && relative !== '..'
+    && !relative.startsWith(`..${path.sep}`)
+    && !path.isAbsolute(relative);
+}
+
+function resolveSmokeTempLocalAppData(candidate, {
+  tempRoot = os.tmpdir(),
+  realLocalAppData = process.env.LOCALAPPDATA,
+  fsModule = fs,
+} = {}) {
+  if (typeof candidate !== 'string' || !candidate.trim() || !path.isAbsolute(candidate)) {
+    return null;
+  }
+  try {
+    const resolvedCandidate = path.resolve(candidate);
+    const resolvedTempRoot = path.resolve(tempRoot);
+    if (!isPathInside(resolvedTempRoot, resolvedCandidate)) {
+      return null;
+    }
+    if (!path.basename(resolvedCandidate).startsWith(SMOKE_TEMP_PREFIX)) {
+      return null;
+    }
+    if (typeof realLocalAppData === 'string' && realLocalAppData.trim()) {
+      if (resolvedCandidate === path.resolve(realLocalAppData)) {
+        return null;
+      }
+    }
+    const realCandidate = fsModule.realpathSync(resolvedCandidate);
+    const realTempRoot = fsModule.realpathSync(resolvedTempRoot);
+    return isPathInside(realTempRoot, realCandidate) ? realCandidate : null;
+  } catch (_error) {
+    return null;
+  }
+}
+
 function resolveElectronBinary() {
   const electronModulePath = require.resolve('electron');
   const electron = require(electronModulePath);
@@ -122,42 +193,106 @@ function resolveElectronBinary() {
   return null;
 }
 
-function runElectronPhase({ phase, tempLocalAppData, testValue, spawnFn = spawn, electronBinary = resolveElectronBinary() }) {
-  return new Promise((resolve) => {
-    if (!electronBinary) {
-      resolve(makeStageResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_FAILED }));
-      return;
-    }
-    const child = spawnFn(electronBinary, [path.join(__dirname, 'windowsCredentialSmokeElectron.js')], {
-      cwd: path.resolve(__dirname, '..'),
-      windowsHide: true,
-      env: {
-        ...process.env,
-        DSA_CREDENTIAL_SMOKE_PHASE: phase,
-        DSA_CREDENTIAL_SMOKE_LOCALAPPDATA: tempLocalAppData,
-        DSA_CREDENTIAL_SMOKE_KEY: TEST_KEY,
-        DSA_CREDENTIAL_SMOKE_VALUE: testValue,
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
+function createChildEnvironment({ phase, tempLocalAppData, testValue }) {
+  const childEnv = {
+    ...process.env,
+    DSA_CREDENTIAL_SMOKE_PHASE: phase,
+    DSA_CREDENTIAL_SMOKE_LOCALAPPDATA: tempLocalAppData,
+    DSA_CREDENTIAL_SMOKE_KEY: TEST_KEY,
+    DSA_CREDENTIAL_SMOKE_VALUE: testValue,
+  };
+  delete childEnv.ELECTRON_RUN_AS_NODE;
+  return childEnv;
+}
 
-    let stdout = '';
-    let stderr = '';
-    child.stdout.on('data', (chunk) => { stdout += chunk.toString('utf8'); });
-    child.stderr.on('data', (chunk) => { stderr += chunk.toString('utf8'); });
-    child.on('error', () => {
-      resolve(makeStageResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_FAILED }));
-    });
-    child.on('close', (code) => {
-      if (code !== 0) {
+function runElectronPhase({
+  phase,
+  tempLocalAppData,
+  testValue,
+  spawnFn = spawn,
+  electronBinary = null,
+  phaseTimeoutMs = DEFAULT_PHASE_TIMEOUT_MS,
+}) {
+  return new Promise((resolve) => {
+    let resolvedElectronBinary = electronBinary;
+    if (!resolvedElectronBinary) {
+      try {
+        resolvedElectronBinary = resolveElectronBinary();
+      } catch (_error) {
         resolve(makeStageResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_FAILED }));
         return;
       }
-      if (stderr.trim()) {
-        resolve(makeStageResult(phase, { errorCode: ERROR_CODES.INVALID_RESULT }));
+    }
+    if (!resolvedElectronBinary) {
+      resolve(makeStageResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_FAILED }));
+      return;
+    }
+
+    let child;
+    try {
+      child = spawnFn(resolvedElectronBinary, [path.join(__dirname, 'windowsCredentialSmokeElectron.js')], {
+        cwd: path.resolve(__dirname, '..'),
+        windowsHide: true,
+        env: createChildEnvironment({ phase, tempLocalAppData, testValue }),
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } catch (_error) {
+      resolve(makeStageResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_FAILED }));
+      return;
+    }
+
+    let stdout = '';
+    let settled = false;
+    let timer = null;
+    const finish = (result) => {
+      if (settled) {
         return;
       }
-      resolve(parseChildResult(stdout, phase));
+      settled = true;
+      if (timer) {
+        clearTimeout(timer);
+      }
+      resolve(result);
+    };
+
+    timer = setTimeout(() => {
+      try {
+        child.kill();
+      } catch (_error) {
+        // Best effort only; timeout output remains fixed and low-sensitivity.
+      }
+      finish(makeStageResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_TIMEOUT }));
+    }, phaseTimeoutMs);
+
+    child.stdout.on('data', (chunk) => {
+      if (settled) {
+        return;
+      }
+      stdout += chunk.toString('utf8');
+      if (Buffer.byteLength(stdout, 'utf8') > MAX_CHILD_STDOUT_BYTES) {
+        try {
+          child.kill();
+        } catch (_error) {
+          // Best effort only.
+        }
+        finish(makeStageResult(phase, { errorCode: ERROR_CODES.INVALID_RESULT }));
+      }
+    });
+    child.stderr.on('data', () => {
+      // Consume but never print Electron diagnostics because they may contain local paths.
+    });
+    child.on('error', () => {
+      finish(makeStageResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_FAILED }));
+    });
+    child.on('close', (code) => {
+      if (settled) {
+        return;
+      }
+      if (code !== 0) {
+        finish(makeStageResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_FAILED }));
+        return;
+      }
+      finish(parseChildResult(stdout, phase));
     });
   });
 }
@@ -171,7 +306,13 @@ function removeTempDir(tempDir, fsModule = fs) {
   }
 }
 
-async function runSmoke({ platform = process.platform, spawnFn = spawn, fsModule = fs, electronBinary } = {}) {
+async function runSmoke({
+  platform = process.platform,
+  spawnFn = spawn,
+  fsModule = fs,
+  electronBinary,
+  phaseTimeoutMs = DEFAULT_PHASE_TIMEOUT_MS,
+} = {}) {
   if (platform !== 'win32') {
     return makeSummary({
       success: false,
@@ -181,19 +322,39 @@ async function runSmoke({ platform = process.platform, spawnFn = spawn, fsModule
     });
   }
 
-  const tempLocalAppData = fsModule.mkdtempSync(path.join(os.tmpdir(), 'dsa-secure-credential-smoke-'));
-  const testValue = `DSA_SMOKE_FAKE_${crypto.randomUUID()}_${crypto.randomUUID()}`;
+  let tempLocalAppData = '';
+  let testValue = '';
+  try {
+    tempLocalAppData = fsModule.mkdtempSync(path.join(os.tmpdir(), SMOKE_TEMP_PREFIX));
+    testValue = `DSA_SMOKE_FAKE_${crypto.randomUUID()}_${crypto.randomUUID()}`;
+  } catch (_error) {
+    return makeSummary({
+      success: false,
+      cleanupPassed: false,
+      errorCode: ERROR_CODES.TEMP_DIRECTORY_FAILED,
+      stages: [],
+    });
+  }
+
   const stages = [];
   let cleanupPassed = false;
   try {
     for (const phase of PHASES) {
-      const result = await runElectronPhase({ phase, tempLocalAppData, testValue, spawnFn, electronBinary });
+      const result = await runElectronPhase({
+        phase,
+        tempLocalAppData,
+        testValue,
+        spawnFn,
+        electronBinary,
+        phaseTimeoutMs,
+      });
       stages.push(result);
       if (!result.success) {
         break;
       }
     }
   } finally {
+    testValue = '';
     cleanupPassed = removeTempDir(tempLocalAppData, fsModule);
   }
 
@@ -201,7 +362,10 @@ async function runSmoke({ platform = process.platform, spawnFn = spawn, fsModule
   return makeSummary({
     success,
     cleanupPassed,
-    errorCode: success ? null : (stages.find((stage) => !stage.success)?.errorCode || (cleanupPassed ? ERROR_CODES.INVALID_RESULT : ERROR_CODES.CLEANUP_FAILED)),
+    errorCode: success
+      ? null
+      : (stages.find((stage) => !stage.success)?.errorCode
+        || (cleanupPassed ? ERROR_CODES.INVALID_RESULT : ERROR_CODES.CLEANUP_FAILED)),
     stages,
   });
 }
@@ -234,15 +398,22 @@ if (require.main === module) {
 }
 
 module.exports = {
+  ALLOWED_STAGE_ERROR_CODES,
+  DEFAULT_PHASE_TIMEOUT_MS,
   ERROR_CODES,
   FORBIDDEN_RESULT_KEYS,
   PHASES,
+  SMOKE_TEMP_PREFIX,
+  STAGE_RESULT_KEYS,
   TEST_KEY,
   containsForbiddenResultKey,
+  createChildEnvironment,
   makeStageResult,
   parseChildResult,
   printSummary,
   removeTempDir,
+  resolveSmokeTempLocalAppData,
+  runElectronPhase,
   runSmoke,
   validateStageResult,
 };
