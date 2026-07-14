@@ -87,4 +87,4 @@
 | [英文 README](README_EN.md) | English project overview and quick start |
 | [繁中 README](README_CHT.md) | 繁體中文項目概覽與快速開始 |
 
-| [Core-M3 AkShare 公开 A 股真实只读 Dry-Run](core_m3_akshare_public_market_readonly_dry_run.md) | 默认关闭、本地人工批准、单标的 A 股公开行情 Dry-Run 链路 |
+| [Core-M3 AkShare 公开 A 股真实只读 Dry-Run](core_m3_akshare_public_market_readonly_dry_run.md) | 默认关闭、本地人工批准、单标的 A 股公开行情 Dry-Run 链路；Core-M3.2 显式禁用东财补丁并绕过通用 Config |

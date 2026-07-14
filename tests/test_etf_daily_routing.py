@@ -30,11 +30,11 @@ def _make_efinance_fetcher() -> EfinanceFetcher:
 
 
 def _make_akshare_fetcher() -> AkshareFetcher:
-    with patch(
-        "data_provider.akshare_fetcher.get_config",
-        return_value=SimpleNamespace(enable_eastmoney_patch=False),
-    ):
-        return AkshareFetcher(sleep_min=0, sleep_max=0)
+    return AkshareFetcher(
+        sleep_min=0,
+        sleep_max=0,
+        enable_eastmoney_patch=False,
+    )
 
 
 def _history_frame(code: str = "563230") -> pd.DataFrame:

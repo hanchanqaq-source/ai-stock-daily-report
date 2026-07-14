@@ -148,7 +148,7 @@ def _latest_row_to_snapshot(symbol: str, df: pd.DataFrame, provider_name: str) -
 def create_akshare_only_manager() -> DataFetcherManager:
     from data_provider.akshare_fetcher import AkshareFetcher
 
-    return DataFetcherManager(fetchers=[AkshareFetcher()])
+    return DataFetcherManager(fetchers=[AkshareFetcher(enable_eastmoney_patch=False)])
 
 
 def fetch_public_market_readonly_snapshot(req: PublicMarketReadonlyRequest, manager: Any | None = None) -> dict[str, Any]:

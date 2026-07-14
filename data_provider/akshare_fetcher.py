@@ -42,8 +42,6 @@ from tenacity import (
     before_sleep_log,
 )
 
-from src.patches.eastmoney_patch import eastmoney_patch
-from src.config import get_config
 from .base import BaseFetcher, DataFetchError, RateLimitError, STANDARD_COLUMNS, is_bse_code, is_st_stock, is_kc_cy_stock, normalize_stock_code
 from .realtime_types import (
     UnifiedRealtimeQuote, ChipDistribution, RealtimeSource,
@@ -387,20 +385,34 @@ class AkshareFetcher(BaseFetcher):
     name = "AkshareFetcher"
     priority = int(os.getenv("AKSHARE_PRIORITY", "1"))
     
-    def __init__(self, sleep_min: float = 2.0, sleep_max: float = 5.0):
+    def __init__(
+        self,
+        sleep_min: float = 2.0,
+        sleep_max: float = 5.0,
+        *,
+        enable_eastmoney_patch: Optional[bool] = None,
+    ):
         """
         初始化 AkshareFetcher
         
         Args:
             sleep_min: 最小休眠时间（秒）
             sleep_max: 最大休眠时间（秒）
+            enable_eastmoney_patch: 东财补丁开关；None 时保持旧行为并读取通用 Config
         """
         self.sleep_min = sleep_min
         self.sleep_max = sleep_max
         self._last_request_time: Optional[float] = None
         self._history_call_timeout = _AKSHARE_HISTORY_CALL_TIMEOUT
-        # 东财补丁开启才执行打补丁操作
-        if get_config().enable_eastmoney_patch:
+
+        patch_enabled = enable_eastmoney_patch
+        if patch_enabled is None:
+            from src.config import get_config
+            patch_enabled = bool(get_config().enable_eastmoney_patch)
+
+        # 东财补丁开启才执行打补丁操作；显式 False 路径不进入通用 Config 或补丁模块。
+        if patch_enabled:
+            from src.patches.eastmoney_patch import eastmoney_patch
             eastmoney_patch()
     
     def _set_random_user_agent(self) -> None:

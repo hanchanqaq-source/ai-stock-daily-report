@@ -1,11 +1,14 @@
+import ast
 import asyncio
 import math
 import time
+from pathlib import Path
 
 import pandas as pd
 import pytest
 
 from src import public_market_readonly as m
+
 
 REQ = {
     "mode": "real-readonly-dry-run",
@@ -24,10 +27,28 @@ REQ = {
 
 
 def frame():
-    return pd.DataFrame([
-        {"date": "2026-07-10", "open": 10, "high": 12, "low": 9, "close": 11, "volume": 100, "amount": 1000},
-        {"date": "2026-07-13", "open": 11, "high": 13, "low": 10, "close": 12, "volume": 200, "amount": 2400},
-    ])
+    return pd.DataFrame(
+        [
+            {
+                "date": "2026-07-10",
+                "open": 10,
+                "high": 12,
+                "low": 9,
+                "close": 11,
+                "volume": 100,
+                "amount": 1000,
+            },
+            {
+                "date": "2026-07-13",
+                "open": 11,
+                "high": 13,
+                "low": 10,
+                "close": 12,
+                "volume": 200,
+                "amount": 2400,
+            },
+        ]
+    )
 
 
 class Manager:
@@ -47,6 +68,25 @@ def test_create_akshare_only_manager_only_contains_akshare(monkeypatch):
     monkeypatch.setattr(m.DataFetcherManager, "_init_default_fetchers", fail_default)
     manager = m.create_akshare_only_manager()
     assert [fetcher.__class__.__name__ for fetcher in manager._fetchers] == ["AkshareFetcher"]
+
+
+def test_create_akshare_only_manager_passes_explicit_patch_false(monkeypatch):
+    from data_provider import akshare_fetcher
+
+    seen = []
+
+    class FakeAkshareFetcher:
+        name = "AkshareFetcher"
+        priority = 1
+
+        def __init__(self, *args, **kwargs):
+            seen.append((args, kwargs))
+
+    monkeypatch.setattr(akshare_fetcher, "AkshareFetcher", FakeAkshareFetcher)
+    manager = m.create_akshare_only_manager()
+
+    assert [fetcher.__class__.__name__ for fetcher in manager._fetchers] == ["FakeAkshareFetcher"]
+    assert seen == [((), {"enable_eastmoney_patch": False})]
 
 
 def test_default_disabled_does_not_call_provider(monkeypatch):
@@ -127,3 +167,56 @@ def test_backend_timeout_returns_fixed_safe_result(monkeypatch):
         "readOnly": True,
         "redacted": True,
     }
+
+
+def test_akshare_fetcher_constructor_has_safe_three_state_contract():
+    import data_provider.akshare_fetcher as akshare_module
+
+    source = Path(akshare_module.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    constructor = None
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == "AkshareFetcher":
+            constructor = next(
+                (item for item in node.body if isinstance(item, ast.FunctionDef) and item.name == "__init__"),
+                None,
+            )
+            break
+
+    assert constructor is not None
+    assert [arg.arg for arg in constructor.args.kwonlyargs] == ["enable_eastmoney_patch"]
+    assert len(constructor.args.kw_defaults) == 1
+    assert isinstance(constructor.args.kw_defaults[0], ast.Constant)
+    assert constructor.args.kw_defaults[0].value is None
+
+    constructor_source = ast.get_source_segment(source, constructor) or ""
+    assert "if patch_enabled is None" in constructor_source
+    assert "from src.config import get_config" in constructor_source
+    assert "if patch_enabled" in constructor_source
+    assert "from src.patches.eastmoney_patch import eastmoney_patch" in constructor_source
+
+
+def test_public_market_readonly_static_config_boundary():
+    source = Path(m.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+
+    imported_modules = set()
+    explicit_safe_constructor = False
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported_modules.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module)
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "AkshareFetcher":
+            for keyword in node.keywords:
+                if (
+                    keyword.arg == "enable_eastmoney_patch"
+                    and isinstance(keyword.value, ast.Constant)
+                    and keyword.value.value is False
+                ):
+                    explicit_safe_constructor = True
+
+    assert "src.config" not in imported_modules
+    assert explicit_safe_constructor is True
