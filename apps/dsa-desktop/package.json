@@ -7,7 +7,7 @@
     "dev": "electron .",
     "build": "electron-builder",
     "test": "node --test tests/*.test.js",
-    "smoke:credential-store:windows": "node scripts/windowsCredentialSmokeController.js"
+    "smoke:credential-store:windows": "node scripts/windowsCredentialSmokePreflight.js"
   },
   "dependencies": {
     "electron-updater": "^6.8.3"
