@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { SidebarNav } from '../SidebarNav';
 
 const mockLogout = vi.fn().mockResolvedValue(undefined);
+const mockGetAlphaSiftStatus = vi.fn().mockResolvedValue({ enabled: false, available: false, installSpecIsDefault: false });
 const mockThemeToggle = vi.fn(({ collapsed }: { collapsed?: boolean }) => (
   <button type="button">{collapsed ? '切换主题(折叠)' : '切换主题'}</button>
 ));
@@ -22,24 +23,89 @@ vi.mock('../../../stores/agentChatStore', () => ({
     selector({ completionBadge: completionBadgeState.value }),
 }));
 
+vi.mock('../../../api/alphasift', () => ({
+  ALPHASIFT_CONFIG_CHANGED_EVENT: 'alphasift-config-changed',
+  SYSTEM_CONFIG_CHANGED_EVENT: 'dsa-system-config-changed',
+  alphasiftApi: {
+    getStatus: () => mockGetAlphaSiftStatus(),
+  },
+}));
+
 vi.mock('../../theme/ThemeToggle', () => ({
   ThemeToggle: (props: { collapsed?: boolean }) => mockThemeToggle(props),
 }));
 
 describe('SidebarNav', () => {
-  it('renders the required App navigation order with settings before theme', () => {
+  it('hides the screening navigation item while AlphaSift is disabled', () => {
+    mockGetAlphaSiftStatus.mockResolvedValueOnce({ enabled: false, available: false, installSpecIsDefault: false });
+
     render(
       <MemoryRouter initialEntries={['/']}>
         <SidebarNav />
       </MemoryRouter>,
     );
 
-    const labels = [
-      ...screen.getAllByRole('link').map((link) => link.getAttribute('aria-label')),
-      screen.getByRole('button', { name: '切换主题' }).textContent,
-    ];
-    expect(labels.slice(0, 6)).toEqual(['首页', '问股', '持仓', '回测', '设置', '切换主题']);
+    expect(screen.queryByRole('link', { name: '选股' })).not.toBeInTheDocument();
+  });
+
+  it('shows the screening navigation item when AlphaSift is enabled', async () => {
+    mockGetAlphaSiftStatus.mockResolvedValueOnce({ enabled: true, available: false, installSpecIsDefault: false });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <SidebarNav />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByRole('link', { name: '选股' })).toHaveAttribute('href', '/screening');
+  });
+
+  it('places screening directly after chat when AlphaSift is enabled', async () => {
+    mockGetAlphaSiftStatus.mockResolvedValueOnce({ enabled: true, available: false, installSpecIsDefault: false });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <SidebarNav />
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole('link', { name: '选股' });
+    const hrefs = screen.getAllByRole('link').map((link) => link.getAttribute('href'));
+    expect(hrefs.slice(0, 5)).toEqual(['/', '/chat', '/screening', '/portfolio', '/decision-signals']);
+  });
+
+  it('keeps settings between backtest and theme while preserving existing navigation entries', () => {
+    mockGetAlphaSiftStatus.mockResolvedValueOnce({ enabled: false, available: false, installSpecIsDefault: false });
+
+    render(
+      <MemoryRouter initialEntries={['/settings']}>
+        <SidebarNav />
+      </MemoryRouter>,
+    );
+
+    const labels = screen.getAllByRole('link').map((link) => link.getAttribute('aria-label'));
+    expect(labels).toEqual(['首页', '问股', '持仓', 'AI 建议', '回测', '设置', '告警', '用量']);
     expect(screen.getByRole('link', { name: '设置' })).toHaveAttribute('href', '/settings');
+    expect(screen.getByRole('link', { name: '设置' })).toHaveClass('font-medium');
+    expect(screen.getByRole('button', { name: '切换主题' })).toBeInTheDocument();
+  });
+
+  it('refreshes the screening navigation item after any config save event', async () => {
+    mockGetAlphaSiftStatus
+      .mockResolvedValueOnce({ enabled: false, available: false, installSpecIsDefault: false })
+      .mockResolvedValueOnce({ enabled: true, available: false, installSpecIsDefault: false });
+
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <SidebarNav />
+      </MemoryRouter>,
+    );
+
+    expect(screen.queryByRole('link', { name: '选股' })).not.toBeInTheDocument();
+    window.dispatchEvent(new Event('dsa-system-config-changed'));
+
+    expect(await screen.findByRole('link', { name: '选股' })).toHaveAttribute('href', '/screening');
+    await waitFor(() => expect(mockGetAlphaSiftStatus.mock.calls.length).toBeGreaterThanOrEqual(2));
   });
 
   it('shows the shared completion badge only when chat completion is pending', () => {
@@ -77,16 +143,28 @@ describe('SidebarNav', () => {
     expect(screen.getByRole('button', { name: '切换主题(折叠)' })).toBeInTheDocument();
   });
 
-  it('marks settings active', () => {
+  it('renders the alerts navigation item and marks it active', () => {
     render(
-      <MemoryRouter initialEntries={['/settings']}>
+      <MemoryRouter initialEntries={['/alerts']}>
         <SidebarNav />
       </MemoryRouter>,
     );
 
-    const settingsLink = screen.getByRole('link', { name: '设置' });
-    expect(settingsLink).toHaveAttribute('href', '/settings');
-    expect(settingsLink).toHaveClass('font-medium');
+    const alertsLink = screen.getByRole('link', { name: '告警' });
+    expect(alertsLink).toHaveAttribute('href', '/alerts');
+    expect(alertsLink).toHaveClass('font-medium');
+  });
+
+  it('renders the AI signals navigation item and marks it active', () => {
+    render(
+      <MemoryRouter initialEntries={['/decision-signals']}>
+        <SidebarNav />
+      </MemoryRouter>,
+    );
+
+    const signalsLink = screen.getByRole('link', { name: 'AI 建议' });
+    expect(signalsLink).toHaveAttribute('href', '/decision-signals');
+    expect(signalsLink).toHaveClass('font-medium');
   });
 
   it('opens the logout confirmation and confirms logout', async () => {
