@@ -79,6 +79,7 @@
 | [Core-M2.1 Provider 结果脱敏与输入契约收口](web_provider_readonly_local_dry_run_framework.md#core-m21-provider-result-脱敏与输入契约收口) | Provider Result runtime sanitizer、固定低敏错误映射、非法 Provider Result blocked 与 Pipeline 顶层未知字段优先阻断 |
 | [Web-M1B Provider Dry-Run 安全门禁闭环](web_provider_dry_run_gate_closure.md) | Provider Dry-Run feature flag、candidate normalizer、dry-run validator 的 mock-only 安全门禁闭环；当前未接页面、runtime 或真实 provider，真实 provider 状态仍为 NO-GO |
 | [App-M4.1 设置工作台骨架](app_m4_1_settings_workspace_shell.md) | 既有 Web 设置页内嵌的三个静态页签；既有设置功能继续保留，无真实密钥保存、无 App-M4.1 配置持久化、无网络请求，App-M4.2 尚未开始 |
+| [App-M4.2.1 服务端敏感字段契约和统一脱敏](app_m4_2_1_sensitive_contract_and_masking.md) | schema 驱动的服务端敏感字段脱敏、keep/set/clear 更新语义、掩码占位保护和本阶段未启用真实 Provider / DPAPI / 本地迁移边界 |
 
 ## 多语言
 

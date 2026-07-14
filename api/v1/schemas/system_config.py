@@ -130,10 +130,11 @@ class ExportSystemConfigResponse(BaseModel):
 
 
 class SystemConfigUpdateItem(BaseModel):
-    """Single key-value update item."""
+    """Single config update item with optional sensitive-field action."""
 
     key: str
-    value: str
+    value: Optional[str] = None
+    action: Optional[Literal["keep", "set", "clear"]] = None
 
 
 class UpdateSystemConfigRequest(BaseModel):

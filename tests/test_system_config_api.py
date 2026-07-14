@@ -105,11 +105,12 @@ class SystemConfigApiTestCase(unittest.TestCase):
         add_auth_middleware(app)
         return app
 
-    def test_get_config_keeps_regular_secret_value_unmasked(self) -> None:
+    def test_get_config_masks_schema_sensitive_secret_value(self) -> None:
         payload = system_config.get_system_config(include_schema=True, service=self.service).model_dump(by_alias=True)
         item_map = {item["key"]: item for item in payload["items"]}
-        self.assertEqual(item_map["GEMINI_API_KEY"]["value"], "secret-key-value")
-        self.assertFalse(item_map["GEMINI_API_KEY"]["is_masked"])
+        self.assertEqual(item_map["GEMINI_API_KEY"]["value"], payload["mask_token"])
+        self.assertTrue(item_map["GEMINI_API_KEY"]["is_masked"])
+        self.assertNotIn("secret-key-value", str(payload))
 
     def test_get_config_masks_llm_usage_hmac_secret(self) -> None:
         self._rewrite_env(
@@ -224,6 +225,75 @@ class SystemConfigApiTestCase(unittest.TestCase):
         env_content = self.env_path.read_text(encoding="utf-8")
         self.assertIn("STOCK_LIST=600519,300750", env_content)
         self.assertIn("GEMINI_API_KEY=new-secret-value", env_content)
+        refreshed = system_config.get_system_config(include_schema=True, service=self.service).model_dump(by_alias=True)
+        self.assertNotIn("new-secret-value", str(refreshed))
+        self.assertEqual({item["key"]: item for item in refreshed["items"]}["GEMINI_API_KEY"]["value"], refreshed["mask_token"])
+
+
+
+    def test_put_config_redacts_sensitive_validation_error_value(self) -> None:
+        submitted = "not-a-valid-url-example-token"
+        current = system_config.get_system_config(include_schema=False, service=self.service).model_dump()
+        with self.assertRaises(HTTPException) as ctx:
+            system_config.update_system_config(
+                request=UpdateSystemConfigRequest(
+                    config_version=current["config_version"],
+                    mask_token="******",
+                    reload_now=False,
+                    items=[{"key": "FEISHU_WEBHOOK_URL", "action": "set", "value": submitted}],
+                ),
+                service=self.service,
+            )
+
+        detail_text = str(ctx.exception.detail)
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("validation_failed", detail_text)
+        self.assertIn("invalid_url", detail_text)
+        self.assertIn("valid URLs", detail_text)
+        self.assertNotIn("example-token", detail_text)
+        self.assertNotIn(submitted, detail_text)
+        self.assertIsNone(self.manager.read_config_map().get("FEISHU_WEBHOOK_URL"))
+
+    def test_put_config_rejects_sensitive_mask_placeholder_without_echo(self) -> None:
+        current = system_config.get_system_config(include_schema=False, service=self.service).model_dump()
+        with self.assertRaises(HTTPException) as ctx:
+            system_config.update_system_config(
+                request=UpdateSystemConfigRequest(
+                    config_version=current["config_version"],
+                    mask_token="******",
+                    reload_now=False,
+                    items=[{"key": "GEMINI_API_KEY", "action": "set", "value": "masked-value"}],
+                ),
+                service=self.service,
+            )
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertNotIn("masked-value", str(ctx.exception.detail))
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "secret-key-value")
+
+    def test_put_config_sensitive_clear_requires_explicit_action(self) -> None:
+        current = system_config.get_system_config(include_schema=False, service=self.service).model_dump()
+        system_config.update_system_config(
+            request=UpdateSystemConfigRequest(
+                config_version=current["config_version"],
+                mask_token="******",
+                reload_now=False,
+                items=[{"key": "GEMINI_API_KEY", "value": ""}],
+            ),
+            service=self.service,
+        )
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "secret-key-value")
+
+        current = system_config.get_system_config(include_schema=False, service=self.service).model_dump()
+        system_config.update_system_config(
+            request=UpdateSystemConfigRequest(
+                config_version=current["config_version"],
+                mask_token="******",
+                reload_now=False,
+                items=[{"key": "GEMINI_API_KEY", "action": "clear"}],
+            ),
+            service=self.service,
+        )
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "")
 
     def test_put_config_escapes_custom_webhook_template_placeholders(self) -> None:
         template = '{"title":$title_json,"content":$content_json}'

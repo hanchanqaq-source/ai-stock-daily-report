@@ -21,7 +21,7 @@ ensure_litellm_stub()
 from src.config import ANSPIRE_LLM_MODEL_DEFAULT, DEFAULT_ALPHASIFT_INSTALL_SPEC, Config
 from src.core.config_manager import ConfigManager
 from src.llm.backend_registry import GENERATION_ONLY_BACKEND_IDS
-from src.services.system_config_service import ConfigConflictError, ConfigImportError, SystemConfigService
+from src.services.system_config_service import ConfigConflictError, ConfigImportError, ConfigValidationError, SystemConfigService
 
 
 class SystemConfigServiceTestCase(unittest.TestCase):
@@ -62,14 +62,26 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         message = SimpleNamespace(content=content, tool_calls=tool_calls or [])
         return SimpleNamespace(choices=[SimpleNamespace(message=message)])
 
-    def test_get_config_keeps_regular_sensitive_values_unmasked(self) -> None:
+    def test_get_config_masks_schema_sensitive_values(self) -> None:
         payload = self.service.get_config(include_schema=True)
         items = {item["key"]: item for item in payload["items"]}
 
         self.assertIn("GEMINI_API_KEY", items)
-        self.assertEqual(items["GEMINI_API_KEY"]["value"], "secret-key-value")
-        self.assertFalse(items["GEMINI_API_KEY"]["is_masked"])
+        self.assertEqual(items["GEMINI_API_KEY"]["value"], payload["mask_token"])
+        self.assertTrue(items["GEMINI_API_KEY"]["is_masked"])
         self.assertTrue(items["GEMINI_API_KEY"]["raw_value_exists"])
+        self.assertTrue(items["GEMINI_API_KEY"]["schema"]["is_sensitive"])
+
+    def test_get_config_sensitive_unset_returns_safe_empty_state(self) -> None:
+        self._rewrite_env("STOCK_LIST=600519,000001")
+
+        payload = self.service.get_config(include_schema=True)
+        items = {item["key"]: item for item in payload["items"]}
+
+        self.assertEqual(items["GEMINI_API_KEY"]["value"], "")
+        self.assertFalse(items["GEMINI_API_KEY"]["is_masked"])
+        self.assertFalse(items["GEMINI_API_KEY"]["raw_value_exists"])
+        self.assertTrue(items["GEMINI_API_KEY"]["schema"]["is_sensitive"])
 
     def test_get_config_masks_alphasift_install_spec(self) -> None:
         self._rewrite_env(
@@ -792,8 +804,10 @@ class SystemConfigServiceTestCase(unittest.TestCase):
 
             self.assertEqual(pre_save_items["OPENAI_BASE_URL"]["value"], "https://runtime-openai.v1")
             self.assertFalse(pre_save_items["OPENAI_BASE_URL"]["raw_value_exists"])
-            self.assertEqual(pre_save_items["OPENAI_API_KEY"]["value"], "runtime-openai-key")
+            self.assertEqual(pre_save_items["OPENAI_API_KEY"]["value"], "")
+            self.assertFalse(pre_save_items["OPENAI_API_KEY"]["is_masked"])
             self.assertFalse(pre_save_items["OPENAI_API_KEY"]["raw_value_exists"])
+            self.assertNotIn("runtime-openai-key", str(pre_save))
             self.assertEqual(pre_save_items["LITELLM_MODEL"]["value"], "openai/gpt-4o-mini")
             self.assertTrue(pre_save_items["LITELLM_MODEL"]["raw_value_exists"])
             self.assertEqual(pre_save_items["OPENAI_MODEL"]["value"], "gpt-4.1")
@@ -896,9 +910,15 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         items = {item["key"]: item for item in payload["items"]}
 
         self.assertIn("LLM_CHANNELS", items)
-        self.assertEqual(items["LLM_DEEPSEEK_API_KEY"]["value"], "sk-test-value")
+        self.assertEqual(items["LLM_DEEPSEEK_API_KEY"]["value"], payload["mask_token"])
+        self.assertTrue(items["LLM_DEEPSEEK_API_KEY"]["is_masked"])
+        self.assertTrue(items["LLM_DEEPSEEK_API_KEY"]["raw_value_exists"])
         self.assertEqual(items["LLM_DEEPSEEK_MODELS"]["value"], "deepseek-v4-flash,deepseek-v4-pro")
-        self.assertEqual(items["LLM_MY_PROXY_API_KEYS"]["value"], "sk-key-1,sk-key-2")
+        self.assertEqual(items["LLM_MY_PROXY_API_KEYS"]["value"], payload["mask_token"])
+        self.assertTrue(items["LLM_MY_PROXY_API_KEYS"]["is_masked"])
+        self.assertTrue(items["LLM_MY_PROXY_API_KEYS"]["raw_value_exists"])
+        self.assertNotIn("sk-test-value", str(payload))
+        self.assertNotIn("sk-key-1", str(payload))
         self.assertEqual(items["LLM_MY_PROXY_MODELS"]["value"], "gpt-5.5")
         self.assertEqual(items["LLM_MY_PROXY_API_KEYS"]["schema"]["category"], "ai_model")
         self.assertNotIn("LLM_UNUSED_API_KEY", items)
@@ -1486,6 +1506,121 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertEqual(current_map["STOCK_LIST"], "600519,300750")
         self.assertEqual(current_map["GEMINI_API_KEY"], "secret-key-value")
 
+
+
+    def test_sensitive_validation_issue_redacts_invalid_url_value(self) -> None:
+        submitted = "not-a-valid-url-example-token"
+        with self.assertRaises(ConfigValidationError) as ctx:
+            self.service.update(
+                config_version=self.manager.get_config_version(),
+                items=[{"key": "FEISHU_WEBHOOK_URL", "action": "set", "value": submitted}],
+                mask_token="******",
+                reload_now=False,
+            )
+
+        issues_text = str(ctx.exception.issues)
+        self.assertIn("invalid_url", issues_text)
+        self.assertIn("valid URLs", issues_text)
+        self.assertNotIn("example-token", issues_text)
+        self.assertNotIn(submitted, issues_text)
+        for issue in ctx.exception.issues:
+            if issue["key"] == "FEISHU_WEBHOOK_URL":
+                self.assertNotIn("actual", issue)
+                self.assertNotIn("example-token", issue.get("message", ""))
+                self.assertNotIn("example-token", issue.get("expected", ""))
+        self.assertEqual(self.manager.read_config_map().get("FEISHU_WEBHOOK_URL"), None)
+
+    def test_non_sensitive_validation_issue_keeps_actual_value(self) -> None:
+        submitted = "25:99"
+        result = self.service.validate(
+            items=[{"key": "SCHEDULE_TIME", "value": submitted}],
+            mask_token="******",
+        )
+
+        issues = {issue["key"]: issue for issue in result["issues"]}
+        self.assertFalse(result["valid"])
+        self.assertEqual(issues["SCHEDULE_TIME"]["actual"], submitted)
+
+    def test_cross_field_validation_sanitizer_redacts_sensitive_values(self) -> None:
+        issues = SystemConfigService._sanitize_validation_issues(
+            [
+                {
+                    "key": "FEISHU_WEBHOOK_URL",
+                    "code": "cross_field_example",
+                    "message": "bad not-a-valid-url-example-token",
+                    "severity": "error",
+                    "expected": "not-a-valid-url-example-token must not appear",
+                    "actual": "not-a-valid-url-example-token",
+                }
+            ],
+            sensitive_keys={"FEISHU_WEBHOOK_URL"},
+            sensitive_values={"not-a-valid-url-example-token"},
+        )
+
+        issue_text = str(issues)
+        self.assertNotIn("example-token", issue_text)
+        self.assertNotIn("actual", issues[0])
+        self.assertIn("masked-value", issue_text)
+
+    def test_sensitive_action_keep_set_clear_and_placeholders(self) -> None:
+        version = self.manager.get_config_version()
+        keep_response = self.service.update(
+            config_version=version,
+            items=[{"key": "GEMINI_API_KEY", "action": "keep"}],
+            mask_token="******",
+            reload_now=False,
+        )
+        self.assertEqual(keep_response["applied_count"], 0)
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "secret-key-value")
+
+        set_response = self.service.update(
+            config_version=self.manager.get_config_version(),
+            items=[{"key": "GEMINI_API_KEY", "action": "set", "value": "test-key"}],
+            mask_token="******",
+            reload_now=False,
+        )
+        self.assertEqual(set_response["applied_count"], 1)
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "test-key")
+        item_map = {item["key"]: item for item in self.service.get_config(include_schema=True)["items"]}
+        self.assertEqual(item_map["GEMINI_API_KEY"]["value"], "******")
+        self.assertTrue(item_map["GEMINI_API_KEY"]["raw_value_exists"])
+        self.assertTrue(item_map["GEMINI_API_KEY"]["is_masked"])
+
+        for placeholder in ("", "******", "masked-value", "********"):
+            self.service.update(
+                config_version=self.manager.get_config_version(),
+                items=[{"key": "GEMINI_API_KEY", "value": placeholder}],
+                mask_token="******",
+                reload_now=False,
+            )
+            self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "test-key")
+
+        clear_response = self.service.update(
+            config_version=self.manager.get_config_version(),
+            items=[{"key": "GEMINI_API_KEY", "action": "clear"}],
+            mask_token="******",
+            reload_now=False,
+        )
+        self.assertEqual(clear_response["applied_count"], 1)
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "")
+        item_map = {item["key"]: item for item in self.service.get_config(include_schema=True)["items"]}
+        self.assertEqual(item_map["GEMINI_API_KEY"]["value"], "")
+        self.assertFalse(item_map["GEMINI_API_KEY"]["raw_value_exists"])
+        self.assertFalse(item_map["GEMINI_API_KEY"]["is_masked"])
+
+    def test_sensitive_set_rejects_masked_placeholders_without_echoing_value(self) -> None:
+        for placeholder in ("******", "masked-value", "********"):
+            with self.subTest(placeholder=placeholder):
+                with self.assertRaises(Exception) as ctx:
+                    self.service.update(
+                        config_version=self.manager.get_config_version(),
+                        items=[{"key": "GEMINI_API_KEY", "action": "set", "value": placeholder}],
+                        mask_token="******",
+                        reload_now=False,
+                    )
+                self.assertNotIn(placeholder, str(getattr(ctx.exception, "issues", "")))
+                self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "secret-key-value")
+
     def test_update_alphasift_enable_does_not_rewrite_llm_fields(self) -> None:
         self._rewrite_env(
             "STOCK_LIST=600519,000001",
@@ -1714,7 +1849,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
         validation = self.service.validate(
             items=[
-                {"key": "FEISHU_FOLDER_TOKEN", "value": ""},
+                {"key": "FEISHU_FOLDER_TOKEN", "action": "clear"},
             ]
         )
         self.assertTrue(validation["valid"])
@@ -3006,8 +3141,8 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         response = self.service.update(
             config_version=self.manager.get_config_version(),
             items=[
-                {"key": "LLM_HERMES_API_KEYS", "value": ""},
-                {"key": "LLM_HERMES_EXTRA_HEADERS", "value": ""},
+                {"key": "LLM_HERMES_API_KEYS", "action": "clear"},
+                {"key": "LLM_HERMES_EXTRA_HEADERS", "action": "clear"},
             ],
             reload_now=False,
         )
@@ -3966,7 +4101,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
                 {"key": "LITELLM_MODEL", "value": ""},
                 {"key": "OPENAI_MODEL", "value": ""},
                 {"key": "OPENAI_BASE_URL", "value": ""},
-                {"key": "OPENAI_API_KEY", "value": ""},
+                {"key": "OPENAI_API_KEY", "action": "clear"},
             ],
             reload_now=False,
         )

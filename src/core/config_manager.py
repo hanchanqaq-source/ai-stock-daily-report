@@ -186,12 +186,15 @@ class ConfigManager:
             stored_values = self._read_config_map(normalize_values=False)
             mutable_updates: Dict[str, str] = {}
             skipped_masked: List[str] = []
+            normalized_sensitive_keys = {key.upper() for key in sensitive_keys}
+            submitted_update_keys: Set[str] = set()
 
             for key, value in updates:
                 key_upper = key.upper()
+                submitted_update_keys.add(key_upper)
                 current_value = current_values.get(key_upper)
 
-                if key_upper in sensitive_keys and value == mask_token:
+                if key_upper in normalized_sensitive_keys and value == mask_token:
                     if current_value not in (None, ""):
                         skipped_masked.append(key_upper)
                     continue
@@ -208,6 +211,10 @@ class ConfigManager:
                     continue
 
                 mutable_updates[key_upper] = value
+
+            for key_upper in sorted(normalized_sensitive_keys - submitted_update_keys):
+                if current_values.get(key_upper) not in (None, ""):
+                    skipped_masked.append(key_upper)
 
             if mutable_updates:
                 self._atomic_upsert(mutable_updates)
@@ -277,7 +284,6 @@ class ConfigManager:
             if entry.kind != "assignment" or entry.key is None:
                 continue
             key_to_index[entry.key.upper()] = index
-
         return key_to_index
 
     @staticmethod
