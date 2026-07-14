@@ -183,7 +183,7 @@ export async function applyDesktopCredentialUpdates(
       rawResult = item.action === 'set'
         ? await resolvedBridge.setCredential(item.key, item.value as string)
         : await resolvedBridge.clearCredential(item.key);
-    } catch (_error) {
+    } catch {
       throw new DesktopCredentialOperationError(item.key, 'desktop_credential_ipc_failed');
     }
 
@@ -218,7 +218,7 @@ export async function overlayDesktopCredentialStatuses(
     try {
       const status = normalizeDesktopCredentialResult(await bridge.getCredentialStatus?.(item.key) ?? {});
       return [item.key, status] as const;
-    } catch (_error) {
+    } catch {
       return [item.key, null] as const;
     }
   }));
