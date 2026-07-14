@@ -167,6 +167,7 @@ def test_create_akshare_only_manager_passes_explicit_patch_false(monkeypatch):
 
     class FakeAkshareFetcher:
         name = "AkshareFetcher"
+        priority = 1
 
         def __init__(self, *args, **kwargs):
             seen.append((args, kwargs))
