@@ -42,15 +42,21 @@ function resolveCredentialStorePath({
   }
 
   const localAppData = typeof env.LOCALAPPDATA === 'string' ? env.LOCALAPPDATA.trim() : '';
-  if (!localAppData) {
+  if (!localAppData || !path.isAbsolute(localAppData)) {
     return { supported: false, errorCode: ERROR_CODES.STORAGE_UNAVAILABLE };
   }
 
   const root = path.resolve(localAppData);
-  const safeProductDirName = String(productDirName || DEFAULT_PRODUCT_DIR_NAME).replace(/[^A-Za-z0-9 ._-]/g, '').trim();
-  const storePath = path.resolve(root, safeProductDirName || DEFAULT_PRODUCT_DIR_NAME, ...CREDENTIAL_RELATIVE_PATH);
+  const safeProductDirName = String(productDirName || DEFAULT_PRODUCT_DIR_NAME)
+    .replace(/[^A-Za-z0-9 ._-]/g, '')
+    .trim();
+  const storePath = path.resolve(
+    root,
+    safeProductDirName || DEFAULT_PRODUCT_DIR_NAME,
+    ...CREDENTIAL_RELATIVE_PATH,
+  );
   const relative = path.relative(root, storePath);
-  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+  if (!relative || relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
     return { supported: false, errorCode: ERROR_CODES.STORAGE_UNAVAILABLE };
   }
 
@@ -76,7 +82,7 @@ function isValidStoreDocument(document) {
     return false;
   }
   return Object.entries(document.encryptedValues).every(
-    ([key, value]) => validateCredentialKey(key) && typeof value === 'string' && /^[A-Za-z0-9+/]+={0,2}$/.test(value)
+    ([key, value]) => validateCredentialKey(key) && typeof value === 'string' && /^[A-Za-z0-9+/]+={0,2}$/.test(value),
   );
 }
 
@@ -93,6 +99,7 @@ function createSecureCredentialStore({
   platform = process.platform,
   env = process.env,
   fsModule = fs,
+  cryptoModule = crypto,
   productDirName = DEFAULT_PRODUCT_DIR_NAME,
   now = () => new Date().toISOString(),
 } = {}) {
@@ -102,7 +109,15 @@ function createSecureCredentialStore({
     if (!pathState.supported) {
       return { supported: false, errorCode: pathState.errorCode };
     }
-    if (!safeStorage || typeof safeStorage.isEncryptionAvailable !== 'function' || !safeStorage.isEncryptionAvailable()) {
+    try {
+      if (
+        !safeStorage
+        || typeof safeStorage.isEncryptionAvailable !== 'function'
+        || !safeStorage.isEncryptionAvailable()
+      ) {
+        return { supported: false, errorCode: ERROR_CODES.STORAGE_UNAVAILABLE };
+      }
+    } catch (_error) {
       return { supported: false, errorCode: ERROR_CODES.STORAGE_UNAVAILABLE };
     }
     return { supported: true };
@@ -129,9 +144,13 @@ function createSecureCredentialStore({
 
   function writeStoreDocument(document) {
     const dir = path.dirname(pathState.storePath);
-    const tempPath = path.join(dir, `.credentials.v1.${process.pid}.${crypto.randomBytes(8).toString('hex')}.tmp`);
-    const content = `${JSON.stringify(document, null, 2)}\n`;
+    let tempPath = null;
     try {
+      tempPath = path.join(
+        dir,
+        `.credentials.v1.${process.pid}.${cryptoModule.randomBytes(8).toString('hex')}.tmp`,
+      );
+      const content = `${JSON.stringify(document, null, 2)}\n`;
       fsModule.mkdirSync(dir, { recursive: true, mode: 0o700 });
       fsModule.writeFileSync(tempPath, content, { encoding: 'utf8', mode: 0o600, flag: 'wx' });
       fsModule.renameSync(tempPath, pathState.storePath);
@@ -143,7 +162,7 @@ function createSecureCredentialStore({
       return { ok: true };
     } catch (_error) {
       try {
-        if (fsModule.existsSync(tempPath)) {
+        if (tempPath && fsModule.existsSync(tempPath)) {
           fsModule.unlinkSync(tempPath);
         }
       } catch (_cleanupError) {
@@ -165,7 +184,11 @@ function createSecureCredentialStore({
     if (!readResult.ok) {
       return makeResult({ success: false, supported: true, configured: false, errorCode: readResult.errorCode });
     }
-    return makeResult({ success: true, supported: true, configured: Boolean(readResult.document.encryptedValues[key]) });
+    return makeResult({
+      success: true,
+      supported: true,
+      configured: Boolean(readResult.document.encryptedValues[key]),
+    });
   }
 
   function setCredential(key, plaintext) {
@@ -187,7 +210,11 @@ function createSecureCredentialStore({
 
     let encryptedBase64;
     try {
-      encryptedBase64 = safeStorage.encryptString(plaintext).toString('base64');
+      const encrypted = safeStorage.encryptString(plaintext);
+      if (!Buffer.isBuffer(encrypted) || encrypted.length === 0) {
+        throw new Error('invalid encrypted payload');
+      }
+      encryptedBase64 = encrypted.toString('base64');
     } catch (_error) {
       return makeResult({ success: false, supported: true, configured: false, errorCode: ERROR_CODES.ENCRYPTION_FAILED });
     }
@@ -197,7 +224,12 @@ function createSecureCredentialStore({
     nextDocument.updatedAt = now();
     const writeResult = writeStoreDocument(nextDocument);
     if (!writeResult.ok) {
-      return makeResult({ success: false, supported: true, configured: Boolean(readResult.document.encryptedValues[key]), errorCode: writeResult.errorCode });
+      return makeResult({
+        success: false,
+        supported: true,
+        configured: Boolean(readResult.document.encryptedValues[key]),
+        errorCode: writeResult.errorCode,
+      });
     }
     return makeResult({ success: true, supported: true, configured: true });
   }
@@ -219,7 +251,12 @@ function createSecureCredentialStore({
     nextDocument.updatedAt = now();
     const writeResult = writeStoreDocument(nextDocument);
     if (!writeResult.ok) {
-      return makeResult({ success: false, supported: true, configured: Boolean(readResult.document.encryptedValues[key]), errorCode: writeResult.errorCode });
+      return makeResult({
+        success: false,
+        supported: true,
+        configured: Boolean(readResult.document.encryptedValues[key]),
+        errorCode: writeResult.errorCode,
+      });
     }
     return makeResult({ success: true, supported: true, configured: false });
   }
@@ -241,11 +278,15 @@ function createSecureCredentialStore({
       return { success: true, supported: true, value: null, configured: false };
     }
     try {
+      const value = safeStorage.decryptString(Buffer.from(encryptedBase64, 'base64'));
+      if (typeof value !== 'string') {
+        throw new Error('invalid decrypted value');
+      }
       return {
         success: true,
         supported: true,
         configured: true,
-        value: safeStorage.decryptString(Buffer.from(encryptedBase64, 'base64')),
+        value,
       };
     } catch (_error) {
       return { success: false, supported: true, value: null, errorCode: ERROR_CODES.DECRYPTION_FAILED };
