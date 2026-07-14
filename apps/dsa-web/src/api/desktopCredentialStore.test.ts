@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
-  DesktopCredentialOperationError,
   applyDesktopCredentialUpdates,
   overlayDesktopCredentialStatuses,
   splitDesktopCredentialUpdates,
@@ -118,7 +117,7 @@ describe('desktop credential routing helpers', () => {
 
     await expect(applyDesktopCredentialUpdates(bridge, [
       { key: 'OPENAI_API_KEY', action: 'set', value: 'fake-unit-test-value' },
-    ])).rejects.toMatchObject<Partial<DesktopCredentialOperationError>>({
+    ])).rejects.toMatchObject({
       errorCode: 'desktop_credential_ipc_failed',
       key: 'OPENAI_API_KEY',
     });
