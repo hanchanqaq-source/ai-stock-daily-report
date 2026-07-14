@@ -108,9 +108,12 @@ export interface ExportSystemConfigResponse {
   updatedAt?: string;
 }
 
+export type SystemConfigUpdateAction = 'keep' | 'set' | 'clear';
+
 export interface SystemConfigUpdateItem {
   key: string;
-  value: string;
+  action?: SystemConfigUpdateAction;
+  value?: string;
 }
 
 export interface UpdateSystemConfigRequest {

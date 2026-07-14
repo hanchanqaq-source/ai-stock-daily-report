@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSystemConfig } from '../useSystemConfig';
+import { isProtectedSensitivePlaceholder, toSensitiveUpdateItem, useSystemConfig } from '../useSystemConfig';
 
 const { getConfig, validate, update } = vi.hoisted(() => ({
   getConfig: vi.fn(),
@@ -25,6 +25,26 @@ vi.mock('../../api/systemConfig', () => ({
     };
   },
 }));
+
+
+const sensitiveItem = {
+  key: 'OPENAI_API_KEY',
+  value: 'masked-placeholder',
+  rawValueExists: true,
+  isMasked: true,
+  schema: {
+    key: 'OPENAI_API_KEY',
+    category: 'ai_model' as const,
+    dataType: 'string' as const,
+    uiControl: 'password' as const,
+    isSensitive: true,
+    isRequired: false,
+    isEditable: true,
+    options: [],
+    validation: {},
+    displayOrder: 2,
+  },
+};
 
 const sampleConfig = {
   configVersion: 'v1',
@@ -136,6 +156,82 @@ describe('useSystemConfig', () => {
     getConfig.mockResolvedValue(sampleConfig);
     validate.mockResolvedValue({ valid: true, issues: [] });
     update.mockResolvedValue({ warnings: [] });
+  });
+
+
+
+  it('maps sensitive draft modes to keep set clear without submitting placeholders', () => {
+    expect(toSensitiveUpdateItem(sensitiveItem, 'masked-placeholder', 'keep', 'masked-placeholder')).toBeNull();
+    expect(toSensitiveUpdateItem(sensitiveItem, 'new-test-key', 'editing', 'masked-placeholder')).toEqual({
+      key: 'OPENAI_API_KEY',
+      action: 'set',
+      value: 'new-test-key',
+    });
+    expect(toSensitiveUpdateItem(sensitiveItem, 'masked-placeholder', 'editing', 'masked-placeholder')).toBeNull();
+    expect(toSensitiveUpdateItem(sensitiveItem, '********', 'editing', 'masked-placeholder')).toBeNull();
+    expect(toSensitiveUpdateItem(sensitiveItem, '', 'clear', 'masked-placeholder')).toEqual({
+      key: 'OPENAI_API_KEY',
+      action: 'clear',
+    });
+    expect(isProtectedSensitivePlaceholder('masked-value', 'masked-placeholder')).toBe(true);
+  });
+
+  it('keeps configured sensitive fields clean until explicit edit or clear', async () => {
+    const config = { ...sampleConfig, maskToken: 'masked-placeholder', items: [...sampleConfig.items, sensitiveItem] };
+    getConfig.mockResolvedValueOnce(config);
+
+    const { result } = renderHook(() => useSystemConfig());
+    await act(async () => {
+      await result.current.load();
+    });
+
+    expect(result.current.getSensitiveFieldState('OPENAI_API_KEY')).toMatchObject({ mode: 'keep', isConfigured: true, isDirty: false });
+    expect(result.current.getChangedItems()).toEqual([]);
+
+    act(() => {
+      result.current.beginSensitiveEdit('OPENAI_API_KEY');
+    });
+    expect(result.current.getChangedItems()).toEqual([]);
+
+    act(() => {
+      result.current.setDraftValue('OPENAI_API_KEY', 'new-test-key');
+    });
+    expect(result.current.getChangedItems()).toEqual([{ key: 'OPENAI_API_KEY', action: 'set', value: 'new-test-key' }]);
+
+    act(() => {
+      result.current.cancelSensitiveEdit('OPENAI_API_KEY');
+    });
+    expect(result.current.getSensitiveFieldState('OPENAI_API_KEY')).toMatchObject({ mode: 'keep', isDirty: false });
+    expect(result.current.getChangedItems()).toEqual([]);
+
+    act(() => {
+      result.current.markSensitiveClear('OPENAI_API_KEY');
+    });
+    expect(result.current.getChangedItems()).toEqual([{ key: 'OPENAI_API_KEY', action: 'clear' }]);
+  });
+
+  it('resets sensitive edit state after a successful save reload', async () => {
+    const config = { ...sampleConfig, maskToken: 'masked-placeholder', items: [...sampleConfig.items, sensitiveItem] };
+    getConfig.mockResolvedValueOnce(config);
+    getConfig.mockResolvedValueOnce(config);
+
+    const { result } = renderHook(() => useSystemConfig());
+    await act(async () => {
+      await result.current.load();
+    });
+    act(() => {
+      result.current.beginSensitiveEdit('OPENAI_API_KEY');
+      result.current.setDraftValue('OPENAI_API_KEY', 'new-test-key');
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      items: [{ key: 'OPENAI_API_KEY', action: 'set', value: 'new-test-key' }],
+    }));
+    expect(result.current.getSensitiveFieldState('OPENAI_API_KEY')).toMatchObject({ mode: 'keep', isDirty: false });
   });
 
   it('keeps load callback stable after a successful load', async () => {

@@ -3,12 +3,13 @@ import { systemConfigApi } from '../systemConfig';
 
 const get = vi.hoisted(() => vi.fn());
 const post = vi.hoisted(() => vi.fn());
+const put = vi.hoisted(() => vi.fn());
 
 vi.mock('../index', () => ({
   default: {
     get,
     post,
-    put: vi.fn(),
+    put,
   },
 }));
 
@@ -16,6 +17,8 @@ describe('systemConfigApi', () => {
   beforeEach(() => {
     get.mockReset();
     post.mockReset();
+    put.mockReset();
+    put.mockResolvedValue({ data: { success: true, config_version: 'v2', applied_count: 1, skipped_masked_count: 0, reload_triggered: true, updated_keys: [], warnings: [] } });
     post.mockResolvedValue({
       data: {
         success: true,
@@ -112,6 +115,51 @@ describe('systemConfigApi', () => {
     expect(result.latencyMs).toBe(15);
     expect(result.attempts[0].errorCode).toBeNull();
     expect(result.attempts[0].httpStatus).toBe(200);
+  });
+
+
+
+  it('serializes legacy and sensitive update actions without forcing empty values', async () => {
+    await systemConfigApi.update({
+      configVersion: 'v1',
+      maskToken: 'masked-placeholder',
+      items: [
+        { key: 'NORMAL_FIELD', value: 'plain' },
+        { key: 'OPENAI_API_KEY', action: 'set', value: 'new-test-key' },
+        { key: 'KEEP_KEY', action: 'keep' },
+        { key: 'CLEAR_KEY', action: 'clear' },
+      ],
+    });
+
+    expect(put).toHaveBeenCalledWith('/api/v1/system/config', {
+      config_version: 'v1',
+      mask_token: 'masked-placeholder',
+      reload_now: true,
+      items: [
+        { key: 'NORMAL_FIELD', value: 'plain' },
+        { key: 'OPENAI_API_KEY', action: 'set', value: 'new-test-key' },
+        { key: 'KEEP_KEY', action: 'keep' },
+        { key: 'CLEAR_KEY', action: 'clear' },
+      ],
+    });
+  });
+
+  it('preserves actions when validating sensitive update items', async () => {
+    post.mockResolvedValueOnce({ data: { valid: true, issues: [] } });
+
+    await systemConfigApi.validate({
+      items: [
+        { key: 'OPENAI_API_KEY', action: 'clear' },
+        { key: 'GEMINI_API_KEY', action: 'set', value: 'new-test-key' },
+      ],
+    });
+
+    expect(post).toHaveBeenCalledWith('/api/v1/system/config/validate', {
+      items: [
+        { key: 'OPENAI_API_KEY', action: 'clear' },
+        { key: 'GEMINI_API_KEY', action: 'set', value: 'new-test-key' },
+      ],
+    });
   });
 
   it('loads first-run setup status with camelCase fields', async () => {

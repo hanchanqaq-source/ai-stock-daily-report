@@ -59,24 +59,29 @@ export class SystemConfigConflictError extends Error {
   }
 }
 
+function toSnakeUpdateItem(item: UpdateSystemConfigRequest['items'][number]): Record<string, unknown> {
+  const payload: Record<string, unknown> = { key: item.key };
+  if (item.action !== undefined) {
+    payload.action = item.action;
+  }
+  if (item.value !== undefined) {
+    payload.value = item.value;
+  }
+  return payload;
+}
+
 function toSnakeUpdatePayload(payload: UpdateSystemConfigRequest): Record<string, unknown> {
   return {
     config_version: payload.configVersion,
     mask_token: payload.maskToken ?? '******',
     reload_now: payload.reloadNow ?? true,
-    items: payload.items.map((item) => ({
-      key: item.key,
-      value: item.value,
-    })),
+    items: payload.items.map(toSnakeUpdateItem),
   };
 }
 
 function toSnakeValidatePayload(payload: ValidateSystemConfigRequest): Record<string, unknown> {
   return {
-    items: payload.items.map((item) => ({
-      key: item.key,
-      value: item.value,
-    })),
+    items: payload.items.map(toSnakeUpdateItem),
   };
 }
 
@@ -108,10 +113,7 @@ function toSnakeTestChannelPayload(payload: TestLLMChannelRequest): Record<strin
 function toSnakeNotificationTestPayload(payload: TestNotificationChannelRequest): Record<string, unknown> {
   return {
     channel: payload.channel,
-    items: (payload.items || []).map((item) => ({
-      key: item.key,
-      value: item.value,
-    })),
+    items: (payload.items || []).map(toSnakeUpdateItem),
     mask_token: payload.maskToken ?? '******',
     title: payload.title ?? 'DSA 通知测试',
     content: payload.content ?? '这是一条来自 DSA Web 设置页的通知测试消息。',

@@ -112,7 +112,7 @@ describe('SettingsField', () => {
       <SettingsField
         item={{
           key: 'OPENAI_API_KEY',
-          value: 'secret',
+          value: 'masked-placeholder',
           rawValueExists: true,
           isMasked: false,
           schema: {
@@ -128,8 +128,9 @@ describe('SettingsField', () => {
             displayOrder: 1,
           },
         }}
-        value="secret"
+        value="test-secret-value"
         onChange={onChange}
+        sensitiveState={{ mode: 'editing', isConfigured: true, isDirty: false }}
         issues={[
           {
             key: 'OPENAI_API_KEY',
@@ -147,10 +148,10 @@ describe('SettingsField', () => {
     const input = screen.getByLabelText('OpenAI API Key');
     fireEvent.focus(input);
     fireEvent.change(input, {
-      target: { value: 'updated-secret' },
+      target: { value: 'new-test-key' },
     });
 
-    expect(onChange).toHaveBeenCalledWith('OPENAI_API_KEY', 'updated-secret');
+    expect(onChange).toHaveBeenCalledWith('OPENAI_API_KEY', 'new-test-key');
   });
 
   it('renders multi-value sensitive fields with external delete actions', () => {
@@ -160,7 +161,7 @@ describe('SettingsField', () => {
       <SettingsField
         item={{
           key: 'OPENAI_API_KEYS',
-          value: 'secret-a,secret-b',
+          value: 'masked-placeholder',
           rawValueExists: true,
           isMasked: false,
           schema: {
@@ -176,13 +177,60 @@ describe('SettingsField', () => {
             displayOrder: 1,
           },
         }}
-        value="secret-a,secret-b"
+        value="masked-placeholder"
         onChange={onChange}
+        sensitiveState={{ mode: 'keep', isConfigured: true, isDirty: false }}
       />
     );
 
-    expect(screen.getAllByRole('button', { name: '显示内容' })).toHaveLength(2);
-    expect(screen.getAllByRole('button', { name: '删除' })).toHaveLength(2);
+    expect(screen.getByText('已配置')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /修改/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /清除/ })).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('masked-placeholder')).not.toBeInTheDocument();
+  });
+
+
+
+  it('starts configured sensitive field edits from an empty input and supports cancel/clear intents', () => {
+    const onBegin = vi.fn();
+    const onCancel = vi.fn();
+    const onClear = vi.fn();
+
+    render(
+      <SettingsField
+        item={{
+          key: 'OPENAI_API_KEY',
+          value: 'masked-placeholder',
+          rawValueExists: true,
+          isMasked: true,
+          schema: {
+            key: 'OPENAI_API_KEY',
+            category: 'ai_model',
+            dataType: 'string',
+            uiControl: 'password',
+            isSensitive: true,
+            isRequired: false,
+            isEditable: true,
+            options: [],
+            validation: {},
+            displayOrder: 1,
+          },
+        }}
+        value="masked-placeholder"
+        onChange={vi.fn()}
+        sensitiveState={{ mode: 'keep', isConfigured: true, isDirty: false }}
+        onBeginSensitiveEdit={onBegin}
+        onCancelSensitiveEdit={onCancel}
+        onRequestSensitiveClear={onClear}
+      />
+    );
+
+    expect(screen.getByText('已配置')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('masked-placeholder')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /修改/ }));
+    fireEvent.click(screen.getByRole('button', { name: /清除/ }));
+    expect(onBegin).toHaveBeenCalledWith('OPENAI_API_KEY');
+    expect(onClear).toHaveBeenCalledWith('OPENAI_API_KEY');
   });
 
   it('allows optional select fields to be cleared when schema provides an empty option', () => {

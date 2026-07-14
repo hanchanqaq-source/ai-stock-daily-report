@@ -66,6 +66,10 @@ interface SettingsFieldProps {
   disabled?: boolean;
   onChange: (key: string, value: string) => void;
   issues?: ConfigValidationIssue[];
+  sensitiveState?: { mode: 'keep' | 'editing' | 'clear'; isConfigured: boolean; isDirty: boolean };
+  onBeginSensitiveEdit?: (key: string) => void;
+  onCancelSensitiveEdit?: (key: string) => void;
+  onRequestSensitiveClear?: (key: string) => void;
 }
 
 function renderFieldControl(
@@ -219,6 +223,10 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
   disabled = false,
   onChange,
   issues = [],
+  sensitiveState,
+  onBeginSensitiveEdit,
+  onCancelSensitiveEdit,
+  onRequestSensitiveClear,
 }) => {
   const { language, t } = useUiLanguage();
   const schema = item.schema;
@@ -235,7 +243,14 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
   const hasError = issues.some((issue) => issue.severity === 'error');
   const [isPasswordEditable, setIsPasswordEditable] = useState(false);
   const controlId = `setting-${item.key}`;
-  const displayValue = resolveDisplayValue(item, value);
+  const isSensitive = Boolean(schema?.isSensitive);
+  const sensitiveMode = sensitiveState?.mode ?? 'keep';
+  const isSensitiveEditing = isSensitive && sensitiveMode === 'editing';
+  const isSensitiveClear = isSensitive && sensitiveMode === 'clear';
+  const displayValue = isSensitive && schema?.uiControl === 'password'
+    ? isSensitiveEditing ? value : ''
+    : resolveDisplayValue(item, value);
+  const passwordEditable = isSensitive ? isSensitiveEditing || !sensitiveState?.isConfigured : isPasswordEditable;
 
   return (
     <div
@@ -279,7 +294,7 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
           displayValue,
           disabled,
           (nextValue) => onChange(item.key, nextValue),
-          isPasswordEditable,
+          passwordEditable,
           () => setIsPasswordEditable(true),
           controlId,
           language,
@@ -288,10 +303,60 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
       </div>
 
       {schema?.isSensitive ? (
-        <p className="mt-3 text-[11px] leading-5 text-secondary-text">
-          {t('settings.fieldSensitiveHint')}
-          {isMultiValue ? t('settings.fieldSensitiveMultiHint') : ''}
-        </p>
+        <div className="mt-3 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={sensitiveState?.isConfigured ? 'success' : 'default'} size="sm">
+              {sensitiveState?.isConfigured ? '已配置' : '未配置'}
+            </Badge>
+            {isSensitiveClear ? (
+              <Badge variant="danger" size="sm">待清除</Badge>
+            ) : null}
+            {sensitiveState?.isConfigured ? (
+              <>
+                <Button
+                  type="button"
+                  variant="settings-secondary"
+                  size="sm"
+                  className="text-xs shadow-none"
+                  disabled={disabled || !schema?.isEditable || isSensitiveEditing}
+                  aria-label={`修改 ${title}`}
+                  onClick={() => onBeginSensitiveEdit?.(item.key)}
+                >
+                  修改
+                </Button>
+                {isSensitiveEditing || isSensitiveClear ? (
+                  <Button
+                    type="button"
+                    variant="settings-secondary"
+                    size="sm"
+                    className="text-xs shadow-none"
+                    disabled={disabled || !schema?.isEditable}
+                    aria-label={`取消修改 ${title}`}
+                    onClick={() => onCancelSensitiveEdit?.(item.key)}
+                  >
+                    取消修改
+                  </Button>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="settings-secondary"
+                  size="sm"
+                  className="text-xs text-danger shadow-none"
+                  disabled={disabled || !schema?.isEditable}
+                  aria-label={`清除 ${title}`}
+                  onClick={() => onRequestSensitiveClear?.(item.key)}
+                >
+                  清除
+                </Button>
+              </>
+            ) : null}
+          </div>
+          <p className="text-[11px] leading-5 text-secondary-text">
+            {t('settings.fieldSensitiveHint')}
+            {isMultiValue ? t('settings.fieldSensitiveMultiHint') : ''}
+            已保存值不会回显；清空输入框不会等同于清除，清除需点击按钮并确认。
+          </p>
+        </div>
       ) : null}
 
       {issues.length ? (
