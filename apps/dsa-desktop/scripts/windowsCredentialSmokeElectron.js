@@ -161,10 +161,9 @@ app.whenReady()
   .then((result) => {
     clearSensitiveEnvironment();
     writeResult(result);
-    // A handled PASS/FAIL result is valid protocol output. Let the controller
-    // parse its fixed low-sensitivity errorCode instead of collapsing it into
-    // child_process_failed solely because the smoke assertion failed.
-    app.exit(0);
+    // Use Electron's normal quit lifecycle so Chromium can flush any internal
+    // safeStorage state before the controller starts the restart-read phase.
+    app.quit();
   })
   .catch(() => {
     const failedPhase = process.env.DSA_CREDENTIAL_SMOKE_PHASE || 'unknown';
