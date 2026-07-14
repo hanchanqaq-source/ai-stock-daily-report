@@ -47,6 +47,12 @@ test('preload exposes desktop version from BrowserWindow additionalArguments', (
   assert.equal(typeof exposeInMainWorldCalls[0][1].installDownloadedUpdate, 'function');
   assert.equal(typeof exposeInMainWorldCalls[0][1].openReleasePage, 'function');
   assert.equal(typeof exposeInMainWorldCalls[0][1].onUpdateStateChange, 'function');
+  assert.equal(typeof exposeInMainWorldCalls[0][1].getCredentialStatus, 'function');
+  assert.equal(typeof exposeInMainWorldCalls[0][1].setCredential, 'function');
+  assert.equal(typeof exposeInMainWorldCalls[0][1].clearCredential, 'function');
+  assert.equal(Object.prototype.hasOwnProperty.call(exposeInMainWorldCalls[0][1], 'readCredentialForMainProcess'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(exposeInMainWorldCalls[0][1], 'decryptCredential'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(exposeInMainWorldCalls[0][1], 'getCredentialValue'), false);
   assert.equal(
     preloadModule.readDesktopVersion([`--dsa-desktop-version=${expectedVersion}`]),
     expectedVersion
@@ -151,6 +157,18 @@ test('createDesktopBridge delegates update actions to ipcRenderer', async (t) =>
   assert.deepEqual(await desktopBridge.openReleasePage('https://github.com/ZhuLinsen/daily_stock_analysis/releases/tag/v3.13.0'), {
     channel: preloadModule.DESKTOP_OPEN_RELEASE_PAGE_CHANNEL,
     payload: 'https://github.com/ZhuLinsen/daily_stock_analysis/releases/tag/v3.13.0',
+  });
+  assert.deepEqual(await desktopBridge.getCredentialStatus('OPENAI_API_KEY'), {
+    channel: preloadModule.DESKTOP_CREDENTIAL_STATUS_CHANNEL,
+    payload: { key: 'OPENAI_API_KEY' },
+  });
+  assert.deepEqual(await desktopBridge.setCredential('OPENAI_API_KEY', 'fake-token-for-unit-test'), {
+    channel: preloadModule.DESKTOP_SET_CREDENTIAL_CHANNEL,
+    payload: { key: 'OPENAI_API_KEY', value: 'fake-token-for-unit-test' },
+  });
+  assert.deepEqual(await desktopBridge.clearCredential('OPENAI_API_KEY'), {
+    channel: preloadModule.DESKTOP_CLEAR_CREDENTIAL_CHANNEL,
+    payload: { key: 'OPENAI_API_KEY' },
   });
 
   const receivedPayloads = [];

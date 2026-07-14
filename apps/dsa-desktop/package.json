@@ -2,7 +2,7 @@
   "name": "daily-stock-analysis-desktop",
   "version": "3.21.0",
   "private": true,
-  "main": "main.js",
+  "main": "secureMain.js",
   "scripts": {
     "dev": "electron .",
     "build": "electron-builder",
@@ -22,9 +22,12 @@
       "output": "dist"
     },
     "files": [
+      "secureMain.js",
+      "credentialIpc.js",
       "main.js",
       "preload.js",
-      "renderer/**/*"
+      "renderer/**/*",
+      "secureCredentialStore.js"
     ],
     "extraResources": [
       {
