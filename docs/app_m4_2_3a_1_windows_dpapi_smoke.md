@@ -39,6 +39,8 @@ Controller 使用相同临时目录重启新的 Electron 子进程：
 6. 再次检查磁盘文件中不存在测试明文。
 7. 只输出固定低敏 JSON 阶段结果。
 
+阶段结果写入 stdout 后，Runner 使用 `app.quit()` 进入 Electron 正常退出生命周期，确保 Chromium 有机会完成内部状态刷新，再由 Controller 启动下一阶段。只有未处理异常才使用非零立即退出。
+
 Controller 只有 write、restart-read-clear 和临时目录清理全部成功时才返回退出码 0。
 
 ## 固定低敏输出
@@ -118,7 +120,7 @@ scripts\windows_secure_credential_store_smoke.bat
 - `unsupported_platform`：当前不是 Windows；Linux/macOS/mock 测试不能证明 Windows DPAPI 实机通过。
 - `encryption_unavailable`：当前 Windows 用户会话下 Electron safeStorage/DPAPI 不可用，需要检查系统凭据环境或 Electron 运行方式。
 - `child_process_failed`：Electron 子进程未能正常启动或没有返回合法低敏结果，保留 BAT 窗口截图供排查。
-- `restart_read_failed`：新的 Electron 子进程未能读取并解密第一阶段写入的测试值。
+- `restart_read_failed`：新的 Electron 子进程未能读取并解密第一阶段写入的测试值；Runner 必须使用正常退出生命周期完成第一阶段收尾。
 - `clear_failed`：重启读取成功，但清除或清除后的状态校验失败。
 - `plaintext_detected`：临时文件中出现测试明文，必须阻断后续接入。
 - `cleanup_failed`：临时目录清理失败；工具只输出低敏告警，不输出文件内容。
