@@ -82,6 +82,7 @@
 | [App-M4.2.1 服务端敏感字段契约和统一脱敏](app_m4_2_1_sensitive_contract_and_masking.md) | schema 驱动的服务端敏感字段脱敏、keep/set/clear 更新语义、掩码占位保护和本阶段未启用真实 Provider / DPAPI / 本地迁移边界 |
 | [App-M4.2.2 前端敏感字段安全交互](app_m4_2_2_frontend_sensitive_interaction.md) | Web 设置页敏感字段 keep/set/clear 交互、明确修改/取消/清除、掩码占位保护、非敏感字段兼容和未启用真实 Provider / DPAPI / 本地迁移边界 |
 | [App-M4.2.3A Windows 桌面端安全凭证存储基础](app_m4_2_3a_windows_secure_credential_store.md) | Electron 主进程 safeStorage 加密、LOCALAPPDATA 凭证文件、IPC/preload 最小边界和本阶段未接 SettingsPage / 后端 / Provider 的安全说明 |
+| [App-M4.2.3A.1 Windows DPAPI / safeStorage 本地实机 Smoke 验收工具](app_m4_2_3a_1_windows_dpapi_smoke.md) | Windows 本机两阶段 write / restart-read-clear Smoke、临时 LOCALAPPDATA 隔离、磁盘无明文检查、低敏输出、BAT 入口和 mock 测试不等于 DPAPI 实机通过的说明 |
 
 ## 多语言
 

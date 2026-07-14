@@ -93,3 +93,18 @@ handler 还会校验 payload 必须是精确结构：status/clear 只能包含 `
 - 修改配置导入导出。
 
 下一步 App-M4.2.3B 才考虑在设置页和后端运行时中安全接入该存储基础。
+
+## App-M4.2.3A.1 Windows DPAPI 实机 Smoke 验收
+
+App-M4.2.3A.1 在安全凭证存储基础之上新增独立 Windows 本地 Smoke 验收工具，用于在进入 App-M4.2.3B 前确认真实 Electron `safeStorage` / Windows DPAPI 行为。该工具不接入设置页，不修改后端运行时，不读取或使用真实凭证。
+
+- 入口脚本：`apps/dsa-desktop/scripts/windowsCredentialSmokeController.js`。
+- Electron Runner：`apps/dsa-desktop/scripts/windowsCredentialSmokeElectron.js`，只加载 Electron `app` / `safeStorage` 和当前 `secureCredentialStore`，不加载 `main.js`，不创建窗口。
+- Windows 双击入口：`scripts/windows_secure_credential_store_smoke.bat`。
+- npm 入口：在 `apps/dsa-desktop` 运行 `npm run smoke:credential-store:windows`。
+- 临时目录：Controller 在 `%TEMP%` / `os.tmpdir()` 下创建 `dsa-secure-credential-smoke-<random>`，并通过显式环境参数作为临时 `LOCALAPPDATA` 传给 Store；不会读取、备份、迁移或删除正式 `%LOCALAPPDATA%\Daily Stock Analysis\secure\credentials.v1.json`。
+- 测试值：仅使用运行时生成的虚构值，不进入命令行参数、日志、文档、PR 描述或仓库文件。
+- 验收阶段：write 阶段验证加密保存、同进程解密、磁盘无明文和合法密文；restart-read-clear 阶段通过新 Electron 子进程验证跨进程解密、clear 后未配置和清除后磁盘仍无明文。
+- 输出协议：只输出 PASS/FAIL、阶段布尔结果和固定错误码；禁止输出测试值、密文、Buffer、文件内容、路径、环境变量或异常堆栈。
+
+详细流程、PASS 标准和 Windows 本机操作见 [App-M4.2.3A.1 Windows DPAPI / safeStorage 本地实机 Smoke 验收工具](app_m4_2_3a_1_windows_dpapi_smoke.md)。mock 单元测试只验证控制流和隔离边界，**不等同于 Windows DPAPI 实机通过**。
