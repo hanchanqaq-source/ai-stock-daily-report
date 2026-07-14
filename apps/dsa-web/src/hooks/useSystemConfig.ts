@@ -5,6 +5,7 @@ import type {
   ConfigValidationIssue,
   SystemConfigCategorySchema,
   SystemConfigItem,
+  SystemConfigUpdateAction,
   SystemConfigUpdateItem,
 } from '../types/systemConfig';
 
@@ -46,6 +47,45 @@ function sortItemsByOrder(items: SystemConfigItem[]): SystemConfigItem[] {
   });
 }
 
+export type SensitiveDraftMode = 'keep' | 'editing' | 'clear';
+
+export function isSensitiveConfigured(item: SystemConfigItem | undefined): boolean {
+  return Boolean(item?.schema?.isSensitive && item.rawValueExists && item.isMasked);
+}
+
+export function isProtectedSensitivePlaceholder(value: string, maskToken: string): boolean {
+  const normalized = value.trim();
+  if (!normalized) {
+    return false;
+  }
+  return normalized === maskToken
+    || normalized.toLowerCase() === 'masked-value'
+    || /^\*{4,}$/.test(normalized);
+}
+
+export function toSensitiveUpdateItem(
+  item: SystemConfigItem,
+  draftValue: string,
+  mode: SensitiveDraftMode | undefined,
+  maskToken: string,
+): SystemConfigUpdateItem | null {
+  if (!item.schema?.isSensitive) {
+    return null;
+  }
+  const action: SystemConfigUpdateAction = mode === 'clear' ? 'clear' : mode === 'editing' ? 'set' : 'keep';
+  if (action === 'keep') {
+    return null;
+  }
+  if (action === 'clear') {
+    return { key: item.key, action: 'clear' };
+  }
+  const normalizedValue = normalizeFieldValue(draftValue, item.schema);
+  if (!normalizedValue || isProtectedSensitivePlaceholder(normalizedValue, maskToken)) {
+    return null;
+  }
+  return { key: item.key, action: 'set', value: normalizedValue };
+}
+
 function isMultiValueSchema(schema: SystemConfigItem['schema'] | undefined): boolean {
   const validation = (schema?.validation ?? {}) as Record<string, unknown>;
   return Boolean(validation.multiValue ?? validation.multi_value);
@@ -71,6 +111,7 @@ export function useSystemConfig() {
 
   // UI state
   const [draftValues, setDraftValues] = useState<Record<string, string>>({});
+  const [sensitiveDraftModes, setSensitiveDraftModes] = useState<Record<string, SensitiveDraftMode>>({});
   const [activeCategory, setActiveCategory] = useState<string>('base');
   const [validationIssues, setValidationIssues] = useState<ConfigValidationIssue[]>([]);
   const [toast, setToast] = useState<ToastState>(null);
@@ -87,10 +128,12 @@ export function useSystemConfig() {
     return sortItemsByOrder(
       serverItems.map((item) => ({
         ...item,
-        value: draftValues[item.key] ?? item.value,
+        value: item.schema?.isSensitive && sensitiveDraftModes[item.key] !== 'editing'
+          ? item.value
+          : draftValues[item.key] ?? item.value,
       })),
     );
-  }, [draftValues, serverItems]);
+  }, [draftValues, sensitiveDraftModes, serverItems]);
 
   const serverItemByKey = useMemo(() => {
     const map: Record<string, SystemConfigItem> = {};
@@ -140,6 +183,13 @@ export function useSystemConfig() {
   const dirtyKeys = useMemo(() => {
     const keys: string[] = [];
     for (const item of serverItems) {
+      if (item.schema?.isSensitive) {
+        if (toSensitiveUpdateItem(item, draftValues[item.key] ?? '', sensitiveDraftModes[item.key], maskToken)) {
+          keys.push(item.key);
+        }
+        continue;
+      }
+
       const draftRaw = draftValues[item.key];
       if (draftRaw === undefined) {
         continue;
@@ -152,7 +202,7 @@ export function useSystemConfig() {
       }
     }
     return keys;
-  }, [draftValues, serverItems]);
+  }, [draftValues, maskToken, sensitiveDraftModes, serverItems]);
 
   const hasDirty = dirtyKeys.length > 0;
 
@@ -183,23 +233,42 @@ export function useSystemConfig() {
       setConfigVersion(version);
       setMaskToken(token || '******');
 
+      setSensitiveDraftModes((prevModes) => {
+        if (!preserveDirty) {
+          return {};
+        }
+        const nextModes: Record<string, SensitiveDraftMode> = {};
+        for (const item of sorted) {
+          if (committedKeys.has(item.key)) {
+            continue;
+          }
+          const previousMode = prevModes[item.key];
+          if (item.schema?.isSensitive && previousMode && previousMode !== 'keep') {
+            nextModes[item.key] = previousMode;
+          }
+        }
+        return nextModes;
+      });
+
       setDraftValues((prevDraft) => {
         const nextDraft: Record<string, string> = {};
         for (const item of sorted) {
           if (committedKeys.has(item.key)) {
-            nextDraft[item.key] = item.value;
+            nextDraft[item.key] = item.schema?.isSensitive ? '' : item.value;
             continue;
           }
 
           if (preserveDirty) {
             const previousServerValue = previousServerMap[item.key]?.value;
             const hasDraft = prevDraft[item.key] !== undefined;
-            const wasDirty = hasDraft && prevDraft[item.key] !== previousServerValue;
-            nextDraft[item.key] = wasDirty ? prevDraft[item.key] : item.value;
+            const wasDirty = item.schema?.isSensitive
+              ? Boolean(prevDraft[item.key])
+              : hasDraft && prevDraft[item.key] !== previousServerValue;
+            nextDraft[item.key] = wasDirty ? prevDraft[item.key] : item.schema?.isSensitive ? '' : item.value;
             continue;
           }
 
-          nextDraft[item.key] = item.value;
+          nextDraft[item.key] = item.schema?.isSensitive ? '' : item.value;
         }
         return nextDraft;
       });
@@ -236,9 +305,10 @@ export function useSystemConfig() {
   const resetDraft = useCallback(() => {
     const next: Record<string, string> = {};
     for (const item of serverItems) {
-      next[item.key] = item.value;
+      next[item.key] = item.schema?.isSensitive ? '' : item.value;
     }
     setDraftValues(next);
+    setSensitiveDraftModes({});
     setValidationIssues([]);
     setSaveError(null);
   }, [serverItems]);
@@ -265,28 +335,73 @@ export function useSystemConfig() {
   );
 
   const setDraftValue = useCallback((key: string, value: string) => {
+    const serverItem = serverItemByKeyRef.current[key];
     setDraftValues((previous) => ({
       ...previous,
       [key]: value,
     }));
+    if (serverItem?.schema?.isSensitive) {
+      setSensitiveDraftModes((previous) => ({
+        ...previous,
+        [key]: 'editing',
+      }));
+    }
   }, []);
+
+  const beginSensitiveEdit = useCallback((key: string) => {
+    setDraftValues((previous) => ({ ...previous, [key]: '' }));
+    setSensitiveDraftModes((previous) => ({ ...previous, [key]: 'editing' }));
+  }, []);
+
+  const cancelSensitiveEdit = useCallback((key: string) => {
+    setDraftValues((previous) => ({ ...previous, [key]: '' }));
+    setSensitiveDraftModes((previous) => {
+      const next = { ...previous };
+      delete next[key];
+      return next;
+    });
+  }, []);
+
+  const markSensitiveClear = useCallback((key: string) => {
+    setDraftValues((previous) => ({ ...previous, [key]: '' }));
+    setSensitiveDraftModes((previous) => ({ ...previous, [key]: 'clear' }));
+  }, []);
+
+  const getSensitiveFieldState = useCallback((key: string) => {
+    const item = serverItemByKeyRef.current[key];
+    const mode = sensitiveDraftModes[key] ?? 'keep';
+    return {
+      mode,
+      isConfigured: isSensitiveConfigured(item),
+      isDirty: Boolean(item && toSensitiveUpdateItem(item, draftValues[key] ?? '', mode, maskToken)),
+    };
+  }, [draftValues, maskToken, sensitiveDraftModes]);
 
   const getChangedItems = useCallback((): SystemConfigUpdateItem[] => {
     return dirtyKeys
       .map((key) => {
         const serverItem = serverItemByKey[key];
+        if (serverItem?.schema?.isSensitive) {
+          return toSensitiveUpdateItem(serverItem, draftValues[key] ?? '', sensitiveDraftModes[key], maskToken);
+        }
         const normalizedValue = normalizeFieldValue(draftValues[key] ?? '', serverItem?.schema);
         return {
           key,
           value: normalizedValue,
         };
       })
-      .filter((item) => {
+      .filter((item): item is SystemConfigUpdateItem => {
+        if (!item) {
+          return false;
+        }
         const serverItem = serverItemByKey[item.key];
+        if (serverItem?.schema?.isSensitive) {
+          return true;
+        }
         const normalizedCurrent = normalizeFieldValue(serverItem?.value ?? '', serverItem?.schema);
         return item.value !== normalizedCurrent;
       });
-  }, [dirtyKeys, draftValues, serverItemByKey]);
+  }, [dirtyKeys, draftValues, maskToken, sensitiveDraftModes, serverItemByKey]);
 
   const save = useCallback(async (changedItems?: SystemConfigUpdateItem[]): Promise<SaveResult> => {
     const explicitItems = changedItems ?? [];
@@ -414,6 +529,10 @@ export function useSystemConfig() {
     save,
     resetDraft,
     setDraftValue,
+    beginSensitiveEdit,
+    cancelSensitiveEdit,
+    markSensitiveClear,
+    getSensitiveFieldState,
     getChangedItems,
     applyPartialUpdate,
     refreshAfterExternalSave,

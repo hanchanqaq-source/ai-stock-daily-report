@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [新功能] App-M4.2.2 Web 设置页接入敏感字段 keep/set/clear 前端交互契约，已配置密钥不回显、不把掩码作为新值提交，明确清除需二次确认；当前仍不启用 DPAPI、LOCALAPPDATA 迁移、真实 Provider 或连接测试。
 - [修复] App-M4.2.1 增加服务端敏感字段契约和 schema 驱动统一脱敏，支持敏感字段 keep/set/clear 更新语义，阻止空字符串和掩码占位被误保存为真实密钥；当前不接前端新契约、不启用真实 Provider、不迁移本地安全存储。
 - [修复] App-M4.1 设置工作台改为嵌入既有 Web 设置页的静态骨架，恢复既有设置页面、回归测试、侧边栏导航入口与 AlphaSift 动态导航逻辑；当前不保存密钥、不持久化 App-M4.1 配置、不发起网络请求，App-M4.2 尚未开始。
 - [新功能] App-M4.1 新增 Web 设置工作台骨架，提供接口与密钥、数据源管理和连接测试三个静态页签；当前不保存真实密钥、不持久化配置、不发起网络请求、不连接账户、不调用 AI/通知/交易或数据库行为。

@@ -98,7 +98,7 @@ const APP_M41_SETTINGS_TABS: Array<{
   label: string;
   description: string;
 }> = [
-  { id: 'credentials', label: '接口与密钥', description: '静态展示后续接口配置入口，本阶段不保存真实密钥。' },
+  { id: 'credentials', label: '接口与密钥', description: '已接入脱敏契约；修改和清除使用明确操作。' },
   { id: 'sources', label: '数据源管理', description: '静态展示公开只读行情与后续数据源状态。' },
   { id: 'connection', label: '连接测试', description: '预留测试入口，本阶段不发起真实请求。' },
 ];
@@ -136,13 +136,13 @@ const AppM41SettingsWorkspace: React.FC = () => {
           <div className="rounded-2xl border settings-border bg-background/35 px-4 py-4">
             <h3 className="text-base font-semibold text-foreground">接口与密钥</h3>
             <p className="mt-2 text-sm leading-6 text-secondary-text">
-              本阶段仅提供静态入口说明。不会保存真实 Token、API Key、Webhook 或账户信息，也不会写入 localStorage、sessionStorage 或 IndexedDB。
+              App-M4.2.2 已接入服务端脱敏契约：已配置值不会回显，修改和清除使用明确操作。仍不会写入 localStorage、sessionStorage 或 IndexedDB，且尚未启用 DPAPI 或迁移 %LOCALAPPDATA%。
             </p>
             <div className="mt-4 grid gap-3 md:grid-cols-3">
               {['AI 模型接口', '行情数据接口', '通知接口'].map((label) => (
                 <div key={label} className="rounded-2xl border settings-border bg-card/70 px-4 py-3">
                   <p className="text-sm font-semibold text-foreground">{label}</p>
-                  <p className="mt-1 text-xs leading-5 text-muted-text">App-M4.1 暂不配置、不保存、不测试。</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-text">已保存值不回显；真实 Provider 与连接测试仍未启用。</p>
                 </div>
               ))}
             </div>
@@ -183,6 +183,7 @@ const AppM41SettingsWorkspace: React.FC = () => {
             <Button type="button" variant="settings-secondary" className="mt-4" disabled>
               连接测试未启用
             </Button>
+            <p className="mt-3 text-xs leading-5 text-muted-text">不会显示虚假成功或实时状态。</p>
           </div>
         ) : null}
       </div>
@@ -885,6 +886,7 @@ const SettingsPage: React.FC = () => {
   const [isImportingEnv, setIsImportingEnv] = useState(false);
   const [isUpdatingAlphaSift, setIsUpdatingAlphaSift] = useState(false);
   const [showImportConfirm, setShowImportConfirm] = useState(false);
+  const [pendingSensitiveClearKey, setPendingSensitiveClearKey] = useState<string | null>(null);
   const [desktopUpdateState, setDesktopUpdateState] = useState<DesktopUpdateState | null>(null);
   const [isCheckingDesktopUpdate, setIsCheckingDesktopUpdate] = useState(false);
   const [schedulerStatusRefreshToken, setSchedulerStatusRefreshToken] = useState(0);
@@ -931,6 +933,10 @@ const SettingsPage: React.FC = () => {
     save,
     resetDraft,
     setDraftValue,
+    beginSensitiveEdit,
+    cancelSensitiveEdit,
+    markSensitiveClear,
+    getSensitiveFieldState,
     getChangedItems,
     refreshAfterExternalSave,
     configVersion,
@@ -1249,6 +1255,13 @@ const SettingsPage: React.FC = () => {
     }
   };
 
+  const handleConfirmSensitiveClear = () => {
+    if (pendingSensitiveClearKey) {
+      markSensitiveClear(pendingSensitiveClearKey);
+    }
+    setPendingSensitiveClearKey(null);
+  };
+
   const handleSaveConfig = async () => {
     const changedItems = getChangedItems();
     const syncRuntimeSchedulerState =
@@ -1278,7 +1291,7 @@ const SettingsPage: React.FC = () => {
     setAlphaSiftActionError(null);
     setAlphaSiftActionSuccess('');
     try {
-      const isAlphaSiftEnabled = changedAlphaSiftItem.value.trim().toLowerCase() === 'true';
+      const isAlphaSiftEnabled = String(changedAlphaSiftItem.value ?? '').trim().toLowerCase() === 'true';
       if (isAlphaSiftEnabled) {
         await alphasiftApi.enable();
         await refreshAfterExternalSave(['ALPHASIFT_ENABLED']);
@@ -1397,6 +1410,10 @@ const SettingsPage: React.FC = () => {
           disabled={isSaving}
           onChange={setDraftValue}
           issues={issueByKey[item.key] || []}
+          sensitiveState={item.schema?.isSensitive && getSensitiveFieldState ? getSensitiveFieldState(item.key) : undefined}
+          onBeginSensitiveEdit={beginSensitiveEdit}
+          onCancelSensitiveEdit={cancelSensitiveEdit}
+          onRequestSensitiveClear={setPendingSensitiveClearKey}
         />
       ))}
       {promptCacheAdvancedItems.length ? (
@@ -1421,6 +1438,10 @@ const SettingsPage: React.FC = () => {
                 disabled={isSaving}
                 onChange={setDraftValue}
                 issues={issueByKey[item.key] || []}
+                sensitiveState={item.schema?.isSensitive && getSensitiveFieldState ? getSensitiveFieldState(item.key) : undefined}
+                onBeginSensitiveEdit={beginSensitiveEdit}
+                onCancelSensitiveEdit={cancelSensitiveEdit}
+                onRequestSensitiveClear={setPendingSensitiveClearKey}
               />
             ))}
           </div>
@@ -1819,6 +1840,16 @@ const SettingsPage: React.FC = () => {
             : <ApiErrorAlert error={toast.error} />}
         </div>
       ) : null}
+      <ConfirmDialog
+        isOpen={Boolean(pendingSensitiveClearKey)}
+        title="确认清除敏感字段"
+        message="清除后服务端将删除该字段的已保存值。此操作不会读取或显示原始密钥。"
+        confirmText="确认清除"
+        cancelText={t('common.cancel')}
+        isDanger
+        onConfirm={handleConfirmSensitiveClear}
+        onCancel={() => setPendingSensitiveClearKey(null)}
+      />
       <ConfirmDialog
         isOpen={showImportConfirm}
         title={t('settings.importConfirmTitle')}
