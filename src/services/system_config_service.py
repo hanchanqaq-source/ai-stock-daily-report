@@ -2263,6 +2263,8 @@ class SystemConfigService:
         }
         issues: List[Dict[str, Any]] = []
         updated_map: Dict[str, str] = {}
+        sensitive_keys: Set[str] = set()
+        sensitive_values: Set[str] = set()
 
         for item in items:
             key = item["key"].upper()
@@ -2270,6 +2272,10 @@ class SystemConfigService:
             field_schema = get_field_definition(key, value)
             is_sensitive = self._is_sensitive_field(key, field_schema)
             action = self._resolve_update_action(item, is_sensitive=is_sensitive, mask_token=mask_token)
+            if is_sensitive:
+                sensitive_keys.add(key)
+                if value and not self._is_mask_placeholder(value, mask_token):
+                    sensitive_values.add(value)
 
             if is_sensitive:
                 if action == "keep":
@@ -2309,7 +2315,52 @@ class SystemConfigService:
             issues.extend(self._validate_value(key=key, value=value, field_schema=field_schema))
 
         issues.extend(self._validate_cross_field(effective_map=effective_map, updated_keys=set(updated_map.keys())))
-        return issues
+        return self._sanitize_validation_issues(
+            issues,
+            sensitive_keys=sensitive_keys,
+            sensitive_values=sensitive_values,
+        )
+
+    @classmethod
+    def _sanitize_validation_issues(
+        cls,
+        issues: Sequence[Dict[str, Any]],
+        *,
+        sensitive_keys: Set[str],
+        sensitive_values: Set[str],
+    ) -> List[Dict[str, Any]]:
+        """Remove submitted sensitive values from validation issues."""
+        sanitized: List[Dict[str, Any]] = []
+        redaction_values = {value for value in sensitive_values if value}
+
+        for issue in issues:
+            issue_key = str(issue.get("key", "")).upper()
+            issue_is_sensitive = issue_key in sensitive_keys
+            next_issue: Dict[str, Any] = {}
+            for field_name, field_value in issue.items():
+                if issue_is_sensitive and field_name == "actual":
+                    continue
+                next_issue[field_name] = cls._redact_sensitive_issue_value(field_value, redaction_values)
+            sanitized.append(next_issue)
+
+        return sanitized
+
+    @classmethod
+    def _redact_sensitive_issue_value(cls, value: Any, redaction_values: Set[str]) -> Any:
+        """Redact submitted sensitive values from issue fields without changing non-string data."""
+        if isinstance(value, str):
+            redacted = value
+            for sensitive_value in redaction_values:
+                redacted = redacted.replace(sensitive_value, "masked-value")
+            return redacted
+        if isinstance(value, list):
+            return [cls._redact_sensitive_issue_value(item, redaction_values) for item in value]
+        if isinstance(value, dict):
+            return {
+                key: cls._redact_sensitive_issue_value(item, redaction_values)
+                for key, item in value.items()
+            }
+        return value
 
     @staticmethod
     def _validate_value(key: str, value: str, field_schema: Dict[str, Any]) -> List[Dict[str, Any]]:

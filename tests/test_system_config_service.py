@@ -21,7 +21,7 @@ ensure_litellm_stub()
 from src.config import ANSPIRE_LLM_MODEL_DEFAULT, DEFAULT_ALPHASIFT_INSTALL_SPEC, Config
 from src.core.config_manager import ConfigManager
 from src.llm.backend_registry import GENERATION_ONLY_BACKEND_IDS
-from src.services.system_config_service import ConfigConflictError, ConfigImportError, SystemConfigService
+from src.services.system_config_service import ConfigConflictError, ConfigImportError, ConfigValidationError, SystemConfigService
 
 
 class SystemConfigServiceTestCase(unittest.TestCase):
@@ -1498,6 +1498,61 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertEqual(current_map["STOCK_LIST"], "600519,300750")
         self.assertEqual(current_map["GEMINI_API_KEY"], "secret-key-value")
 
+
+
+    def test_sensitive_validation_issue_redacts_invalid_url_value(self) -> None:
+        submitted = "not-a-valid-url-example-token"
+        with self.assertRaises(ConfigValidationError) as ctx:
+            self.service.update(
+                config_version=self.manager.get_config_version(),
+                items=[{"key": "FEISHU_WEBHOOK_URL", "action": "set", "value": submitted}],
+                mask_token="******",
+                reload_now=False,
+            )
+
+        issues_text = str(ctx.exception.issues)
+        self.assertIn("invalid_url", issues_text)
+        self.assertIn("valid URLs", issues_text)
+        self.assertNotIn("example-token", issues_text)
+        self.assertNotIn(submitted, issues_text)
+        for issue in ctx.exception.issues:
+            if issue["key"] == "FEISHU_WEBHOOK_URL":
+                self.assertNotIn("actual", issue)
+                self.assertNotIn("example-token", issue.get("message", ""))
+                self.assertNotIn("example-token", issue.get("expected", ""))
+        self.assertEqual(self.manager.read_config_map().get("FEISHU_WEBHOOK_URL"), None)
+
+    def test_non_sensitive_validation_issue_keeps_actual_value(self) -> None:
+        submitted = "25:99"
+        result = self.service.validate(
+            items=[{"key": "SCHEDULE_TIME", "value": submitted}],
+            mask_token="******",
+        )
+
+        issues = {issue["key"]: issue for issue in result["issues"]}
+        self.assertFalse(result["valid"])
+        self.assertEqual(issues["SCHEDULE_TIME"]["actual"], submitted)
+
+    def test_cross_field_validation_sanitizer_redacts_sensitive_values(self) -> None:
+        issues = SystemConfigService._sanitize_validation_issues(
+            [
+                {
+                    "key": "FEISHU_WEBHOOK_URL",
+                    "code": "cross_field_example",
+                    "message": "bad not-a-valid-url-example-token",
+                    "severity": "error",
+                    "expected": "not-a-valid-url-example-token must not appear",
+                    "actual": "not-a-valid-url-example-token",
+                }
+            ],
+            sensitive_keys={"FEISHU_WEBHOOK_URL"},
+            sensitive_values={"not-a-valid-url-example-token"},
+        )
+
+        issue_text = str(issues)
+        self.assertNotIn("example-token", issue_text)
+        self.assertNotIn("actual", issues[0])
+        self.assertIn("masked-value", issue_text)
 
     def test_sensitive_action_keep_set_clear_and_placeholders(self) -> None:
         version = self.manager.get_config_version()

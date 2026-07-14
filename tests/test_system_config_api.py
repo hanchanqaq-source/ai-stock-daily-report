@@ -230,6 +230,30 @@ class SystemConfigApiTestCase(unittest.TestCase):
         self.assertEqual({item["key"]: item for item in refreshed["items"]}["GEMINI_API_KEY"]["value"], refreshed["mask_token"])
 
 
+
+    def test_put_config_redacts_sensitive_validation_error_value(self) -> None:
+        submitted = "not-a-valid-url-example-token"
+        current = system_config.get_system_config(include_schema=False, service=self.service).model_dump()
+        with self.assertRaises(HTTPException) as ctx:
+            system_config.update_system_config(
+                request=UpdateSystemConfigRequest(
+                    config_version=current["config_version"],
+                    mask_token="******",
+                    reload_now=False,
+                    items=[{"key": "FEISHU_WEBHOOK_URL", "action": "set", "value": submitted}],
+                ),
+                service=self.service,
+            )
+
+        detail_text = str(ctx.exception.detail)
+        self.assertEqual(ctx.exception.status_code, 400)
+        self.assertIn("validation_failed", detail_text)
+        self.assertIn("invalid_url", detail_text)
+        self.assertIn("valid URLs", detail_text)
+        self.assertNotIn("example-token", detail_text)
+        self.assertNotIn(submitted, detail_text)
+        self.assertIsNone(self.manager.read_config_map().get("FEISHU_WEBHOOK_URL"))
+
     def test_put_config_rejects_sensitive_mask_placeholder_without_echo(self) -> None:
         current = system_config.get_system_config(include_schema=False, service=self.service).model_dump()
         with self.assertRaises(HTTPException) as ctx:
