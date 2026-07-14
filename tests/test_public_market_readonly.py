@@ -1,8 +1,9 @@
 import ast
 import asyncio
-import importlib
 import math
+import sys
 import time
+import types
 from pathlib import Path
 
 import pandas as pd
@@ -63,20 +64,28 @@ class Manager:
 
 
 def _patch_config_and_eastmoney(monkeypatch, *, config_enabled=False, config_must_not_run=False):
-    config_module = importlib.import_module("src.config")
-    patch_module = importlib.import_module("src.patches.eastmoney_patch")
+    import src
+    import src.patches as patches_package
+
+    config_module = types.ModuleType("src.config")
+    patch_module = types.ModuleType("src.patches.eastmoney_patch")
     patch_calls = []
 
     def fake_get_config():
         if config_must_not_run:
             raise AssertionError("get_config must not be called")
-        return type("ConfigStub", (), {"enable_eastmoney_patch": config_enabled})()
+        return types.SimpleNamespace(enable_eastmoney_patch=config_enabled)
 
     def fake_eastmoney_patch():
         patch_calls.append("called")
 
-    monkeypatch.setattr(config_module, "get_config", fake_get_config)
-    monkeypatch.setattr(patch_module, "eastmoney_patch", fake_eastmoney_patch)
+    config_module.get_config = fake_get_config
+    patch_module.eastmoney_patch = fake_eastmoney_patch
+
+    monkeypatch.setitem(sys.modules, "src.config", config_module)
+    monkeypatch.setattr(src, "config", config_module, raising=False)
+    monkeypatch.setitem(sys.modules, "src.patches.eastmoney_patch", patch_module)
+    monkeypatch.setattr(patches_package, "eastmoney_patch", patch_module, raising=False)
     return patch_calls
 
 
