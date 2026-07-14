@@ -146,6 +146,8 @@ class SystemConfigService:
         "LLM_HERMES_EXTRA_HEADERS",
         "LLM_USAGE_HMAC_SECRET",
     }
+    _MASKED_VALUE_PLACEHOLDERS: Set[str] = {"masked-value", "********"}
+
     _NOTIFICATION_TEST_CHANNELS: Tuple[str, ...] = (
         "wechat",
         "feishu",
@@ -404,12 +406,22 @@ class SystemConfigService:
 
         items: List[Dict[str, Any]] = []
         for key in all_keys:
-            raw_value_exists = key in saved_config_map
             raw_value = config_map.get(key, "")
             field_schema = schema_by_key[key]
+            is_sensitive = self._is_sensitive_field(key, field_schema)
+            raw_value_exists = key in saved_config_map
+            if is_sensitive:
+                raw_value_exists = bool((saved_config_map.get(key) or "").strip())
             display_value = self._resolve_display_value(raw_value, field_schema, raw_value_exists)
             is_masked = False
-            if key in self._SERVER_MASKED_CONFIG_KEYS and display_value:
+            if is_sensitive:
+                if raw_value_exists and raw_value:
+                    display_value = mask_token
+                    is_masked = True
+                else:
+                    display_value = ""
+                    is_masked = False
+            elif key in self._SERVER_MASKED_CONFIG_KEYS and display_value:
                 display_value = mask_token
                 is_masked = True
             item: Dict[str, Any] = {
@@ -1901,12 +1913,19 @@ class SystemConfigService:
         sensitive_keys: Set[str] = set()
         for item in items:
             key = item["key"].upper()
-            value = item["value"]
-            field_schema = get_field_definition(key, value)
-            normalized_value = self._normalize_value_for_storage(value, field_schema)
+            raw_value = "" if item.get("value") is None else str(item.get("value"))
+            field_schema = get_field_definition(key, raw_value)
+            is_sensitive = self._is_sensitive_field(key, field_schema)
+            action = self._resolve_update_action(item, is_sensitive=is_sensitive, mask_token=mask_token)
             submitted_keys.add(key)
+            if action == "keep":
+                if is_sensitive:
+                    sensitive_keys.add(key)
+                continue
+            value = "" if action == "clear" else raw_value
+            normalized_value = self._normalize_value_for_storage(value, field_schema)
             updates.append((key, normalized_value))
-            if bool(field_schema.get("is_sensitive", False)):
+            if is_sensitive:
                 sensitive_keys.add(key)
 
         updated_keys, skipped_masked_keys, new_version = self._manager.apply_updates(
@@ -2210,6 +2229,29 @@ class SystemConfigService:
 
         return updates
 
+    @classmethod
+    def _is_sensitive_field(cls, key: str, field_schema: Dict[str, Any]) -> bool:
+        """Return whether a field must be handled as sensitive by the server."""
+        return bool(field_schema.get("is_sensitive", False)) or key.upper() in cls._SERVER_MASKED_CONFIG_KEYS
+
+    @classmethod
+    def _is_mask_placeholder(cls, value: str, mask_token: str) -> bool:
+        """Return whether a submitted value is a UI mask placeholder, not a secret."""
+        return value == mask_token or value in cls._MASKED_VALUE_PLACEHOLDERS
+
+    @classmethod
+    def _resolve_update_action(cls, item: Dict[str, Any], *, is_sensitive: bool, mask_token: str) -> str:
+        """Resolve explicit or legacy update semantics without exposing values."""
+        action = item.get("action")
+        if action in {"keep", "set", "clear"}:
+            return str(action)
+        if not is_sensitive:
+            return "set"
+        value = "" if item.get("value") is None else str(item.get("value"))
+        if not value or cls._is_mask_placeholder(value, mask_token):
+            return "keep"
+        return "set"
+
     def _collect_issues(self, items: Sequence[Dict[str, str]], mask_token: str) -> List[Dict[str, Any]]:
         """Collect field-level and cross-field validation issues."""
         saved_config_map = self._manager.read_config_map()
@@ -2224,12 +2266,43 @@ class SystemConfigService:
 
         for item in items:
             key = item["key"].upper()
-            value = item["value"]
+            value = "" if item.get("value") is None else str(item.get("value"))
             field_schema = get_field_definition(key, value)
-            is_sensitive = bool(field_schema.get("is_sensitive", False))
+            is_sensitive = self._is_sensitive_field(key, field_schema)
+            action = self._resolve_update_action(item, is_sensitive=is_sensitive, mask_token=mask_token)
 
-            if is_sensitive and value == mask_token and saved_config_map.get(key):
-                continue
+            if is_sensitive:
+                if action == "keep":
+                    if item.get("action") == "keep" and value:
+                        issues.append({
+                            "key": key,
+                            "code": "sensitive_keep_value_not_allowed",
+                            "message": "Sensitive field keep action must not include a value",
+                            "severity": "error",
+                            "expected": "omit value",
+                        })
+                    continue
+                if action == "set":
+                    if not value.strip():
+                        issues.append({
+                            "key": key,
+                            "code": "sensitive_value_required",
+                            "message": "Sensitive field set action requires a non-empty value",
+                            "severity": "error",
+                            "expected": "non-empty value",
+                        })
+                        continue
+                    if self._is_mask_placeholder(value, mask_token):
+                        issues.append({
+                            "key": key,
+                            "code": "masked_value_not_allowed",
+                            "message": "Masked placeholder cannot be saved as a sensitive value",
+                            "severity": "error",
+                            "expected": "new sensitive value",
+                        })
+                        continue
+                if action == "clear":
+                    value = ""
 
             updated_map[key] = value
             effective_map[key] = value

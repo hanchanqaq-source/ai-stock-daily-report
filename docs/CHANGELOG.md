@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [修复] App-M4.2.1 增加服务端敏感字段契约和 schema 驱动统一脱敏，支持敏感字段 keep/set/clear 更新语义，阻止空字符串和掩码占位被误保存为真实密钥；当前不接前端新契约、不启用真实 Provider、不迁移本地安全存储。
 - [修复] App-M4.1 设置工作台改为嵌入既有 Web 设置页的静态骨架，恢复既有设置页面、回归测试、侧边栏导航入口与 AlphaSift 动态导航逻辑；当前不保存密钥、不持久化 App-M4.1 配置、不发起网络请求，App-M4.2 尚未开始。
 - [新功能] App-M4.1 新增 Web 设置工作台骨架，提供接口与密钥、数据源管理和连接测试三个静态页签；当前不保存真实密钥、不持久化配置、不发起网络请求、不连接账户、不调用 AI/通知/交易或数据库行为。
 - [安全修复] Core-M3.2 为 AkshareFetcher 增加显式东财补丁控制参数。公开 A 股真实只读 Dry-Run 路径固定以 enable_eastmoney_patch=False 创建 AkshareFetcher，不再进入通用 Config、不读取其他 Provider 凭证状态，也不执行东财 NID/Cookie 补丁；普通程序的默认 AkShare 配置行为保持兼容。

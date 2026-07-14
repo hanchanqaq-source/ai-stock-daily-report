@@ -62,14 +62,26 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         message = SimpleNamespace(content=content, tool_calls=tool_calls or [])
         return SimpleNamespace(choices=[SimpleNamespace(message=message)])
 
-    def test_get_config_keeps_regular_sensitive_values_unmasked(self) -> None:
+    def test_get_config_masks_schema_sensitive_values(self) -> None:
         payload = self.service.get_config(include_schema=True)
         items = {item["key"]: item for item in payload["items"]}
 
         self.assertIn("GEMINI_API_KEY", items)
-        self.assertEqual(items["GEMINI_API_KEY"]["value"], "secret-key-value")
-        self.assertFalse(items["GEMINI_API_KEY"]["is_masked"])
+        self.assertEqual(items["GEMINI_API_KEY"]["value"], payload["mask_token"])
+        self.assertTrue(items["GEMINI_API_KEY"]["is_masked"])
         self.assertTrue(items["GEMINI_API_KEY"]["raw_value_exists"])
+        self.assertTrue(items["GEMINI_API_KEY"]["schema"]["is_sensitive"])
+
+    def test_get_config_sensitive_unset_returns_safe_empty_state(self) -> None:
+        self._rewrite_env("STOCK_LIST=600519,000001")
+
+        payload = self.service.get_config(include_schema=True)
+        items = {item["key"]: item for item in payload["items"]}
+
+        self.assertEqual(items["GEMINI_API_KEY"]["value"], "")
+        self.assertFalse(items["GEMINI_API_KEY"]["is_masked"])
+        self.assertFalse(items["GEMINI_API_KEY"]["raw_value_exists"])
+        self.assertTrue(items["GEMINI_API_KEY"]["schema"]["is_sensitive"])
 
     def test_get_config_masks_alphasift_install_spec(self) -> None:
         self._rewrite_env(
@@ -1485,6 +1497,66 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         current_map = self.manager.read_config_map()
         self.assertEqual(current_map["STOCK_LIST"], "600519,300750")
         self.assertEqual(current_map["GEMINI_API_KEY"], "secret-key-value")
+
+
+    def test_sensitive_action_keep_set_clear_and_placeholders(self) -> None:
+        version = self.manager.get_config_version()
+        keep_response = self.service.update(
+            config_version=version,
+            items=[{"key": "GEMINI_API_KEY", "action": "keep"}],
+            mask_token="******",
+            reload_now=False,
+        )
+        self.assertEqual(keep_response["applied_count"], 0)
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "secret-key-value")
+
+        set_response = self.service.update(
+            config_version=self.manager.get_config_version(),
+            items=[{"key": "GEMINI_API_KEY", "action": "set", "value": "test-key"}],
+            mask_token="******",
+            reload_now=False,
+        )
+        self.assertEqual(set_response["applied_count"], 1)
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "test-key")
+        item_map = {item["key"]: item for item in self.service.get_config(include_schema=True)["items"]}
+        self.assertEqual(item_map["GEMINI_API_KEY"]["value"], "******")
+        self.assertTrue(item_map["GEMINI_API_KEY"]["raw_value_exists"])
+        self.assertTrue(item_map["GEMINI_API_KEY"]["is_masked"])
+
+        for placeholder in ("", "******", "masked-value", "********"):
+            self.service.update(
+                config_version=self.manager.get_config_version(),
+                items=[{"key": "GEMINI_API_KEY", "value": placeholder}],
+                mask_token="******",
+                reload_now=False,
+            )
+            self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "test-key")
+
+        clear_response = self.service.update(
+            config_version=self.manager.get_config_version(),
+            items=[{"key": "GEMINI_API_KEY", "action": "clear"}],
+            mask_token="******",
+            reload_now=False,
+        )
+        self.assertEqual(clear_response["applied_count"], 1)
+        self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "")
+        item_map = {item["key"]: item for item in self.service.get_config(include_schema=True)["items"]}
+        self.assertEqual(item_map["GEMINI_API_KEY"]["value"], "")
+        self.assertFalse(item_map["GEMINI_API_KEY"]["raw_value_exists"])
+        self.assertFalse(item_map["GEMINI_API_KEY"]["is_masked"])
+
+    def test_sensitive_set_rejects_masked_placeholders_without_echoing_value(self) -> None:
+        for placeholder in ("******", "masked-value", "********"):
+            with self.subTest(placeholder=placeholder):
+                with self.assertRaises(Exception) as ctx:
+                    self.service.update(
+                        config_version=self.manager.get_config_version(),
+                        items=[{"key": "GEMINI_API_KEY", "action": "set", "value": placeholder}],
+                        mask_token="******",
+                        reload_now=False,
+                    )
+                self.assertNotIn(placeholder, str(getattr(ctx.exception, "issues", "")))
+                self.assertEqual(self.manager.read_config_map()["GEMINI_API_KEY"], "secret-key-value")
 
     def test_update_alphasift_enable_does_not_rewrite_llm_fields(self) -> None:
         self._rewrite_env(
