@@ -804,8 +804,10 @@ class SystemConfigServiceTestCase(unittest.TestCase):
 
             self.assertEqual(pre_save_items["OPENAI_BASE_URL"]["value"], "https://runtime-openai.v1")
             self.assertFalse(pre_save_items["OPENAI_BASE_URL"]["raw_value_exists"])
-            self.assertEqual(pre_save_items["OPENAI_API_KEY"]["value"], "runtime-openai-key")
+            self.assertEqual(pre_save_items["OPENAI_API_KEY"]["value"], "")
+            self.assertFalse(pre_save_items["OPENAI_API_KEY"]["is_masked"])
             self.assertFalse(pre_save_items["OPENAI_API_KEY"]["raw_value_exists"])
+            self.assertNotIn("runtime-openai-key", str(pre_save))
             self.assertEqual(pre_save_items["LITELLM_MODEL"]["value"], "openai/gpt-4o-mini")
             self.assertTrue(pre_save_items["LITELLM_MODEL"]["raw_value_exists"])
             self.assertEqual(pre_save_items["OPENAI_MODEL"]["value"], "gpt-4.1")
@@ -908,9 +910,15 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         items = {item["key"]: item for item in payload["items"]}
 
         self.assertIn("LLM_CHANNELS", items)
-        self.assertEqual(items["LLM_DEEPSEEK_API_KEY"]["value"], "sk-test-value")
+        self.assertEqual(items["LLM_DEEPSEEK_API_KEY"]["value"], payload["mask_token"])
+        self.assertTrue(items["LLM_DEEPSEEK_API_KEY"]["is_masked"])
+        self.assertTrue(items["LLM_DEEPSEEK_API_KEY"]["raw_value_exists"])
         self.assertEqual(items["LLM_DEEPSEEK_MODELS"]["value"], "deepseek-v4-flash,deepseek-v4-pro")
-        self.assertEqual(items["LLM_MY_PROXY_API_KEYS"]["value"], "sk-key-1,sk-key-2")
+        self.assertEqual(items["LLM_MY_PROXY_API_KEYS"]["value"], payload["mask_token"])
+        self.assertTrue(items["LLM_MY_PROXY_API_KEYS"]["is_masked"])
+        self.assertTrue(items["LLM_MY_PROXY_API_KEYS"]["raw_value_exists"])
+        self.assertNotIn("sk-test-value", str(payload))
+        self.assertNotIn("sk-key-1", str(payload))
         self.assertEqual(items["LLM_MY_PROXY_MODELS"]["value"], "gpt-5.5")
         self.assertEqual(items["LLM_MY_PROXY_API_KEYS"]["schema"]["category"], "ai_model")
         self.assertNotIn("LLM_UNUSED_API_KEY", items)
@@ -1841,7 +1849,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         )
         validation = self.service.validate(
             items=[
-                {"key": "FEISHU_FOLDER_TOKEN", "value": ""},
+                {"key": "FEISHU_FOLDER_TOKEN", "action": "clear"},
             ]
         )
         self.assertTrue(validation["valid"])
@@ -3133,8 +3141,8 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         response = self.service.update(
             config_version=self.manager.get_config_version(),
             items=[
-                {"key": "LLM_HERMES_API_KEYS", "value": ""},
-                {"key": "LLM_HERMES_EXTRA_HEADERS", "value": ""},
+                {"key": "LLM_HERMES_API_KEYS", "action": "clear"},
+                {"key": "LLM_HERMES_EXTRA_HEADERS", "action": "clear"},
             ],
             reload_now=False,
         )
@@ -4093,7 +4101,7 @@ class SystemConfigServiceTestCase(unittest.TestCase):
                 {"key": "LITELLM_MODEL", "value": ""},
                 {"key": "OPENAI_MODEL", "value": ""},
                 {"key": "OPENAI_BASE_URL", "value": ""},
-                {"key": "OPENAI_API_KEY", "value": ""},
+                {"key": "OPENAI_API_KEY", "action": "clear"},
             ],
             reload_now=False,
         )
