@@ -11,13 +11,14 @@ const testValue = process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_VALUE || '';
 const localAppData = resolveSmokeTempLocalAppData(process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_LOCALAPPDATA);
 
 if (localAppData) app.setPath('userData', path.join(localAppData, 'electron-user-data'));
-bootstrapDesktopMain();
+bootstrapDesktopMain({ loadMain: () => undefined });
 
 function clearEnv() {
   delete process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_PHASE;
   delete process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_PORT;
   delete process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_VALUE;
   delete process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_LOCALAPPDATA;
+  delete process.env.LOCALAPPDATA;
 }
 function write(result) { process.stdout.write(`${JSON.stringify(result)}\n`); }
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
@@ -99,6 +100,8 @@ async function run() {
   }
   const win = new BrowserWindow({ show: false, webPreferences: { preload: path.join(__dirname, '..', 'preload.js'), contextIsolation: true, nodeIntegration: false } });
   try {
+    const cacheBust = Date.now();
+    await win.loadURL(`http://127.0.0.1:${port}/?desktop_version=smoke&cache_bust=${cacheBust}`);
     await win.loadURL(`http://127.0.0.1:${port}/settings`);
     await sleep(500);
     if (phase === 'set') {

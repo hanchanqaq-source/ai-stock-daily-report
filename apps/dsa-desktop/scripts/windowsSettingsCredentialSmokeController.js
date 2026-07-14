@@ -21,7 +21,7 @@ function resolveElectronBinary() {
 }
 function isDistMissing() { return !fs.existsSync(path.resolve(__dirname, '..', '..', '..', 'static', 'index.html')); }
 function contentType(file) { return file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.html') ? 'text/html' : 'application/octet-stream'; }
-function makeConfig(configured) { return { config_version: 'app-m423b1-smoke', mask_token: '******', items: [{ key: TEST_KEY, value: configured ? '******' : '', raw_value_exists: configured, is_masked: configured, schema: { key: TEST_KEY, title: 'App M4.2.3B.1 Test Token', description: 'Fictional smoke-only sensitive field.', category: 'notification', data_type: 'string', ui_control: 'password', is_sensitive: true, is_required: false, is_editable: true, options: [], validation: {}, display_order: 1 } }] }; }
+function makeConfig() { return { config_version: 'app-m423b1-smoke', mask_token: '******', items: [{ key: TEST_KEY, value: '', raw_value_exists: false, is_masked: false, schema: { key: TEST_KEY, title: 'App M4.2.3B.1 Test Token', description: 'Fictional smoke-only sensitive field.', category: 'notification', data_type: 'string', ui_control: 'password', is_sensitive: true, is_required: false, is_editable: true, options: [], validation: {}, display_order: 1 } }] }; }
 function makeSetupStatus() { return { overall_status: 'ready', checks: [] }; }
 function makeAuthStatus() { return { authEnabled: false, passwordChangeable: false, setupState: 'disabled' }; }
 
@@ -40,7 +40,7 @@ function startMockServer(port, state) {
       if (req.url === '/api/v1/auth/status') return sendJson(200, makeAuthStatus());
       if (req.url && req.url.startsWith('/api/v1/system/config/setup/status')) return sendJson(200, makeSetupStatus());
       if (req.url && req.url.startsWith('/api/v1/system/scheduler/status')) return sendJson(200, { enabled: false, running: false, schedule_times: [], last_success: null, last_error: null });
-      if (req.url && req.url.startsWith('/api/v1/system/config') && req.method === 'GET') return sendJson(200, makeConfig(state.configured));
+      if (req.url && req.url.startsWith('/api/v1/system/config') && req.method === 'GET') return sendJson(200, makeConfig());
       if (req.url === '/api/v1/system/config/validate' && req.method === 'POST') return sendJson(200, { valid: true, issues: [] });
       if (req.url === '/api/v1/system/config' && req.method === 'PUT') return sendJson(200, { success: true, config_version: 'app-m423b1-smoke', applied_count: 0, skipped_masked_count: 0, reload_triggered: false, updated_keys: [], warnings: [] });
       let pathname = '/index.html';
@@ -59,11 +59,24 @@ function startMockServer(port, state) {
   });
 }
 
+function createChildEnvironment({ phase, port, tempLocalAppData, testValue }, sourceEnv = process.env) {
+  const env = {
+    ...sourceEnv,
+    LOCALAPPDATA: tempLocalAppData,
+    DSA_SETTINGS_CREDENTIAL_SMOKE_PHASE: phase,
+    DSA_SETTINGS_CREDENTIAL_SMOKE_PORT: String(port),
+    DSA_SETTINGS_CREDENTIAL_SMOKE_LOCALAPPDATA: tempLocalAppData,
+    DSA_SETTINGS_CREDENTIAL_SMOKE_VALUE: testValue,
+  };
+  delete env.ELECTRON_RUN_AS_NODE;
+  return env;
+}
+
 function runPhase({ phase, port, tempLocalAppData, testValue, electronBinary }) {
   return new Promise((resolve) => {
     let child;
     try {
-      child = spawn(electronBinary, [path.join(__dirname, 'windowsSettingsCredentialSmokeElectron.js')], { cwd: path.resolve(__dirname, '..'), windowsHide: true, env: { ...process.env, DSA_SETTINGS_CREDENTIAL_SMOKE_PHASE: phase, DSA_SETTINGS_CREDENTIAL_SMOKE_PORT: String(port), DSA_SETTINGS_CREDENTIAL_SMOKE_LOCALAPPDATA: tempLocalAppData, DSA_SETTINGS_CREDENTIAL_SMOKE_VALUE: testValue }, stdio: ['ignore', 'pipe', 'pipe'] });
+      child = spawn(electronBinary, [path.join(__dirname, 'windowsSettingsCredentialSmokeElectron.js')], { cwd: path.resolve(__dirname, '..'), windowsHide: true, env: createChildEnvironment({ phase, port, tempLocalAppData, testValue }), stdio: ['ignore', 'pipe', 'pipe'] });
     } catch (_) { resolve(makeResult(phase, { errorCode: ERROR_CODES.CHILD_PROCESS_FAILED })); return; }
     let stdout = ''; let settled = false;
     const finish = (result) => { if (!settled) { settled = true; clearTimeout(timer); resolve(result); } };
@@ -82,7 +95,7 @@ async function runSmoke({ platform = process.platform } = {}) {
   try { electronBinary = resolveElectronBinary(); } catch (_) { return { success: false, cleanupPassed: true, errorCode: ERROR_CODES.ELECTRON_RESOLVE_FAILED, stages: [] }; }
   const port = await findPort();
   if (!port) return { success: false, cleanupPassed: true, errorCode: ERROR_CODES.PORT_UNAVAILABLE, stages: [] };
-  let tempLocalAppData = ''; let server = null; const state = { configured: false, secretLeak: false, testValue: `DSA_FAKE_${crypto.randomUUID()}_${crypto.randomUUID()}` };
+  let tempLocalAppData = ''; let server = null; const state = { secretLeak: false, testValue: `DSA_FAKE_${crypto.randomUUID()}_${crypto.randomUUID()}` };
   try { tempLocalAppData = fs.mkdtempSync(path.join(os.tmpdir(), SMOKE_TEMP_PREFIX)); if (!resolveSmokeTempLocalAppData(tempLocalAppData)) throw new Error('temp'); } catch (_) { return { success: false, cleanupPassed: false, errorCode: ERROR_CODES.TEMP_DIRECTORY_FAILED, stages: [] }; }
   const stages = []; let cleanupPassed = false;
   try {
@@ -91,8 +104,8 @@ async function runSmoke({ platform = process.platform } = {}) {
       const result = await runPhase({ phase, port, tempLocalAppData, testValue: state.testValue, electronBinary });
       stages.push(result);
       if (!result.success) break;
-      if (phase === 'set') state.configured = true;
-      if (phase === 'restart-read-clear') state.configured = false;
+      // The mock backend must never manufacture configured state; the page can
+      // show configured only via the Electron IPC status overlay.
     }
   } catch (_) {
     stages.push(makeResult(stages.length ? PHASES[stages.length] : 'set', { errorCode: ERROR_CODES.MOCK_SERVER_FAILED }));
@@ -121,4 +134,4 @@ function printSummary(summary) {
 }
 
 if (require.main === module) runSmoke().then((s) => { printSummary(s); process.exitCode = s.success ? 0 : 1; }).catch(() => { printSummary({ success: false, cleanupPassed: false, errorCode: ERROR_CODES.INVALID_RESULT, stages: [] }); process.exitCode = 1; });
-module.exports = { TEST_KEY, findPort, makeConfig, printSummary, runSmoke, startMockServer };
+module.exports = { TEST_KEY, createChildEnvironment, findPort, makeConfig, printSummary, runSmoke, startMockServer };

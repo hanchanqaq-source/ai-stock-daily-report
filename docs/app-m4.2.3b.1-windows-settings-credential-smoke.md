@@ -25,6 +25,12 @@ npm run smoke:settings-credential:windows
 - 不启动正式 Python 后端，不调用真实 Provider、AI、通知、账户、数据库、交易或正式日报。
 - 失败输出仅包含固定阶段和低敏 `errorCode`，不输出本机路径、环境变量、堆栈或测试值。
 
+## 验证语义
+
+Mock 后端的敏感字段始终返回 `value=''`、`raw_value_exists=false`、`is_masked=false`，因此页面中的“已配置”只能来自 Electron preload / IPC 查询 Windows DPAPI 后叠加的状态。重启阶段复用同一个临时 `LOCALAPPDATA`，用于验证跨 Electron 进程的 DPAPI 持久化，而不是由 Mock 后端制造已配置状态。
+
+Electron 驱动只通过 `bootstrapDesktopMain({ loadMain: () => undefined })` 注册既有凭证 IPC，不加载正式 `main.js`，不启动 Python 后端、更新检查或正式桌面窗口。
+
 ## 成功输出
 
 成功时 BAT / npm 输出包含：
