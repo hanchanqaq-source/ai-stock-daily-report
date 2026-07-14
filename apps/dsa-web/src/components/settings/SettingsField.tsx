@@ -92,6 +92,7 @@ function renderFieldControl(
     return (
       <textarea
         id={controlId}
+        data-testid={`settings-field-control-${item.key}`}
         className={`${commonClass} min-h-[92px] resize-y py-3`}
         value={value}
         disabled={disabled || !schema?.isEditable}
@@ -145,6 +146,7 @@ function renderFieldControl(
                   allowTogglePassword
                   iconType={iconType}
                   id={index === 0 ? controlId : `${controlId}-${index}`}
+                  data-testid={index === 0 ? `settings-field-control-${item.key}` : `settings-field-control-${item.key}-${index}`}
                   readOnly={!isPasswordEditable}
                   onFocus={onPasswordFocus}
                   value={entry}
@@ -194,6 +196,7 @@ function renderFieldControl(
         allowTogglePassword
         iconType={iconType}
         id={controlId}
+        data-testid={`settings-field-control-${item.key}`}
         readOnly={!isPasswordEditable}
         onFocus={onPasswordFocus}
         value={value}
@@ -208,6 +211,7 @@ function renderFieldControl(
   return (
     <input
       id={controlId}
+      data-testid={`settings-field-control-${item.key}`}
       type={inputType}
       className={commonClass}
       value={value}
@@ -259,6 +263,7 @@ export const SettingsField: React.FC<SettingsFieldProps> = ({
         hasError ? 'border-danger/40 hover:border-danger/55' : 'border-[var(--settings-border)] hover:border-[var(--settings-border-strong)]',
         'hover:bg-[var(--settings-surface-hover)]',
       )}
+      data-testid={`settings-field-${item.key}`}
     >
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <label className="text-sm font-semibold text-foreground" htmlFor={controlId}>
