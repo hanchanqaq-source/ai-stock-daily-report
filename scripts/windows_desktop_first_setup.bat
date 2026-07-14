@@ -18,7 +18,7 @@ echo Daily Stock Analysis - First Setup
 echo ========================================
 echo Checks the local desktop runtime, installs repository-local dependencies only when needed,
 echo then runs the Windows DPAPI credential smoke test.
-echo Does not install global tools, run npm audit fix, read credentials, or start backend/network flows.
+echo Does not install global tools, run automatic audit remediation, read credentials, or start backend/network flows.
 echo.
 
 pushd "%REPO_ROOT%" >nul 2>nul
