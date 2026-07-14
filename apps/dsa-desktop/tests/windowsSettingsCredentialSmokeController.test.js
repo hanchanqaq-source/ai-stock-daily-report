@@ -96,3 +96,24 @@ test('settings credential smoke summary prints required PASS labels', () => {
   assert.ok(lines.includes('Temp cleanup: PASS'));
   assert.ok(lines.includes('App-M4.2.3B.1 PASS'));
 });
+
+
+test('settings credential smoke summary uses controller leak status instead of child success', () => {
+  const lines = [];
+  const originalLog = console.log;
+  console.log = (line) => lines.push(line);
+  try {
+    printSummary({
+      success: false,
+      cleanupPassed: true,
+      errorCode: 'mock_backend_secret_leak',
+      stages: [
+        { phase: 'set', settingsPageSet: true, mockBackendSecretLeakFree: false },
+        { phase: 'restart-read-clear', restartConfiguredState: true, plaintextNotReturned: true, settingsPageClear: true, mockBackendSecretLeakFree: true },
+      ],
+    });
+  } finally {
+    console.log = originalLog;
+  }
+  assert.ok(lines.includes('Mock backend secret leak check: FAIL'));
+});

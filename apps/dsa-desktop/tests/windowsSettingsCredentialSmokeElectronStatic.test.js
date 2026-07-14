@@ -15,3 +15,21 @@ test('settings credential smoke Electron driver captures trusted root before set
   assert.match(source, /desktop_version=smoke&cache_bust/);
   assert.match(source, /\/settings/);
 });
+
+
+test('settings credential smoke Electron driver has fixed low-sensitivity navigation diagnostics', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokeElectron.js'), 'utf8');
+  assert.match(source, /did-fail-load/);
+  assert.match(source, /did-finish-load/);
+  assert.match(source, /dom-ready/);
+  assert.match(source, /INITIAL_NAVIGATION_FAILED/);
+  assert.match(source, /SETTINGS_NAVIGATION_FAILED/);
+  assert.match(source, /DESKTOP_BRIDGE_UNAVAILABLE/);
+  assert.match(source, /SETTINGS_FIELD_TIMEOUT/);
+  assert.match(source, /PAGE_AUTOMATION_FAILED/);
+});
+
+test('settings credential smoke Electron driver does not decide backend leak status', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokeElectron.js'), 'utf8');
+  assert.doesNotMatch(source, /mockBackendSecretLeakFree:\s*true/);
+});

@@ -16,3 +16,17 @@ test('settings credential smoke parser requires exactly one JSON result line', (
   const parsed = parseResult(`${JSON.stringify(makeResult('set', { success: true, settingsPageSet: true }))}\nextra\n`, 'set');
   assert.equal(parsed.errorCode, ERROR_CODES.INVALID_RESULT);
 });
+
+
+test('settings credential smoke protocol accepts fixed stage diagnostic error codes', () => {
+  for (const errorCode of [
+    ERROR_CODES.INITIAL_NAVIGATION_FAILED,
+    ERROR_CODES.SETTINGS_NAVIGATION_FAILED,
+    ERROR_CODES.DESKTOP_BRIDGE_UNAVAILABLE,
+    ERROR_CODES.SETTINGS_FIELD_TIMEOUT,
+    ERROR_CODES.PAGE_AUTOMATION_FAILED,
+  ]) {
+    const result = validateResult(makeResult('set', { errorCode }), 'set');
+    assert.equal(result.errorCode, errorCode);
+  }
+});

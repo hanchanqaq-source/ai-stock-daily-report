@@ -30,21 +30,72 @@ async function runInPage(win, source, ...args) {
   return win.webContents.executeJavaScript(`(${source})(...${JSON.stringify(args)})`, true);
 }
 
-async function waitForField(win) {
-  const ok = await runInPage(win, async (key) => {
-    const deadline = Date.now() + 15000;
-    while (Date.now() < deadline) {
-      if (document.querySelector(`[data-testid="settings-field-${key}"]`)) return true;
-      await new Promise((resolve) => setTimeout(resolve, 100));
+async function waitForLoad(win, url, errorCode) {
+  return new Promise((resolve) => {
+    let settled = false;
+    let loadPromise;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      win.webContents.removeListener('did-fail-load', onFail);
+      win.webContents.removeListener('did-finish-load', onFinish);
+      win.webContents.removeListener('dom-ready', onDomReady);
+      resolve(ok ? null : errorCode);
+    };
+    const onFail = (_event, _errorCode, _errorDescription, _validatedURL, isMainFrame) => {
+      if (isMainFrame !== false) finish(false);
+    };
+    const onFinish = () => finish(true);
+    const onDomReady = () => {
+      // Observe DOM readiness for stage diagnostics without emitting browser details.
+    };
+    win.webContents.on('did-fail-load', onFail);
+    win.webContents.once('did-finish-load', onFinish);
+    win.webContents.once('dom-ready', onDomReady);
+    try {
+      loadPromise = win.loadURL(url);
+    } catch (_error) {
+      finish(false);
+      return;
     }
-    return false;
-  }, TEST_KEY);
-  if (!ok) throw new Error('field_missing');
+    Promise.resolve(loadPromise).catch(() => finish(false));
+  });
 }
 
+async function hasDesktopBridge(win) {
+  try {
+    return await runInPage(win, () => Boolean(
+      window.dsaDesktop
+      && typeof window.dsaDesktop.getCredentialStatus === 'function'
+      && typeof window.dsaDesktop.setCredential === 'function'
+      && typeof window.dsaDesktop.clearCredential === 'function',
+    ));
+  } catch (_error) {
+    return false;
+  }
+}
+
+async function waitForField(win) {
+  try {
+    const ok = await runInPage(win, async (key) => {
+      const deadline = Date.now() + 15000;
+      while (Date.now() < deadline) {
+        if (document.querySelector(`[data-testid="settings-field-${key}"]`)) return true;
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      return false;
+    }, TEST_KEY);
+    return ok ? null : ERROR_CODES.SETTINGS_FIELD_TIMEOUT;
+  } catch (_error) {
+    return ERROR_CODES.PAGE_AUTOMATION_FAILED;
+  }
+}
+
+
 async function automateSet(win) {
-  await waitForField(win);
-  return runInPage(win, async (key, value) => {
+  const fieldError = await waitForField(win);
+  if (fieldError) return fieldError;
+  const ok = await runInPage(win, async (key, value) => {
     const field = document.querySelector(`[data-testid="settings-field-${key}"]`);
     const input = document.querySelector(`[data-testid="settings-field-control-${key}"]`);
     if (!field || !input) return false;
@@ -65,10 +116,12 @@ async function automateSet(win) {
     }
     return false;
   }, TEST_KEY, testValue);
+  return ok ? null : ERROR_CODES.PAGE_AUTOMATION_FAILED;
 }
 
 async function automateRestartReadClear(win) {
-  await waitForField(win);
+  const fieldError = await waitForField(win);
+  if (fieldError) return { errorCode: fieldError };
   return runInPage(win, async (key) => {
     const field = document.querySelector(`[data-testid="settings-field-${key}"]`);
     const input = document.querySelector(`[data-testid="settings-field-control-${key}"]`);
@@ -104,18 +157,33 @@ async function run() {
   const win = new BrowserWindow({ show: false, webPreferences: { preload: path.join(__dirname, '..', 'preload.js'), contextIsolation: true, nodeIntegration: false } });
   try {
     const cacheBust = Date.now();
-    await win.loadURL(`http://127.0.0.1:${port}/?desktop_version=smoke&cache_bust=${cacheBust}`);
-    await win.loadURL(`http://127.0.0.1:${port}/settings`);
+    const initialError = await waitForLoad(
+      win,
+      `http://127.0.0.1:${port}/?desktop_version=smoke&cache_bust=${cacheBust}`,
+      ERROR_CODES.INITIAL_NAVIGATION_FAILED,
+    );
+    if (initialError) return makeResult(phase, { errorCode: initialError });
+    const settingsError = await waitForLoad(
+      win,
+      `http://127.0.0.1:${port}/settings`,
+      ERROR_CODES.SETTINGS_NAVIGATION_FAILED,
+    );
+    if (settingsError) return makeResult(phase, { errorCode: settingsError });
     await sleep(500);
+    if (!await hasDesktopBridge(win)) {
+      return makeResult(phase, { errorCode: ERROR_CODES.DESKTOP_BRIDGE_UNAVAILABLE });
+    }
     if (phase === 'set') {
-      const settingsPageSet = await automateSet(win);
-      return makeResult(phase, { success: settingsPageSet, settingsPageSet, plaintextNotReturned: true, mockBackendSecretLeakFree: true, errorCode: settingsPageSet ? null : ERROR_CODES.PAGE_SET_FAILED });
+      const setError = await automateSet(win);
+      const settingsPageSet = setError === null;
+      return makeResult(phase, { success: settingsPageSet, settingsPageSet, plaintextNotReturned: true, errorCode: setError });
     }
     const result = await automateRestartReadClear(win);
+    if (result.errorCode) return makeResult(phase, { errorCode: result.errorCode });
     const success = result.configured && result.plaintextAbsent && result.cleared;
-    return makeResult(phase, { success, restartConfiguredState: result.configured, plaintextNotReturned: result.plaintextAbsent, settingsPageClear: result.cleared, mockBackendSecretLeakFree: true, errorCode: success ? null : (!result.plaintextAbsent ? ERROR_CODES.PLAINTEXT_RETURNED : result.configured ? ERROR_CODES.PAGE_CLEAR_FAILED : ERROR_CODES.RESTART_CONFIGURED_FAILED) });
+    return makeResult(phase, { success, restartConfiguredState: result.configured, plaintextNotReturned: result.plaintextAbsent, settingsPageClear: result.cleared, errorCode: success ? null : (!result.plaintextAbsent ? ERROR_CODES.PLAINTEXT_RETURNED : result.configured ? ERROR_CODES.PAGE_CLEAR_FAILED : ERROR_CODES.RESTART_CONFIGURED_FAILED) });
   } catch (_) {
-    return makeResult(phase, { errorCode: ERROR_CODES.PAGE_LOAD_FAILED });
+    return makeResult(phase, { errorCode: ERROR_CODES.PAGE_AUTOMATION_FAILED });
   } finally {
     try { win.destroy(); } catch (_) {}
   }

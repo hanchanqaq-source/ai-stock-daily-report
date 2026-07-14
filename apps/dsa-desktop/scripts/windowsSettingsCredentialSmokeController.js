@@ -111,8 +111,12 @@ async function runSmoke({ platform = process.platform } = {}) {
     server = await startMockServer(port, state);
     for (const phase of PHASES) {
       const result = await runPhase({ phase, port, tempLocalAppData, testValue: state.testValue, electronBinary });
-      stages.push(result);
-      if (!result.success) break;
+      const resultWithLeakCheck = {
+        ...result,
+        mockBackendSecretLeakFree: !state.secretLeak,
+      };
+      stages.push(resultWithLeakCheck);
+      if (state.secretLeak || !resultWithLeakCheck.success) break;
       // The mock backend must never manufacture configured state; the page can
       // show configured only via the Electron IPC status overlay.
     }
