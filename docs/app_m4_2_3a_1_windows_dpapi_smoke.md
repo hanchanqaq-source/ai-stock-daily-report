@@ -56,9 +56,28 @@ Controller 最终输出摘要只包含：
 
 ## 运行方式
 
-### 命令行
+### 推荐：首次一键初始化并验收
 
-在 Windows 上先安装桌面端依赖：
+在 Windows 解压最新源码 ZIP 后，双击：
+
+```bat
+scripts\windows_desktop_first_setup.bat
+```
+
+该脚本会按顺序：
+
+1. 检查仓库文件、Node.js 和 npm。
+2. 检查 `apps\dsa-desktop\node_modules\electron\dist\electron.exe`。
+3. Electron 已存在时跳过依赖安装。
+4. Electron 缺失时，只在 `apps\dsa-desktop` 内自动执行一次 `npm ci`。
+5. 再次确认 Electron 可执行文件真实存在。
+6. 自动调用现有 `windows_secure_credential_store_smoke.bat` 运行 DPAPI Smoke。
+
+首次安装可能从 npm registry 下载桌面端依赖。脚本不会全局安装工具，不会运行 `npm audit fix`、`npm approve-scripts` 或 `npm install -g`，也不会读取 `.env` 或真实凭证。后续再次双击时，只要 Electron 仍存在，就会直接跳过 `npm ci`。
+
+### 命令行方式
+
+需要人工分步执行时：
 
 ```bat
 cd /d <repo>\apps\dsa-desktop
@@ -66,22 +85,15 @@ npm ci
 npm run smoke:credential-store:windows
 ```
 
-### 双击 BAT
+### 仅运行 Smoke BAT
 
-也可以双击运行：
+Electron 已安装后，也可以直接双击：
 
 ```bat
 scripts\windows_secure_credential_store_smoke.bat
 ```
 
-BAT 会自动定位仓库根目录，检查 `node.exe`、`npm.cmd`、桌面端 `package.json`、`secureCredentialStore.js` 和本地 Electron 依赖。若 Electron 未安装，只提示用户手动执行：
-
-```bat
-cd /d <repo>\apps\dsa-desktop
-npm ci
-```
-
-BAT 不会自动全局安装工具，不会运行 `npm audit fix`，并会用 `pause` 保留窗口。
+该 BAT 会自动定位仓库根目录，检查 `node.exe`、`npm.cmd`、桌面端 `package.json`、`secureCredentialStore.js` 和本地 Electron 依赖；它本身不会安装依赖，并会用 `pause` 保留窗口。
 
 ## PASS 判断标准
 
@@ -100,16 +112,20 @@ BAT 不会自动全局安装工具，不会运行 `npm audit fix`，并会用 `p
 
 ## 常见失败
 
-- `Electron dependency is missing`：进入 `apps\dsa-desktop` 手动执行 `npm ci` 后重试。
+- `node.exe not found` / `npm.cmd not found`：先安装 Node.js，再重新双击一键初始化 BAT。
+- `npm ci failed`：保留窗口，只截取不含账号、token、路径隐私或凭证的错误行供排查；不要运行 `npm audit fix` 或全局安装命令。
+- `Electron executable is still missing after npm ci`：依赖包或 Electron 二进制未完整下载，需要检查网络或 npm 下载错误。
 - `unsupported_platform`：当前不是 Windows；Linux/macOS/mock 测试不能证明 Windows DPAPI 实机通过。
 - `encryption_unavailable`：当前 Windows 用户会话下 Electron safeStorage/DPAPI 不可用，需要检查系统凭据环境或 Electron 运行方式。
-- `child_process_failed`：Electron 子进程未能正常完成，保留 BAT 窗口截图供排查。
+- `child_process_failed`：Electron 子进程未能正常启动或没有返回合法低敏结果，保留 BAT 窗口截图供排查。
+- `restart_read_failed`：新的 Electron 子进程未能读取并解密第一阶段写入的测试值。
+- `clear_failed`：重启读取成功，但清除或清除后的状态校验失败。
 - `plaintext_detected`：临时文件中出现测试明文，必须阻断后续接入。
 - `cleanup_failed`：临时目录清理失败；工具只输出低敏告警，不输出文件内容。
 
 ## 单元测试说明
 
-仓库中的 mock 单元测试只验证 Controller 控制流、低敏结果协议、临时目录清理和 Runner 静态隔离边界。**mock 测试不等同于 Windows DPAPI 实机通过。**
+仓库中的 mock 单元测试只验证 Controller 控制流、低敏结果协议、临时目录清理、Runner 静态隔离边界，以及首次初始化 BAT 的本地安装边界。**mock 测试不等同于 Windows DPAPI 实机通过。**
 
 云端/Linux 环境不能伪造 Windows DPAPI 结论；PR 中 Windows Smoke 必须标记为“待用户本机执行”。
 
