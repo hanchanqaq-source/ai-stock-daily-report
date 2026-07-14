@@ -1,6 +1,13 @@
 import apiClient from './index';
 import { createParsedApiError, getParsedApiError, type ParsedApiError } from './error';
 import { toCamelCase } from './utils';
+import {
+  applyDesktopCredentialUpdates,
+  getDesktopCredentialBridge,
+  overlayDesktopCredentialStatuses,
+  splitDesktopCredentialUpdates,
+  validateDesktopCredentialUpdates,
+} from './desktopCredentialStore';
 import type {
   DiscoverLLMChannelModelsRequest,
   DiscoverLLMChannelModelsResponse,
@@ -133,12 +140,57 @@ function toSnakeDiscoverModelsPayload(payload: DiscoverLLMChannelModelsRequest):
   };
 }
 
+async function validateServerConfig(payload: ValidateSystemConfigRequest): Promise<ValidateSystemConfigResponse> {
+  const response = await apiClient.post<Record<string, unknown>>(
+    '/api/v1/system/config/validate',
+    toSnakeValidatePayload(payload),
+  );
+  return toCamelCase<ValidateSystemConfigResponse>(response.data);
+}
+
+async function updateServerConfig(payload: UpdateSystemConfigRequest): Promise<UpdateSystemConfigResponse> {
+  try {
+    const response = await apiClient.put<Record<string, unknown>>(
+      '/api/v1/system/config',
+      toSnakeUpdatePayload(payload),
+    );
+    return toCamelCase<UpdateSystemConfigResponse>(response.data);
+  } catch (error: unknown) {
+    const parsed = getParsedApiError(error);
+    if (error && typeof error === 'object' && 'response' in error) {
+      const status = (error as { response?: { status?: number } }).response?.status;
+      const payloadData = (error as { response?: { data?: unknown } }).response?.data;
+
+      if (status === 400) {
+        const validationError = toCamelCase<SystemConfigValidationErrorResponse>(payloadData ?? {});
+        throw new SystemConfigValidationError(
+          parsed.message || validationError.message || '配置校验失败',
+          validationError.issues || [],
+          parsed,
+        );
+      }
+
+      if (status === 409) {
+        const conflict = toCamelCase<SystemConfigConflictResponse>(payloadData ?? {});
+        throw new SystemConfigConflictError(
+          parsed.message || conflict.message || '配置版本冲突',
+          conflict.currentConfigVersion,
+          parsed,
+        );
+      }
+    }
+
+    throw error;
+  }
+}
+
 export const systemConfigApi = {
   async getConfig(includeSchema = true): Promise<SystemConfigResponse> {
     const response = await apiClient.get<Record<string, unknown>>('/api/v1/system/config', {
       params: { include_schema: includeSchema },
     });
-    return toCamelCase<SystemConfigResponse>(response.data);
+    const config = toCamelCase<SystemConfigResponse>(response.data);
+    return overlayDesktopCredentialStatuses(config, getDesktopCredentialBridge());
   },
 
   async exportEnv(): Promise<ExportSystemConfigResponse> {
@@ -171,11 +223,26 @@ export const systemConfigApi = {
   },
 
   async validate(payload: ValidateSystemConfigRequest): Promise<ValidateSystemConfigResponse> {
-    const response = await apiClient.post<Record<string, unknown>>(
-      '/api/v1/system/config/validate',
-      toSnakeValidatePayload(payload),
-    );
-    return toCamelCase<ValidateSystemConfigResponse>(response.data);
+    const bridge = getDesktopCredentialBridge();
+    if (!bridge) {
+      return validateServerConfig(payload);
+    }
+
+    const { desktopItems, serverItems } = splitDesktopCredentialUpdates(payload.items);
+    if (desktopItems.length === 0) {
+      return validateServerConfig(payload);
+    }
+
+    const desktopValidation = validateDesktopCredentialUpdates(desktopItems, bridge);
+    if (!desktopValidation.valid || serverItems.length === 0) {
+      return desktopValidation;
+    }
+
+    const serverValidation = await validateServerConfig({ items: serverItems });
+    return {
+      valid: serverValidation.valid,
+      issues: [...desktopValidation.issues, ...(serverValidation.issues || [])],
+    };
   },
 
   async importEnv(payload: ImportSystemConfigRequest): Promise<UpdateSystemConfigResponse> {
@@ -217,39 +284,41 @@ export const systemConfigApi = {
   },
 
   async update(payload: UpdateSystemConfigRequest): Promise<UpdateSystemConfigResponse> {
-    try {
-      const response = await apiClient.put<Record<string, unknown>>(
-        '/api/v1/system/config',
-        toSnakeUpdatePayload(payload),
-      );
-      return toCamelCase<UpdateSystemConfigResponse>(response.data);
-    } catch (error: unknown) {
-      const parsed = getParsedApiError(error);
-      if (error && typeof error === 'object' && 'response' in error) {
-        const status = (error as { response?: { status?: number } }).response?.status;
-        const payloadData = (error as { response?: { data?: unknown } }).response?.data;
-
-        if (status === 400) {
-          const validationError = toCamelCase<SystemConfigValidationErrorResponse>(payloadData ?? {});
-          throw new SystemConfigValidationError(
-            parsed.message || validationError.message || '配置校验失败',
-            validationError.issues || [],
-            parsed,
-          );
-        }
-
-        if (status === 409) {
-          const conflict = toCamelCase<SystemConfigConflictResponse>(payloadData ?? {});
-          throw new SystemConfigConflictError(
-            parsed.message || conflict.message || '配置版本冲突',
-            conflict.currentConfigVersion,
-            parsed,
-          );
-        }
-      }
-
-      throw error;
+    const bridge = getDesktopCredentialBridge();
+    if (!bridge) {
+      return updateServerConfig(payload);
     }
+
+    const { desktopItems, serverItems } = splitDesktopCredentialUpdates(payload.items);
+    if (desktopItems.length === 0) {
+      return updateServerConfig(payload);
+    }
+
+    const desktopValidation = validateDesktopCredentialUpdates(desktopItems, bridge);
+    if (!desktopValidation.valid) {
+      throw new SystemConfigValidationError('桌面安全凭证校验失败', desktopValidation.issues);
+    }
+
+    const serverResult = serverItems.length > 0
+      ? await updateServerConfig({ ...payload, items: serverItems })
+      : {
+          success: true,
+          configVersion: payload.configVersion,
+          appliedCount: 0,
+          skippedMaskedCount: 0,
+          reloadTriggered: false,
+          updatedKeys: [],
+          warnings: [],
+        };
+
+    const desktopUpdatedKeys = await applyDesktopCredentialUpdates(bridge, desktopItems);
+    return {
+      ...serverResult,
+      success: true,
+      appliedCount: serverResult.appliedCount + desktopUpdatedKeys.length,
+      updatedKeys: [...new Set([...(serverResult.updatedKeys || []), ...desktopUpdatedKeys])],
+      warnings: serverResult.warnings || [],
+    };
   },
 
   /**
