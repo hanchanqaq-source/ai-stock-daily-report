@@ -20,94 +20,122 @@ echo.
 pushd "%REPO_ROOT%" >nul 2>nul
 if errorlevel 1 (
     echo [FAIL] Repository root could not be located from this script path
-    set /a FAIL_COUNT+=1
-    goto summary
+    echo.
+    echo ========================================
+    echo Windows DPAPI Smoke Summary
+    echo ========================================
+    echo FAIL: Windows DPAPI smoke did not complete
+    echo [TIP] Fix the failed check above and retry.
+    echo.
+    echo This window will stay open. Do not paste secrets here.
+    pause
+    exit /b 1
 )
 
-call :check_file "AGENTS.md" "repository AGENTS.md" || goto summary
-call :check_file "apps\dsa-desktop\package.json" "desktop package.json" || goto summary
-call :check_file "apps\dsa-desktop\secureCredentialStore.js" "secure credential store" || goto summary
+echo [CHECK] repository files
+if not exist "AGENTS.md" (
+    echo [FAIL] Missing repository AGENTS.md: AGENTS.md
+    set /a FAIL_COUNT+=1
+) else (
+    echo [OK] Found repository AGENTS.md
+)
+if not exist "apps\dsa-desktop\package.json" (
+    echo [FAIL] Missing desktop package.json: apps\dsa-desktop\package.json
+    set /a FAIL_COUNT+=1
+) else (
+    echo [OK] Found desktop package.json
+)
+if not exist "apps\dsa-desktop\secureCredentialStore.js" (
+    echo [FAIL] Missing secure credential store: apps\dsa-desktop\secureCredentialStore.js
+    set /a FAIL_COUNT+=1
+) else (
+    echo [OK] Found secure credential store
+)
 
 echo [CHECK] node.exe
-for /f "delims=" %%N in ('where node.exe 2^>nul') do (
-    set "NODE_EXE=%%N"
-    goto node_found
-)
-:node_found
+for /f "delims=" %%N in ('where node.exe 2^>nul') do if not defined NODE_EXE set "NODE_EXE=%%N"
 if not defined NODE_EXE (
     echo [FAIL] node.exe not found
     echo [TIP] Install Node.js manually, then rerun this script.
     set /a FAIL_COUNT+=1
-    goto summary
+) else (
+    "%NODE_EXE%" --version
+    if errorlevel 1 (
+        echo [FAIL] node.exe cannot run
+        set /a FAIL_COUNT+=1
+    ) else (
+        echo [OK] node.exe found
+    )
 )
-"%NODE_EXE%" --version
-if errorlevel 1 (
-    echo [FAIL] node.exe cannot run
-    set /a FAIL_COUNT+=1
-    goto summary
-)
-echo [OK] node.exe found
 
 echo [CHECK] npm.cmd
-for /f "delims=" %%N in ('where npm.cmd 2^>nul') do (
-    set "NPM_CMD=%%N"
-    goto npm_found
-)
-:npm_found
+for /f "delims=" %%N in ('where npm.cmd 2^>nul') do if not defined NPM_CMD set "NPM_CMD=%%N"
 if not defined NPM_CMD (
     echo [FAIL] npm.cmd not found
     echo [TIP] Install Node.js/npm manually, then rerun this script.
     set /a FAIL_COUNT+=1
-    goto summary
+) else (
+    call "%NPM_CMD%" --version
+    if errorlevel 1 (
+        echo [FAIL] npm.cmd cannot run
+        set /a FAIL_COUNT+=1
+    ) else (
+        echo [OK] npm.cmd found
+    )
 )
-call "%NPM_CMD%" --version
-if errorlevel 1 (
-    echo [FAIL] npm.cmd cannot run
-    set /a FAIL_COUNT+=1
-    goto summary
-)
-echo [OK] npm.cmd found
 
 echo [CHECK] Electron dependency
 if not exist "apps\dsa-desktop\node_modules\electron" (
     echo [FAIL] Electron dependency is missing
-    echo [TIP] Run this command manually, then rerun this script:
+    echo [TIP] Run these commands manually, then rerun this script:
     echo cd /d "%CD%\apps\dsa-desktop"
     echo npm ci
     set /a FAIL_COUNT+=1
-    goto summary
+) else (
+    echo [OK] Electron dependency found
 )
-echo [OK] Electron dependency found
+
+if not "!FAIL_COUNT!"=="0" (
+    echo.
+    echo ========================================
+    echo Windows DPAPI Smoke Summary
+    echo ========================================
+    echo FAIL: Windows DPAPI smoke did not complete
+    echo Write phase: FAIL or not reached
+    echo Restart-read phase: FAIL or not reached
+    echo Clear phase: FAIL or not reached
+    echo Temp cleanup: FAIL, warning, or not reached
+    echo [TIP] Fix the failed check above and retry.
+    echo.
+    echo This window will stay open. Do not paste secrets here.
+    pause
+    popd >nul 2>nul
+    exit /b 1
+)
 
 echo [CHECK] Running Windows credential store smoke
-cd /d "%CD%\apps\dsa-desktop"
-call "%NPM_CMD%" run smoke:credential-store:windows
-set "SMOKE_EXIT=!ERRORLEVEL!"
+pushd "apps\dsa-desktop" >nul 2>nul
+if errorlevel 1 (
+    echo [FAIL] Cannot enter apps\dsa-desktop
+    set "SMOKE_EXIT=1"
+) else (
+    call "%NPM_CMD%" run smoke:credential-store:windows
+    set "SMOKE_EXIT=!ERRORLEVEL!"
+    popd >nul 2>nul
+)
+
 if not "!SMOKE_EXIT!"=="0" (
     echo [FAIL] Smoke command failed
     set /a FAIL_COUNT+=1
 ) else (
     echo [OK] Smoke command passed
 )
-cd /d "%REPO_ROOT%"
 
-goto summary
-
-:check_file
-if not exist "%~1" (
-    echo [FAIL] Missing %~2: %~1
-    set /a FAIL_COUNT+=1
-    exit /b 1
-)
-echo [OK] Found %~2
-exit /b 0
-
-:summary
 echo.
 echo ========================================
 echo Windows DPAPI Smoke Summary
 echo ========================================
-if "%FAIL_COUNT%"=="0" (
+if "!FAIL_COUNT!"=="0" (
     echo PASS: Windows DPAPI smoke completed
     echo Write phase: see npm smoke summary above
     echo Restart-read phase: see npm smoke summary above
@@ -125,4 +153,4 @@ echo.
 echo This window will stay open. Do not paste secrets here.
 pause
 popd >nul 2>nul
-exit /b %FAIL_COUNT%
+exit /b !FAIL_COUNT!
