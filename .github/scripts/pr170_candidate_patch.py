@@ -67,9 +67,15 @@ replacements = [
 ]
 
 for old, new in replacements:
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f"candidate replacement expected once, found {count}: {old[:80]!r}")
-    text = text.replace(old, new)
+    old_count = text.count(old)
+    new_count = text.count(new)
+    if old_count == 1 and new_count == 0:
+        text = text.replace(old, new)
+        continue
+    if old_count == 0 and new_count == 1:
+        continue
+    raise SystemExit(
+        f"candidate replacement state invalid: old={old_count}, new={new_count}, snippet={old[:80]!r}"
+    )
 
 path.write_text(text, encoding="utf-8")
