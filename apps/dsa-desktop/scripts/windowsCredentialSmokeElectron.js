@@ -2,16 +2,25 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { app, safeStorage } = require('electron');
 const { createSecureCredentialStore } = require('../secureCredentialStore');
+const { resolveSmokeTempLocalAppData } = require('./windowsCredentialSmokeController');
 
 const ERROR_CODES = Object.freeze({
   UNSUPPORTED_PLATFORM: 'unsupported_platform',
   ENCRYPTION_UNAVAILABLE: 'encryption_unavailable',
+  INVALID_TEMP_DIRECTORY: 'invalid_temp_directory',
   SET_FAILED: 'set_failed',
   RESTART_READ_FAILED: 'restart_read_failed',
   PLAINTEXT_DETECTED: 'plaintext_detected',
   CLEAR_FAILED: 'clear_failed',
   INVALID_RESULT: 'invalid_result',
 });
+
+const smokeLocalAppData = resolveSmokeTempLocalAppData(
+  process.env.DSA_CREDENTIAL_SMOKE_LOCALAPPDATA,
+);
+if (smokeLocalAppData) {
+  app.setPath('userData', path.join(smokeLocalAppData, 'electron-user-data'));
+}
 
 function makeResult(phase, fields = {}) {
   return {
@@ -28,6 +37,13 @@ function makeResult(phase, fields = {}) {
 
 function writeResult(result) {
   process.stdout.write(`${JSON.stringify(result)}\n`);
+}
+
+function clearSensitiveEnvironment() {
+  delete process.env.DSA_CREDENTIAL_SMOKE_PHASE;
+  delete process.env.DSA_CREDENTIAL_SMOKE_LOCALAPPDATA;
+  delete process.env.DSA_CREDENTIAL_SMOKE_KEY;
+  delete process.env.DSA_CREDENTIAL_SMOKE_VALUE;
 }
 
 function fileHasPlaintext(storePath, expectedValue) {
@@ -65,21 +81,27 @@ function statusHasOnlyConfigured(status, expectedConfigured) {
 
 async function runPhase() {
   const phase = process.env.DSA_CREDENTIAL_SMOKE_PHASE;
-  const localAppData = process.env.DSA_CREDENTIAL_SMOKE_LOCALAPPDATA;
   const key = process.env.DSA_CREDENTIAL_SMOKE_KEY;
   const testValue = process.env.DSA_CREDENTIAL_SMOKE_VALUE;
 
-  if ((phase !== 'write' && phase !== 'restart-read-clear') || !localAppData || !key || !testValue) {
+  if ((phase !== 'write' && phase !== 'restart-read-clear') || !key || !testValue) {
     return makeResult(phase || 'unknown', { errorCode: ERROR_CODES.INVALID_RESULT });
   }
   if (process.platform !== 'win32') {
     return makeResult(phase, { errorCode: ERROR_CODES.UNSUPPORTED_PLATFORM });
   }
-  if (!safeStorage.isEncryptionAvailable()) {
+  if (!smokeLocalAppData) {
+    return makeResult(phase, { errorCode: ERROR_CODES.INVALID_TEMP_DIRECTORY });
+  }
+  try {
+    if (!safeStorage.isEncryptionAvailable()) {
+      return makeResult(phase, { errorCode: ERROR_CODES.ENCRYPTION_UNAVAILABLE });
+    }
+  } catch (_error) {
     return makeResult(phase, { errorCode: ERROR_CODES.ENCRYPTION_UNAVAILABLE });
   }
 
-  const store = createSmokeStore(localAppData);
+  const store = createSmokeStore(smokeLocalAppData);
 
   if (phase === 'write') {
     const setResult = store.setCredential(key, testValue);
@@ -137,16 +159,20 @@ async function runPhase() {
 app.whenReady()
   .then(runPhase)
   .then((result) => {
+    clearSensitiveEnvironment();
     writeResult(result);
     app.exit(result.success ? 0 : 1);
   })
   .catch(() => {
-    writeResult(makeResult(process.env.DSA_CREDENTIAL_SMOKE_PHASE || 'unknown', { errorCode: ERROR_CODES.INVALID_RESULT }));
+    const failedPhase = process.env.DSA_CREDENTIAL_SMOKE_PHASE || 'unknown';
+    clearSensitiveEnvironment();
+    writeResult(makeResult(failedPhase, { errorCode: ERROR_CODES.INVALID_RESULT }));
     app.exit(1);
   });
 
 module.exports = {
   ERROR_CODES,
+  clearSensitiveEnvironment,
   fileHasPlaintext,
   hasValidCiphertext,
   makeResult,
