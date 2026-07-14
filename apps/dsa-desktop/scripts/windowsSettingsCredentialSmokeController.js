@@ -59,6 +59,15 @@ function startMockServer(port, state) {
   });
 }
 
+function resolveChildSmokeTempLocalAppData(candidate, env = process.env) {
+  if (typeof candidate !== 'string' || candidate !== env.LOCALAPPDATA) {
+    return null;
+  }
+  return resolveSmokeTempLocalAppData(candidate, {
+    realLocalAppData: '',
+  });
+}
+
 function createChildEnvironment({ phase, port, tempLocalAppData, testValue }, sourceEnv = process.env) {
   const env = {
     ...sourceEnv,
@@ -134,4 +143,4 @@ function printSummary(summary) {
 }
 
 if (require.main === module) runSmoke().then((s) => { printSummary(s); process.exitCode = s.success ? 0 : 1; }).catch(() => { printSummary({ success: false, cleanupPassed: false, errorCode: ERROR_CODES.INVALID_RESULT, stages: [] }); process.exitCode = 1; });
-module.exports = { TEST_KEY, createChildEnvironment, findPort, makeConfig, printSummary, runSmoke, startMockServer };
+module.exports = { TEST_KEY, createChildEnvironment, findPort, makeConfig, printSummary, resolveChildSmokeTempLocalAppData, runSmoke, startMockServer };

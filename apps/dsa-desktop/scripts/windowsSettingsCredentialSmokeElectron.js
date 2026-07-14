@@ -2,13 +2,16 @@ const path = require('node:path');
 const { app, BrowserWindow } = require('electron');
 const { bootstrapDesktopMain } = require('../credentialIpc');
 const { ERROR_CODES, makeResult } = require('./windowsSettingsCredentialSmokeProtocol');
-const { resolveSmokeTempLocalAppData } = require('./windowsCredentialSmokeController');
+const { resolveChildSmokeTempLocalAppData } = require('./windowsSettingsCredentialSmokeController');
 
 const TEST_KEY = 'APP_M423B1_TEST_TOKEN';
 const phase = process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_PHASE;
 const port = Number(process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_PORT || 0);
 const testValue = process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_VALUE || '';
-const localAppData = resolveSmokeTempLocalAppData(process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_LOCALAPPDATA);
+const localAppData = resolveChildSmokeTempLocalAppData(
+  process.env.DSA_SETTINGS_CREDENTIAL_SMOKE_LOCALAPPDATA,
+  process.env,
+);
 
 if (localAppData) app.setPath('userData', path.join(localAppData, 'electron-user-data'));
 bootstrapDesktopMain({ loadMain: () => undefined });

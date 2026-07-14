@@ -1,6 +1,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { createChildEnvironment, findPort, makeConfig, printSummary, runSmoke } = require('../scripts/windowsSettingsCredentialSmokeController');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { createChildEnvironment, findPort, makeConfig, printSummary, resolveChildSmokeTempLocalAppData, runSmoke } = require('../scripts/windowsSettingsCredentialSmokeController');
 
 test('settings credential smoke skips non-Windows without creating secrets', async () => {
   const summary = await runSmoke({ platform: 'linux' });
@@ -27,6 +30,40 @@ test('settings credential smoke child environment overrides real LOCALAPPDATA', 
   assert.equal(env.LOCALAPPDATA, 'C:\\Temp\\dsa-secure-credential-smoke-unit');
   assert.equal(env.DSA_SETTINGS_CREDENTIAL_SMOKE_LOCALAPPDATA, 'C:\\Temp\\dsa-secure-credential-smoke-unit');
   assert.equal(env.ELECTRON_RUN_AS_NODE, undefined);
+});
+
+
+test('settings credential smoke child temp resolver accepts overridden LOCALAPPDATA smoke directory', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-secure-credential-smoke-unit-'));
+  try {
+    assert.equal(
+      resolveChildSmokeTempLocalAppData(tempDir, { LOCALAPPDATA: tempDir }),
+      fs.realpathSync(tempDir),
+    );
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+test('settings credential smoke child temp resolver rejects mismatched env variables', () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-secure-credential-smoke-unit-'));
+  const otherTempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-secure-credential-smoke-unit-'));
+  try {
+    assert.equal(resolveChildSmokeTempLocalAppData(tempDir, { LOCALAPPDATA: otherTempDir }), null);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    fs.rmSync(otherTempDir, { recursive: true, force: true });
+  }
+});
+
+test('settings credential smoke child temp resolver rejects non-temp or wrong-prefix directories', () => {
+  const wrongPrefix = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-wrong-prefix-'));
+  try {
+    assert.equal(resolveChildSmokeTempLocalAppData(wrongPrefix, { LOCALAPPDATA: wrongPrefix }), null);
+    assert.equal(resolveChildSmokeTempLocalAppData(path.resolve('/not-temp/dsa-secure-credential-smoke-unit'), { LOCALAPPDATA: path.resolve('/not-temp/dsa-secure-credential-smoke-unit') }), null);
+  } finally {
+    fs.rmSync(wrongPrefix, { recursive: true, force: true });
+  }
 });
 
 test('settings credential smoke port finder uses desktop trusted range', async () => {

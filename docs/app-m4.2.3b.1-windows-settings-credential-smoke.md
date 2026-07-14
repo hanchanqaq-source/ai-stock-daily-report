@@ -29,7 +29,7 @@ npm run smoke:settings-credential:windows
 
 Mock 后端的敏感字段始终返回 `value=''`、`raw_value_exists=false`、`is_masked=false`，因此页面中的“已配置”只能来自 Electron preload / IPC 查询 Windows DPAPI 后叠加的状态。重启阶段复用同一个临时 `LOCALAPPDATA`，用于验证跨 Electron 进程的 DPAPI 持久化，而不是由 Mock 后端制造已配置状态。
 
-Electron 驱动只通过 `bootstrapDesktopMain({ loadMain: () => undefined })` 注册既有凭证 IPC，不加载正式 `main.js`，不启动 Python 后端、更新检查或正式桌面窗口。
+Electron 驱动只通过 `bootstrapDesktopMain({ loadMain: () => undefined })` 注册既有凭证 IPC，不加载正式 `main.js`，不启动 Python 后端、更新检查或正式桌面窗口。子进程要求标准 `LOCALAPPDATA` 与 `DSA_SETTINGS_CREDENTIAL_SMOKE_LOCALAPPDATA` 完全一致，并在不把覆盖后的 `LOCALAPPDATA` 误判为用户真实目录的前提下继续执行绝对路径、系统临时目录、smoke 前缀和防逃逸校验。
 
 ## 成功输出
 
