@@ -81,6 +81,7 @@
 | [App-M4.1 设置工作台骨架](app_m4_1_settings_workspace_shell.md) | 既有 Web 设置页内嵌的三个静态页签；既有设置功能继续保留，无真实密钥保存、无 App-M4.1 配置持久化、无网络请求，App-M4.2 尚未开始 |
 | [App-M4.2.1 服务端敏感字段契约和统一脱敏](app_m4_2_1_sensitive_contract_and_masking.md) | schema 驱动的服务端敏感字段脱敏、keep/set/clear 更新语义、掩码占位保护和本阶段未启用真实 Provider / DPAPI / 本地迁移边界 |
 | [App-M4.2.2 前端敏感字段安全交互](app_m4_2_2_frontend_sensitive_interaction.md) | Web 设置页敏感字段 keep/set/clear 交互、明确修改/取消/清除、掩码占位保护、非敏感字段兼容和未启用真实 Provider / DPAPI / 本地迁移边界 |
+| [App-M4.2.3A Windows 桌面端安全凭证存储基础](app_m4_2_3a_windows_secure_credential_store.md) | Electron 主进程 safeStorage 加密、LOCALAPPDATA 凭证文件、IPC/preload 最小边界和本阶段未接 SettingsPage / 后端 / Provider 的安全说明 |
 
 ## 多语言
 

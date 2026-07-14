@@ -1,4 +1,5 @@
-const { app, BrowserWindow, dialog, ipcMain, shell, nativeTheme } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell, nativeTheme, safeStorage } = require('electron');
+const { createSecureCredentialStore } = require('./secureCredentialStore');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -6,6 +7,7 @@ const net = require('net');
 const http = require('http');
 const https = require('https');
 const { TextDecoder } = require('util');
+const { fileURLToPath } = require('url');
 
 let mainWindow = null;
 let backendProcess = null;
@@ -17,6 +19,7 @@ let lastPromptedInstallVersion = '';
 let electronAutoUpdater = undefined;
 let electronAutoUpdaterConfigured = false;
 let electronUpdateCheckInFlight = false;
+const secureCredentialStore = createSecureCredentialStore({ safeStorage });
 
 function resolveWindowBackgroundColor() {
   return nativeTheme.shouldUseDarkColors ? '#08080c' : '#f4f7fb';
@@ -1551,6 +1554,80 @@ async function performDesktopUpdateCheck({ manual = false, notify = false } = {}
   }
 }
 
+
+function isAllowedDesktopIpcSource(event) {
+  const frameUrl = event && event.senderFrame && typeof event.senderFrame.url === 'string'
+    ? event.senderFrame.url
+    : '';
+  if (!frameUrl) {
+    return false;
+  }
+  try {
+    const parsed = new URL(frameUrl);
+    if (parsed.protocol === 'file:') {
+      const rendererRoot = path.resolve(__dirname, 'renderer');
+      const framePath = path.resolve(fileURLToPath(parsed));
+      const relative = path.relative(rendererRoot, framePath);
+      return Boolean(relative) && !relative.startsWith('..') && !path.isAbsolute(relative);
+    }
+    return parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1';
+  } catch (_error) {
+    return false;
+  }
+}
+
+function rejectCredentialIpc(errorCode = 'forbidden_source') {
+  return {
+    success: false,
+    configured: false,
+    supported: false,
+    errorCode,
+  };
+}
+
+function handleCredentialStatus(event, payload) {
+  if (!isAllowedDesktopIpcSource(event)) {
+    return rejectCredentialIpc();
+  }
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload) || typeof payload.key !== 'string') {
+    return rejectCredentialIpc('invalid_payload');
+  }
+  return secureCredentialStore.getCredentialStatus(payload.key);
+}
+
+function handleSetCredential(event, payload) {
+  if (!isAllowedDesktopIpcSource(event)) {
+    return rejectCredentialIpc();
+  }
+  if (
+    !payload ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload) ||
+    typeof payload.key !== 'string' ||
+    typeof payload.value !== 'string' ||
+    payload.value.length === 0
+  ) {
+    return rejectCredentialIpc('invalid_payload');
+  }
+  return secureCredentialStore.setCredential(payload.key, payload.value);
+}
+
+function handleClearCredential(event, payload) {
+  if (!isAllowedDesktopIpcSource(event)) {
+    return rejectCredentialIpc();
+  }
+  if (
+    !payload ||
+    typeof payload !== 'object' ||
+    Array.isArray(payload) ||
+    Object.prototype.hasOwnProperty.call(payload, 'value') ||
+    typeof payload.key !== 'string'
+  ) {
+    return rejectCredentialIpc('invalid_payload');
+  }
+  return secureCredentialStore.clearCredential(payload.key);
+}
+
 ipcMain.handle('desktop:get-update-state', () => desktopUpdateState);
 ipcMain.handle('desktop:check-for-updates', () => performDesktopUpdateCheck({ manual: true }));
 ipcMain.handle('desktop:install-downloaded-update', () => installDownloadedUpdate());
@@ -1558,6 +1635,9 @@ ipcMain.handle('desktop:open-release-page', async (_event, releaseUrl) => {
   await shell.openExternal(sanitizeReleaseUrl(releaseUrl));
   return true;
 });
+ipcMain.handle('desktop:credential-status', handleCredentialStatus);
+ipcMain.handle('desktop:set-credential', handleSetCredential);
+ipcMain.handle('desktop:clear-credential', handleClearCredential);
 
 async function createWindow() {
   const restoreResult = isWindowsNsisInstalledApp() ? restorePackagedRuntimeStateFromBackup() : null;
@@ -1804,5 +1884,9 @@ module.exports = {
   __setMainWindowForTest(mainWindowRef = null) {
     mainWindow = mainWindowRef;
   },
+  isAllowedDesktopIpcSource,
+  handleCredentialStatus,
+  handleSetCredential,
+  handleClearCredential,
   waitForBackendExit,
 };

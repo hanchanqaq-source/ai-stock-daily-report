@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] 新增 App-M4.2.3A Windows 桌面端安全凭证存储基础，建立 safeStorage 加密文件、IPC/preload 边界与测试文档。
 
 - [新功能] App-M4.2.2 Web 设置页接入敏感字段 keep/set/clear 前端交互契约，已配置密钥不回显、不把掩码作为新值提交，明确清除需二次确认；当前仍不启用 DPAPI、LOCALAPPDATA 迁移、真实 Provider 或连接测试。
 - [修复] App-M4.2.1 增加服务端敏感字段契约和 schema 驱动统一脱敏，支持敏感字段 keep/set/clear 更新语义，阻止空字符串和掩码占位被误保存为真实密钥；当前不接前端新契约、不启用真实 Provider、不迁移本地安全存储。

@@ -63,6 +63,11 @@ function loadMainModule(t, options = {}) {
         ipcMain: fakeIpcMain,
         shell: fakeShell,
         nativeTheme: fakeNativeTheme,
+        safeStorage: options.safeStorage || {
+          isEncryptionAvailable: () => true,
+          encryptString: (value) => Buffer.from(`encrypted:${value}`, 'utf8'),
+          decryptString: (buffer) => buffer.toString('utf8').replace(/^encrypted:/, ''),
+        },
       };
     }
     if (request === 'http' && options.http) {
@@ -1113,4 +1118,30 @@ test('stopBackend uses taskkill on Windows and clears after backend exit', async
     },
   ]);
   assert.equal(mainModule.__getBackendProcessForTest(), null);
+});
+
+test('credential IPC validates local source, payloads, and never returns submitted value', (t) => {
+  const originalLocalAppData = process.env.LOCALAPPDATA;
+  process.env.LOCALAPPDATA = fs.mkdtempSync(path.join(os.tmpdir(), 'dsa-credential-ipc-'));
+  t.after(() => {
+    if (originalLocalAppData === undefined) {
+      delete process.env.LOCALAPPDATA;
+    } else {
+      process.env.LOCALAPPDATA = originalLocalAppData;
+    }
+  });
+  const mainModule = loadMainModule(t, { platform: 'win32' });
+  const event = { senderFrame: { url: `file://${path.resolve(__dirname, '..', 'renderer', 'loading.html')}` } };
+
+  const setResult = mainModule.handleSetCredential(event, {
+    key: 'OPENAI_API_KEY',
+    value: 'fake-token-for-unit-test',
+  });
+  assert.equal(Object.prototype.hasOwnProperty.call(setResult, 'value'), false);
+
+  assert.equal(mainModule.handleCredentialStatus(event, { key: '../BAD' }).errorCode, 'invalid_key');
+  assert.equal(mainModule.handleSetCredential(event, { key: 'OPENAI_API_KEY', value: '' }).errorCode, 'invalid_payload');
+  assert.equal(mainModule.handleClearCredential(event, { key: 'OPENAI_API_KEY', value: 'fake-token-for-unit-test' }).errorCode, 'invalid_payload');
+  assert.equal(mainModule.handleCredentialStatus({ senderFrame: { url: 'https://example.com/settings' } }, { key: 'OPENAI_API_KEY' }).errorCode, 'forbidden_source');
+  assert.equal(mainModule.isAllowedDesktopIpcSource({ senderFrame: { url: 'http://127.0.0.1:8000/settings' } }), true);
 });
