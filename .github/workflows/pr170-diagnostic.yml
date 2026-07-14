@@ -1,0 +1,53 @@
+name: PR170 Diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    if: github.event.pull_request.number == 170
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            .github/requirements-ci.txt
+
+      - name: Install dependencies quietly
+        run: python -m pip install -q -r .github/requirements-ci.txt
+
+      - name: Run focused offline tests
+        id: focused-tests
+        shell: bash
+        run: |
+          set +e
+          python -m pytest \
+            tests/test_system_config_service.py \
+            tests/test_system_config_api.py \
+            tests/test_config_manager.py \
+            -q --tb=short > pr170-test-output.txt 2>&1
+          status=$?
+          cat pr170-test-output.txt
+          echo "exit_code=${status}" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Upload focused test output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr170-focused-test-output
+          path: pr170-test-output.txt
+          if-no-files-found: error
+          retention-days: 1
