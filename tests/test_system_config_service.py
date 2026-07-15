@@ -980,6 +980,27 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertEqual(non_sensitive_ctx.exception.issues[0]["code"], "unsupported_configured_secret_key")
         self.assertEqual(unknown_ctx.exception.issues[0]["code"], "unsupported_configured_secret_key")
 
+    def test_setup_status_overlay_empty_duplicate_and_case_normalization(self) -> None:
+        self._rewrite_env(
+            "LITELLM_MODEL=gemini/gemini-3-flash-preview",
+            "STOCK_LIST=600519",
+        )
+
+        with patch.dict(os.environ, {}, clear=True):
+            base_status = self.service.get_setup_status()
+            empty_overlay = self.service.get_setup_status_overlay(configured_secret_keys=[])
+            duplicate_overlay = self.service.get_setup_status_overlay(
+                configured_secret_keys=["gemini_api_key", "GEMINI_API_KEY"]
+            )
+
+        base_checks = {check["key"]: check for check in base_status["checks"]}
+        empty_checks = {check["key"]: check for check in empty_overlay["checks"]}
+        duplicate_checks = {check["key"]: check for check in duplicate_overlay["checks"]}
+        self.assertEqual(empty_overlay, base_status)
+        self.assertEqual(base_checks["llm_primary"]["status"], "needs_action")
+        self.assertEqual(empty_checks["llm_primary"]["status"], "needs_action")
+        self.assertEqual(duplicate_checks["llm_primary"]["status"], "configured")
+
     def test_setup_status_overlay_uses_secret_presence_without_runtime_side_effects(self) -> None:
         self._rewrite_env(
             "LITELLM_MODEL=gemini/gemini-3-flash-preview",
@@ -1002,7 +1023,6 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self._rewrite_env(
             "LLM_CHANNELS=custom",
             "LLM_CUSTOM_API_KEY=",
-            "LLM_CUSTOM_MODELS=gpt-5.5",
             "STOCK_LIST=600519",
         )
         with patch.dict(os.environ, {}, clear=True):
