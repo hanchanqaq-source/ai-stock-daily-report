@@ -1,7 +1,22 @@
 const DEFAULT_LOAD_TIMEOUT_MS = 15000;
 
+function normalizeUrl(candidate) {
+  if (typeof candidate !== 'string' || !candidate.trim()) return '';
+  try {
+    return new URL(candidate).href;
+  } catch (_error) {
+    return '';
+  }
+}
+
+function isTargetMainFrameFailure(targetUrl, eventUrl, isMainFrame) {
+  if (isMainFrame === false) return false;
+  return normalizeUrl(eventUrl) === targetUrl;
+}
+
 function waitForLoad(win, url, errorCode, { timeoutMs = DEFAULT_LOAD_TIMEOUT_MS } = {}) {
   return new Promise((resolve) => {
+    const targetUrl = normalizeUrl(url);
     let settled = false;
     let timer = null;
     const cleanup = () => {
@@ -16,10 +31,12 @@ function waitForLoad(win, url, errorCode, { timeoutMs = DEFAULT_LOAD_TIMEOUT_MS 
       cleanup();
       resolve(ok ? null : errorCode);
     };
-    const onFail = (_event, _errorCode, _errorDescription, _validatedURL, isMainFrame) => {
-      if (isMainFrame !== false) finish(false);
+    const onFail = (_event, _errorCode, _errorDescription, validatedURL, isMainFrame) => {
+      if (isTargetMainFrameFailure(targetUrl, validatedURL, isMainFrame)) finish(false);
     };
-    const onFinish = () => finish(true);
+    const onFinish = () => {
+      // Observed only for cleanup; success is tied to the loadURL promise for this target.
+    };
     const onDomReady = () => {
       // Observe DOM readiness for stage diagnostics without emitting browser details.
     };
@@ -30,7 +47,7 @@ function waitForLoad(win, url, errorCode, { timeoutMs = DEFAULT_LOAD_TIMEOUT_MS 
     timer = setTimeout(() => finish(false), timeoutMs);
 
     try {
-      Promise.resolve(win.loadURL(url)).catch(() => finish(false));
+      Promise.resolve(win.loadURL(url)).then(() => finish(true), () => finish(false));
     } catch (_error) {
       finish(false);
     }
@@ -39,5 +56,7 @@ function waitForLoad(win, url, errorCode, { timeoutMs = DEFAULT_LOAD_TIMEOUT_MS 
 
 module.exports = {
   DEFAULT_LOAD_TIMEOUT_MS,
+  isTargetMainFrameFailure,
+  normalizeUrl,
   waitForLoad,
 };
