@@ -7,6 +7,7 @@ import { createParsedApiError, getParsedApiError, type ParsedApiError } from '..
 import { analysisApi } from '../api/analysis';
 import { alphasiftApi, notifyAlphaSiftConfigChanged, notifySystemConfigChanged } from '../api/alphasift';
 import { systemConfigApi } from '../api/systemConfig';
+import { collectConfiguredDesktopSecretKeys } from '../api/desktopCredentialStore';
 import { ApiErrorAlert, Button, ConfirmDialog, EmptyState } from '../components/common';
 import {
   AuthSettingsCard,
@@ -941,6 +942,7 @@ const SettingsPage: React.FC = () => {
     refreshAfterExternalSave,
     configVersion,
     maskToken,
+    serverItems,
   } = useSystemConfig();
 
   const currentChangedItems = getChangedItems();
@@ -955,7 +957,27 @@ const SettingsPage: React.FC = () => {
       if (setupStatusRequestIdRef.current !== requestId) {
         return;
       }
-      setSetupStatus(status);
+      if (!isDesktopRuntime) {
+        setSetupStatus(status);
+        return;
+      }
+      const configuredSecretKeys = collectConfiguredDesktopSecretKeys(serverItems);
+      if (configuredSecretKeys.length === 0) {
+        setSetupStatus(status);
+        return;
+      }
+      try {
+        const overlaidStatus = await systemConfigApi.getSetupStatusOverlay({ configuredSecretKeys });
+        if (setupStatusRequestIdRef.current !== requestId) {
+          return;
+        }
+        setSetupStatus(overlaidStatus);
+      } catch {
+        if (setupStatusRequestIdRef.current !== requestId) {
+          return;
+        }
+        setSetupStatus(status);
+      }
     } catch (error: unknown) {
       if (setupStatusRequestIdRef.current !== requestId) {
         return;
@@ -966,7 +988,7 @@ const SettingsPage: React.FC = () => {
         setIsRefreshingSetupStatus(false);
       }
     }
-  }, []);
+  }, [isDesktopRuntime, serverItems]);
 
   useEffect(() => {
     void load();

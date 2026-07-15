@@ -22,6 +22,7 @@ from api.v1.endpoints import system_config
 from api.v1.schemas.system_config import (
     DiscoverLLMChannelModelsRequest,
     ImportSystemConfigRequest,
+    SetupStatusOverlayRequest,
     TestLLMChannelRequest,
     TestNotificationChannelRequest,
     UpdateSystemConfigRequest,
@@ -100,6 +101,10 @@ class SystemConfigApiTestCase(unittest.TestCase):
         @app.get("/api/v1/system/config/export")
         async def export_config(request: Request):
             return system_config.export_system_config(request=request, service=self.service)
+
+        @app.post("/api/v1/system/config/setup/status/overlay")
+        async def setup_status_overlay(request: SetupStatusOverlayRequest):
+            return system_config.overlay_setup_status(request=request, service=self.service)
 
         add_error_handlers(app)
         add_auth_middleware(app)
@@ -203,6 +208,55 @@ class SystemConfigApiTestCase(unittest.TestCase):
         check_map = {check["key"]: check for check in payload["checks"]}
         self.assertEqual(check_map["llm_primary"]["status"], "configured")
         self.assertEqual(check_map["llm_agent"]["status"], "inherited")
+
+    def test_overlay_setup_status_returns_readiness_payload(self) -> None:
+        self.env_path.write_text(
+            "\n".join(
+                [
+                    "LITELLM_MODEL=gemini/gemini-3-flash-preview",
+                    "STOCK_LIST=600519",
+                    "ADMIN_AUTH_ENABLED=false",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        with patch.dict(os.environ, {}, clear=True):
+            payload = system_config.overlay_setup_status(
+                request=SetupStatusOverlayRequest(configured_secret_keys=["GEMINI_API_KEY"]),
+                service=self.service,
+            ).model_dump()
+
+        self.assertTrue(payload["ready_for_smoke"])
+        check_map = {check["key"]: check for check in payload["checks"]}
+        self.assertEqual(check_map["llm_primary"]["status"], "configured")
+
+    def test_overlay_setup_status_rejects_payload_with_value(self) -> None:
+        async def request_overlay() -> httpx.Response:
+            transport = httpx.ASGITransport(app=self._build_client_app())
+            async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
+                return await client.post(
+                    "/api/v1/system/config/setup/status/overlay",
+                    json={
+                        "configured_secret_keys": ["GEMINI_API_KEY"],
+                        "value": "must-not-be-accepted",
+                    },
+                )
+
+        response = asyncio.run(request_overlay())
+        self.assertEqual(response.status_code, 422)
+
+    def test_overlay_setup_status_rejects_non_sensitive_or_unknown_key(self) -> None:
+        with patch.dict(os.environ, {}, clear=True):
+            for key in ("STOCK_LIST", "UNKNOWN_API_KEY"):
+                with self.assertRaises(HTTPException) as context:
+                    system_config.overlay_setup_status(
+                        request=SetupStatusOverlayRequest(configured_secret_keys=[key]),
+                        service=self.service,
+                    )
+                self.assertEqual(context.exception.status_code, 400)
+                self.assertEqual(context.exception.detail["error"], "validation_failed")
 
     def test_put_config_updates_secret_and_plain_field(self) -> None:
         current = system_config.get_system_config(include_schema=False, service=self.service).model_dump()

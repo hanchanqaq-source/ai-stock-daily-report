@@ -18,6 +18,7 @@ from api.v1.schemas.system_config import (
     SystemConfigResponse,
     SystemConfigSchemaResponse,
     SetupStatusResponse,
+    SetupStatusOverlayRequest,
     SystemConfigValidationErrorResponse,
     TestLLMChannelRequest,
     TestLLMChannelResponse,
@@ -180,6 +181,52 @@ def get_setup_status(
             detail={
                 "error": "internal_error",
                 "message": "Failed to load setup status",
+            },
+        )
+
+
+@router.post(
+    "/config/setup/status/overlay",
+    response_model=SetupStatusResponse,
+    responses={
+        200: {"description": "Setup status overlay loaded"},
+        400: {"description": "Invalid overlay payload", "model": ErrorResponse},
+        401: {"description": "Unauthorized", "model": ErrorResponse},
+        500: {"description": "Internal server error", "model": ErrorResponse},
+    },
+    summary="Overlay first-run setup status with desktop secret presence",
+    description=(
+        "Recompute the side-effect-free setup readiness summary with a low-sensitivity "
+        "list of desktop-secured secret keys that are present. The request never "
+        "contains secret values."
+    ),
+)
+def overlay_setup_status(
+    request: SetupStatusOverlayRequest,
+    service: SystemConfigService = Depends(get_system_config_service),
+) -> SetupStatusResponse:
+    """Return setup status with desktop secret presence overlaid in-memory only."""
+    try:
+        payload = service.get_setup_status_overlay(
+            configured_secret_keys=request.configured_secret_keys,
+        )
+        return SetupStatusResponse.model_validate(payload)
+    except ConfigValidationError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "validation_failed",
+                "message": "Setup status overlay validation failed",
+                "issues": exc.issues,
+            },
+        )
+    except Exception as exc:
+        logger.error("Failed to load setup status overlay: %s", exc, exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "internal_error",
+                "message": "Failed to load setup status overlay",
             },
         )
 

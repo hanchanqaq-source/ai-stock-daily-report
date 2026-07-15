@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] App-M4.2.4A 桌面 Setup Status 接入 Windows DPAPI 安全凭证 configured 状态，通过只读低敏 overlay 复用后端既有计算规则，保持明文不回显、不注入后端 Provider、失败 fail closed。
 
 - [测试] 新增 App-M4.2.3B.1 Windows 设置页安全凭证实机 Smoke 验收工具。
 - [测试] 新增 App-M4.2.3A.1 Windows DPAPI / Electron safeStorage 本地实机 Smoke 验收工具、双击 BAT 入口、控制流单元测试和文档；仅使用临时目录与虚构测试值，不接 SettingsPage、后端、Provider 或真实凭证。

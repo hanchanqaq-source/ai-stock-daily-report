@@ -97,6 +97,53 @@ describe('systemConfigApi desktop credential separation', () => {
     expect(setCredential).not.toHaveBeenCalled();
   });
 
+  it('posts only configured secret key names for setup status overlay without querying IPC again', async () => {
+    apiClientMock.post.mockResolvedValue({
+      data: {
+        is_complete: true,
+        ready_for_smoke: true,
+        required_missing_keys: [],
+        next_step_key: null,
+        checks: [],
+      },
+    });
+    const getCredentialStatus = vi.fn();
+    installDesktopBridge({
+      getCredentialStatus,
+      setCredential: vi.fn(),
+      clearCredential: vi.fn(),
+    });
+
+    const result = await systemConfigApi.getSetupStatusOverlay({
+      configuredSecretKeys: ['OPENAI_API_KEY'],
+    });
+
+    expect(apiClientMock.post).toHaveBeenCalledWith(
+      '/api/v1/system/config/setup/status/overlay',
+      { configured_secret_keys: ['OPENAI_API_KEY'] },
+    );
+    expect(getCredentialStatus).not.toHaveBeenCalled();
+    expect(result.readyForSmoke).toBe(true);
+  });
+
+  it('keeps ordinary setup status on the read-only GET endpoint', async () => {
+    apiClientMock.get.mockResolvedValue({
+      data: {
+        is_complete: false,
+        ready_for_smoke: false,
+        required_missing_keys: ['llm_primary'],
+        next_step_key: 'llm_primary',
+        checks: [],
+      },
+    });
+
+    const result = await systemConfigApi.getSetupStatus();
+
+    expect(apiClientMock.get).toHaveBeenCalledWith('/api/v1/system/config/setup/status');
+    expect(apiClientMock.post).not.toHaveBeenCalled();
+    expect(result.readyForSmoke).toBe(false);
+  });
+
   it('sends only non-sensitive items to the backend and writes the secret through Electron IPC', async () => {
     apiClientMock.put.mockResolvedValue({
       data: {

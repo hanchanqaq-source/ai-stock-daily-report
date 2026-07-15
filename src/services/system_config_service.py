@@ -147,6 +147,7 @@ class SystemConfigService:
         "LLM_USAGE_HMAC_SECRET",
     }
     _MASKED_VALUE_PLACEHOLDERS: Set[str] = {"masked-value", "********"}
+    _SETUP_SECRET_PRESENT_SENTINEL = "__DSA_DESKTOP_SECRET_CONFIGURED__"
 
     _NOTIFICATION_TEST_CHANNELS: Tuple[str, ...] = (
         "wechat",
@@ -540,6 +541,28 @@ class SystemConfigService:
     def get_setup_status(self) -> Dict[str, Any]:
         """Return read-only first-run setup status without mutating runtime state."""
         effective_map = self._build_setup_effective_config_map()
+        return self._build_setup_status_from_effective_map(effective_map)
+
+    def get_setup_status_overlay(self, *, configured_secret_keys: Sequence[str]) -> Dict[str, Any]:
+        """Overlay desktop-secured secret presence in-memory and recompute setup status.
+
+        The overlay accepts key names only. It does not read secret values, mutate
+        process environment, write `.env`, reload runtime state, or start external
+        providers. Accepted keys must be visible in the current Web settings schema
+        and marked sensitive by the same registry metadata used by Settings.
+        """
+        effective_map = self._build_setup_effective_config_map()
+        accepted_keys = self._validate_setup_overlay_secret_keys(
+            configured_secret_keys,
+            effective_map=effective_map,
+        )
+        overlaid_map = dict(effective_map)
+        for key in accepted_keys:
+            overlaid_map[key] = self._SETUP_SECRET_PRESENT_SENTINEL
+        return self._build_setup_status_from_effective_map(overlaid_map)
+
+    def _build_setup_status_from_effective_map(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+        """Build setup status from an already-resolved effective config map."""
         llm_check = self._build_setup_primary_llm_check(effective_map)
         agent_check = self._build_setup_agent_llm_check(effective_map, llm_check)
         checks = [
@@ -568,6 +591,51 @@ class SystemConfigService:
             "next_step_key": required_missing[0] if required_missing else None,
             "checks": checks,
         }
+
+    def _validate_setup_overlay_secret_keys(
+        self,
+        configured_secret_keys: Sequence[str],
+        *,
+        effective_map: Dict[str, str],
+    ) -> Set[str]:
+        """Return normalized sensitive keys accepted for setup status overlay."""
+        registered_keys = {key.upper() for key in get_registered_field_keys()}
+        schema_keys = self._get_schema_config_keys(effective_map, registered_keys)
+        accepted_sensitive_keys = {
+            key
+            for key in schema_keys
+            if self._is_sensitive_field(key, get_field_definition(key, effective_map.get(key, "")))
+        }
+
+        accepted_keys: Set[str] = set()
+        issues: List[Dict[str, Any]] = []
+        for raw_key in configured_secret_keys:
+            key = str(raw_key or "").strip().upper()
+            if not key:
+                issues.append(
+                    {
+                        "key": "",
+                        "code": "invalid_secret_key",
+                        "message": "Configured secret key must be a non-empty string.",
+                        "severity": "error",
+                    }
+                )
+                continue
+            if key not in accepted_sensitive_keys:
+                issues.append(
+                    {
+                        "key": key,
+                        "code": "unsupported_configured_secret_key",
+                        "message": "Configured secret key is not a registered sensitive setup field.",
+                        "severity": "error",
+                    }
+                )
+                continue
+            accepted_keys.add(key)
+
+        if issues:
+            raise ConfigValidationError(issues)
+        return accepted_keys
 
     def export_env(self) -> Dict[str, Any]:
         """Return the raw active `.env` content for backup."""

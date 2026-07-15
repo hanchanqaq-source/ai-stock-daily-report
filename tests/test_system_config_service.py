@@ -968,6 +968,94 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertEqual(checks["stock_list"]["status"], "configured")
         self.assertEqual(checks["notification"]["status"], "optional")
 
+    def test_setup_status_overlay_accepts_only_sensitive_registered_keys(self) -> None:
+        self._rewrite_env("STOCK_LIST=600519")
+
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(ConfigValidationError) as non_sensitive_ctx:
+                self.service.get_setup_status_overlay(configured_secret_keys=["STOCK_LIST"])
+            with self.assertRaises(ConfigValidationError) as unknown_ctx:
+                self.service.get_setup_status_overlay(configured_secret_keys=["UNKNOWN_API_KEY"])
+
+        self.assertEqual(non_sensitive_ctx.exception.issues[0]["code"], "unsupported_configured_secret_key")
+        self.assertEqual(unknown_ctx.exception.issues[0]["code"], "unsupported_configured_secret_key")
+
+    def test_setup_status_overlay_uses_secret_presence_without_runtime_side_effects(self) -> None:
+        self._rewrite_env(
+            "LITELLM_MODEL=gemini/gemini-3-flash-preview",
+            "STOCK_LIST=600519",
+        )
+        before_env = dict(os.environ)
+        before_file = self.env_path.read_text(encoding="utf-8")
+
+        with patch.dict(os.environ, {}, clear=True):
+            status = self.service.get_setup_status_overlay(configured_secret_keys=["GEMINI_API_KEY"])
+
+        checks = {check["key"]: check for check in status["checks"]}
+        self.assertTrue(status["is_complete"])
+        self.assertTrue(status["ready_for_smoke"])
+        self.assertEqual(checks["llm_primary"]["status"], "configured")
+        self.assertEqual(self.env_path.read_text(encoding="utf-8"), before_file)
+        self.assertEqual(os.environ, before_env)
+
+    def test_setup_status_overlay_does_not_guess_model_or_channel_requirements(self) -> None:
+        self._rewrite_env(
+            "LLM_CHANNELS=custom",
+            "LLM_CUSTOM_API_KEY=",
+            "LLM_CUSTOM_MODELS=gpt-5.5",
+            "STOCK_LIST=600519",
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            channel_status = self.service.get_setup_status_overlay(configured_secret_keys=["LLM_CUSTOM_API_KEY"])
+        channel_checks = {check["key"]: check for check in channel_status["checks"]}
+        self.assertEqual(channel_checks["llm_primary"]["status"], "needs_action")
+        self.assertFalse(channel_status["ready_for_smoke"])
+
+    def test_setup_status_overlay_keeps_notification_combination_requirements(self) -> None:
+        self._rewrite_env(
+            "LITELLM_MODEL=gemini/gemini-3-flash-preview",
+            "GEMINI_API_KEY=secret-key-value",
+            "STOCK_LIST=600519",
+            "TELEGRAM_CHAT_ID=12345",
+            "EMAIL_SENDER=sender@example.com",
+            "DISCORD_CHANNEL_ID=C123",
+        )
+
+        with patch.dict(os.environ, {}, clear=True):
+            telegram_status = self.service.get_setup_status_overlay(configured_secret_keys=["TELEGRAM_BOT_TOKEN"])
+            email_status = self.service.get_setup_status_overlay(configured_secret_keys=["EMAIL_PASSWORD"])
+            discord_status = self.service.get_setup_status_overlay(configured_secret_keys=["DISCORD_BOT_TOKEN"])
+
+        for status in (telegram_status, email_status, discord_status):
+            notification = next(check for check in status["checks"] if check["key"] == "notification")
+            self.assertEqual(notification["status"], "configured")
+            self.assertTrue(status["ready_for_smoke"])
+
+        self._rewrite_env(
+            "LITELLM_MODEL=gemini/gemini-3-flash-preview",
+            "GEMINI_API_KEY=secret-key-value",
+            "STOCK_LIST=600519",
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            partial_status = self.service.get_setup_status_overlay(
+                configured_secret_keys=["TELEGRAM_BOT_TOKEN", "EMAIL_PASSWORD", "DISCORD_BOT_TOKEN"]
+            )
+        partial_notification = next(check for check in partial_status["checks"] if check["key"] == "notification")
+        self.assertEqual(partial_notification["status"], "optional")
+
+    def test_setup_status_overlay_ready_for_smoke_depends_only_on_primary_and_stock_list(self) -> None:
+        self._rewrite_env("LITELLM_MODEL=gemini/gemini-3-flash-preview")
+
+        with patch.dict(os.environ, {}, clear=True):
+            status = self.service.get_setup_status_overlay(
+                configured_secret_keys=["GEMINI_API_KEY", "TELEGRAM_BOT_TOKEN"]
+            )
+
+        checks = {check["key"]: check for check in status["checks"]}
+        self.assertEqual(checks["llm_primary"]["status"], "configured")
+        self.assertEqual(checks["stock_list"]["status"], "needs_action")
+        self.assertFalse(status["ready_for_smoke"])
+
     def test_get_setup_status_treats_codex_cli_as_primary_runtime_without_api_keys(self) -> None:
         self._rewrite_env(
             "GENERATION_BACKEND=codex_cli",

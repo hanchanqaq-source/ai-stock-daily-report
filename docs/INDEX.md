@@ -83,6 +83,7 @@
 | [App-M4.2.2 前端敏感字段安全交互](app_m4_2_2_frontend_sensitive_interaction.md) | Web 设置页敏感字段 keep/set/clear 交互、明确修改/取消/清除、掩码占位保护、非敏感字段兼容和未启用真实 Provider / DPAPI / 本地迁移边界 |
 | [App-M4.2.3A Windows 桌面端安全凭证存储基础](app_m4_2_3a_windows_secure_credential_store.md) | Electron 主进程 safeStorage 加密、LOCALAPPDATA 凭证文件、IPC/preload 最小边界和本阶段未接 SettingsPage / 后端 / Provider 的安全说明 |
 | [App-M4.2.3A.1 Windows DPAPI / safeStorage 本地实机 Smoke 验收工具](app_m4_2_3a_1_windows_dpapi_smoke.md) | Windows 本机两阶段 write / restart-read-clear Smoke、临时 LOCALAPPDATA 隔离、磁盘无明文检查、低敏输出、BAT 入口和 mock 测试不等于 DPAPI 实机通过的说明 |
+| [App-M4.2.4A 桌面 Setup Status 安全凭证状态接入](app_m4_2_4a_desktop_setup_status_credentials.md) | Electron 设置页基于 DPAPI configured 状态向后端提交低敏 overlay，由后端复用既有 Setup Status 规则计算首次设置状态；不回显明文、不注入 Provider。 |
 
 ## 多语言
 
