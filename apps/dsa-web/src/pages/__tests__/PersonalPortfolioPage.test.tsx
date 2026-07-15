@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
 import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
@@ -16,10 +17,6 @@ vi.mock('../../api/portfolio', () => ({
     getSnapshot,
     getRisk,
   },
-}));
-
-vi.mock('../PortfolioPage', () => ({
-  default: () => <div>legacy-advanced-ledger</div>,
 }));
 
 function makeSnapshot() {
@@ -122,7 +119,12 @@ function makeRisk() {
 function renderPage() {
   render(
     <UiLanguageProvider>
-      <PersonalPortfolioPage />
+      <MemoryRouter initialEntries={['/portfolio']}>
+        <Routes>
+          <Route path="/portfolio" element={<PersonalPortfolioPage />} />
+          <Route path="/portfolio/stock-management" element={<div>stock-management-destination</div>} />
+        </Routes>
+      </MemoryRouter>
     </UiLanguageProvider>,
   );
 }
@@ -148,33 +150,41 @@ describe('PersonalPortfolioPage', () => {
     getRisk.mockResolvedValue(makeRisk());
   });
 
-  it('shows personal summary, fund placeholder, and stock table while keeping advanced ledger closed', async () => {
+  it('keeps fund analysis free of stock ledger tools and places them under stocks', async () => {
     renderPage();
 
-    expect(await screen.findByRole('heading', { name: '个人持仓' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '我的持仓分析' })).toBeInTheDocument();
     expect(await screen.findByText('CNY 100,000.00')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '基金持仓' })).toBeInTheDocument();
-    expect(screen.getByText('基金数据尚未接入')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '股票持仓' })).toBeInTheDocument();
-    expect(screen.getByText('600519')).toBeInTheDocument();
-    expect(screen.queryByText('legacy-advanced-ledger')).not.toBeInTheDocument();
+
+    const fundSection = screen.getByTestId('fund-portfolio-section');
+    expect(within(fundSection).getByRole('heading', { name: '基金持仓分析' })).toBeInTheDocument();
+    expect(within(fundSection).getByText('基金数据尚未接入')).toBeInTheDocument();
+    expect(within(fundSection).queryByText('资金流水')).not.toBeInTheDocument();
+    expect(within(fundSection).queryByText('公司行为')).not.toBeInTheDocument();
+    expect(within(fundSection).queryByText('券商 CSV')).not.toBeInTheDocument();
+
+    const stockSection = screen.getByTestId('stock-portfolio-section');
+    expect(within(stockSection).getByRole('heading', { name: '股票持仓分析' })).toBeInTheDocument();
+    expect(within(stockSection).getByText('600519')).toBeInTheDocument();
+    expect(within(stockSection).getByText('资金流水')).toBeInTheDocument();
+    expect(within(stockSection).getByText('公司行为')).toBeInTheDocument();
+    expect(within(stockSection).getByText('券商 CSV')).toBeInTheDocument();
   });
 
-  it('loads the legacy tools only after the advanced ledger is opened', async () => {
+  it('opens the dedicated stock management route', async () => {
     renderPage();
-    await screen.findByRole('heading', { name: '个人持仓' });
+    await screen.findByRole('heading', { name: '我的持仓分析' });
 
-    fireEvent.click(screen.getByRole('button', { name: /高级账本/ }));
+    fireEvent.click(screen.getByRole('button', { name: '进入股票高级管理' }));
 
-    expect(await screen.findByText('legacy-advanced-ledger')).toBeInTheDocument();
-    expect(screen.getByTestId('advanced-ledger-content')).toBeInTheDocument();
+    expect(await screen.findByText('stock-management-destination')).toBeInTheDocument();
   });
 
-  it('reloads snapshot and risk for a selected account', async () => {
+  it('reloads stock snapshot and risk for a selected stock account', async () => {
     renderPage();
-    await screen.findByRole('heading', { name: '个人持仓' });
+    await screen.findByRole('heading', { name: '我的持仓分析' });
 
-    fireEvent.change(screen.getByLabelText('查看账户'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('股票账户'), { target: { value: '1' } });
 
     await waitFor(() => {
       expect(getSnapshot).toHaveBeenLastCalledWith({ accountId: 1, costMethod: 'fifo' });
