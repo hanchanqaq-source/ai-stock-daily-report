@@ -1,3 +1,8 @@
+param(
+  [ValidateSet('nsis', 'portable')]
+  [string]$Target = 'nsis'
+)
+
 $ErrorActionPreference = 'Stop'
 
 $devModeKey = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock'
@@ -72,29 +77,37 @@ function Ensure-DesktopDependencies {
   }
 }
 
-Write-Host 'Building Electron desktop app...'
+Write-Host "Building Electron desktop app (target=$Target)..."
 Push-Location (Join-Path $repoRoot 'apps\dsa-desktop')
-Ensure-DesktopDependencies
+try {
+  Ensure-DesktopDependencies
 
-Write-Host 'Stopping running app (if any)...'
-Get-Process -Name "Daily Stock Analysis" -ErrorAction SilentlyContinue | Stop-Process -Force
-Get-Process -Name "stock_analysis" -ErrorAction SilentlyContinue | Stop-Process -Force
+  Write-Host 'Stopping running app (if any)...'
+  Get-Process -Name 'Daily Stock Analysis' -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process -Name '股票基金质量分析系统' -ErrorAction SilentlyContinue | Stop-Process -Force
+  Get-Process -Name 'stock_analysis' -ErrorAction SilentlyContinue | Stop-Process -Force
 
-if (Test-Path 'dist\win-unpacked') {
-  Write-Host 'Cleaning dist\win-unpacked...'
-  Remove-Item -Recurse -Force 'dist\win-unpacked'
+  if (Test-Path 'dist\win-unpacked') {
+    Write-Host 'Cleaning dist\win-unpacked...'
+    Remove-Item -Recurse -Force 'dist\win-unpacked'
+  }
+
+  $appBuilderPath = 'node_modules\app-builder-bin\win\x64\app-builder.exe'
+  if (!(Test-Path $appBuilderPath)) {
+    Write-Host 'app-builder.exe missing, reinstalling dependencies...'
+    Install-DesktopDependencies -Reason 'app-builder.exe missing' -Clean
+  }
+
+  if ($Target -eq 'portable') {
+    npx electron-builder --config electron-builder.portable.cjs --win dir --x64 --publish never
+  } else {
+    npx electron-builder --win nsis --publish never
+  }
+  if ($LASTEXITCODE -ne 0) {
+    throw "Electron $Target build failed."
+  }
+} finally {
+  Pop-Location
 }
 
-$appBuilderPath = 'node_modules\app-builder-bin\win\x64\app-builder.exe'
-if (!(Test-Path $appBuilderPath)) {
-  Write-Host 'app-builder.exe missing, reinstalling dependencies...'
-  Install-DesktopDependencies -Reason 'app-builder.exe missing' -Clean
-}
-
-npx electron-builder --win nsis --publish never
-if ($LASTEXITCODE -ne 0) {
-  throw 'Electron build failed.'
-}
-Pop-Location
-
-Write-Host 'Desktop build completed.'
+Write-Host "Desktop build completed (target=$Target)."
