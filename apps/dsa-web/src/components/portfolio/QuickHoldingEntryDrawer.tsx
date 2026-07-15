@@ -16,7 +16,7 @@ type QuickHoldingEntryDrawerProps = {
 
 const inputClass = 'input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground';
 
-export const QuickHoldingEntryDrawer: React.FC<QuickHoldingEntryDrawerProps> = ({ isOpen, initialMode, onClose }) => {
+const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = ({ isOpen, initialMode, onClose }) => {
   const { activeUser, activeUserId, addFundHolding, addStockHolding } = usePortfolioUsers();
   const [mode, setMode] = useState<EntryMode>(initialMode);
   const [assetType, setAssetType] = useState<AssetType>('fund');
@@ -32,10 +32,6 @@ export const QuickHoldingEntryDrawer: React.FC<QuickHoldingEntryDrawerProps> = (
   const [feedback, setFeedback] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
-
-  useEffect(() => {
-    if (isOpen) setMode(initialMode);
-  }, [initialMode, isOpen]);
 
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -171,4 +167,9 @@ export const QuickHoldingEntryDrawer: React.FC<QuickHoldingEntryDrawerProps> = (
       </div>
     </Drawer>
   );
+};
+
+export const QuickHoldingEntryDrawer: React.FC<QuickHoldingEntryDrawerProps> = (props) => {
+  if (!props.isOpen) return null;
+  return <QuickHoldingEntryDrawerContent {...props} />;
 };
