@@ -670,7 +670,7 @@ function extendMacDesktopBackendPath(rawPath) {
 
   const seen = new Set();
   const entries = String(rawPath || '')
-    .split(path.delimiter)
+    .split(':')
     .map((entry) => entry.trim())
     .filter(Boolean)
     .filter((entry) => {
@@ -688,7 +688,7 @@ function extendMacDesktopBackendPath(rawPath) {
     }
   });
 
-  return entries.join(path.delimiter);
+  return entries.join(':');
 }
 
 function buildBackendEnvironment({ envFile, dbPath, logDir, port = null, sourceEnv = process.env }) {
