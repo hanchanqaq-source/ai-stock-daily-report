@@ -59,6 +59,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
       isPrimary: false,
     };
     setUsers((current) => [...current, nextUser]);
+    setActiveUserIdState(nextUser.id);
     return nextUser;
   }, []);
 
