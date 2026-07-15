@@ -56,7 +56,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path 'dist/portable-diagnostics' -Force | Out-Null
-          powershell -ExecutionPolicy Bypass -File scripts/build-portable.ps1 *>&1 |
+          & ./scripts/build-portable.ps1 *>&1 |
             Tee-Object -FilePath 'dist/portable-diagnostics/build.log'
           if ($LASTEXITCODE -ne 0) {
             Get-Content -Path 'dist/portable-diagnostics/build.log' -Tail 160
@@ -66,7 +66,7 @@ jobs:
       - name: Launch portable ZIP smoke
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File scripts/smoke-portable.ps1 *>&1 |
+          & ./scripts/smoke-portable.ps1 *>&1 |
             Tee-Object -FilePath 'dist/portable-diagnostics/smoke.log'
           if ($LASTEXITCODE -ne 0) {
             Get-Content -Path 'dist/portable-diagnostics/smoke.log' -Tail 160
