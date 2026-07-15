@@ -9,14 +9,11 @@ test('portable build keeps the installer target unchanged', () => {
   assert.equal(packageJson.build.win.artifactName, 'daily-stock-analysis-windows-installer-v${version}.${ext}');
 });
 
-test('portable build uses the Chinese product name and unpacked x64 target', () => {
+test('portable build uses the Chinese product name without inheriting the installer target', () => {
   assert.equal(portableConfig.productName, '股票基金质量分析系统');
-  assert.deepEqual(portableConfig.win.target, [
-    {
-      target: 'dir',
-      arch: ['x64'],
-    },
-  ]);
+  assert.equal(portableConfig.win.target, undefined);
+  assert.match(packageJson.scripts['build:portable'], /--dir/);
+  assert.match(packageJson.scripts['build:portable'], /--x64/);
 });
 
 test('portable build metadata points to the current repository', () => {
