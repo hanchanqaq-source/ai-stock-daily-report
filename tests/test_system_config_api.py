@@ -251,7 +251,8 @@ class SystemConfigApiTestCase(unittest.TestCase):
                     },
                 )
 
-        response = asyncio.run(request_overlay())
+        with patch.dict(os.environ, {}, clear=True):
+            response = asyncio.run(request_overlay())
         self.assertEqual(response.status_code, 422)
         response_text = response.text
         self.assertNotIn("must-not-be-accepted", response_text)
