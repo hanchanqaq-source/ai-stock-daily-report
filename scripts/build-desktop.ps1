@@ -23,11 +23,15 @@ if (-not $skipDevModeCheck -and ($allowDev -ne 1) -and ($allowTrusted -ne 1)) {
   throw 'Developer Mode required for electron-builder cache extraction.'
 }
 
+$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $env:CSC_IDENTITY_AUTO_DISCOVERY = 'false'
 $env:ELECTRON_BUILDER_ALLOW_UNRESOLVED_SYMLINKS = 'true'
-$env:ELECTRON_BUILDER_CACHE = "${PSScriptRoot}\..\.electron-builder-cache"
+$env:ELECTRON_BUILDER_CACHE = Join-Path $repoRoot '.electron-builder-cache'
+$env:ELECTRON_CACHE = Join-Path $repoRoot '.electron-cache'
+$env:NPM_CONFIG_FETCH_RETRIES = '5'
+$env:NPM_CONFIG_FETCH_RETRY_MINTIMEOUT = '10000'
+$env:NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT = '60000'
 
-$repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $backendArtifact = Join-Path $repoRoot 'dist\backend\stock_analysis'
 
 if (!(Test-Path $backendArtifact)) {
@@ -38,22 +42,56 @@ function Get-PackageLockHash {
   return (Get-FileHash -Path 'package-lock.json' -Algorithm SHA256).Hash
 }
 
+function Remove-DesktopNodeModules {
+  if (-not (Test-Path 'node_modules')) {
+    return
+  }
+
+  for ($attempt = 1; $attempt -le 5; $attempt += 1) {
+    try {
+      Remove-Item -Recurse -Force 'node_modules' -ErrorAction Stop
+      return
+    } catch {
+      if ($attempt -eq 5) {
+        throw
+      }
+      Write-Warning "Could not remove node_modules on attempt $attempt; retrying..."
+      Start-Sleep -Seconds (2 * $attempt)
+    }
+  }
+}
+
 function Install-DesktopDependencies {
   param(
     [string]$Reason,
     [switch]$Clean
   )
 
-  Write-Host "Installing desktop dependencies ($Reason)..."
-  if ($Clean -and (Test-Path 'node_modules')) {
-    Remove-Item -Recurse -Force 'node_modules'
+  $installCommand = if ($env:CI -eq 'true') { 'ci' } else { 'install' }
+  Write-Host "Installing desktop dependencies ($Reason) with npm $installCommand..."
+
+  for ($attempt = 1; $attempt -le 3; $attempt += 1) {
+    if ($Clean -or $attempt -gt 1) {
+      Remove-DesktopNodeModules
+    }
+
+    Write-Host "Desktop dependency install attempt $attempt of 3..."
+    & npm $installCommand
+    $installExitCode = $LASTEXITCODE
+
+    if ($installExitCode -eq 0) {
+      New-Item -ItemType Directory -Force -Path 'node_modules' | Out-Null
+      Set-Content -Path 'node_modules\.dsa-package-lock.sha256' -Value (Get-PackageLockHash) -Encoding ascii
+      return
+    }
+
+    if ($attempt -eq 3) {
+      throw "Desktop dependency installation failed after 3 attempts (last exit code $installExitCode)."
+    }
+
+    Write-Warning "Desktop dependency installation failed with exit code $installExitCode; retrying after a bounded delay."
+    Start-Sleep -Seconds (10 * $attempt)
   }
-  npm install
-  if ($LASTEXITCODE -ne 0) {
-    throw 'Desktop dependency installation failed.'
-  }
-  New-Item -ItemType Directory -Force -Path 'node_modules' | Out-Null
-  Set-Content -Path 'node_modules\.dsa-package-lock.sha256' -Value (Get-PackageLockHash) -Encoding ascii
 }
 
 function Ensure-DesktopDependencies {
