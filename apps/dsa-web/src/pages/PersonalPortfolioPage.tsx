@@ -1,6 +1,7 @@
 import type React from 'react';
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { RefreshCw, Settings2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { portfolioApi } from '../api/portfolio';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
 import { ApiErrorAlert, Card, EmptyState, InlineAlert } from '../components/common';
@@ -20,8 +21,6 @@ import {
   formatSignedPct,
 } from '../utils/portfolioFormat';
 
-const AdvancedPortfolioLedger = lazy(() => import('./PortfolioPage'));
-
 type AccountOption = 'all' | number;
 
 type StockPositionRow = PortfolioPositionItem & {
@@ -31,100 +30,106 @@ type StockPositionRow = PortfolioPositionItem & {
 
 const TEXT = {
   zh: {
-    documentTitle: '个人持仓 - DSA',
-    title: '个人持仓',
-    description: '先看资产、收益、仓位和风险；交易流水、资金流水与券商工具收进高级账本。',
-    account: '查看账户',
-    allAccounts: '全部账户',
-    costMethod: '成本口径',
-    fifo: '先进先出',
-    avg: '均价成本',
-    refresh: '刷新',
-    refreshing: '刷新中',
-    totalAssets: '总资产',
+    documentTitle: '我的持仓分析 - DSA',
+    title: '我的持仓分析',
+    description: '基金和股票分开管理，重点查看持有金额、收益、仓位和风险。',
+    stockAccountAssets: '股票账户总资产',
     stockValue: '股票持仓市值',
-    availableCash: '可用现金',
-    holdingProfit: '持仓浮动收益',
-    fundTitle: '基金持仓',
+    stockCash: '股票可用现金',
+    stockProfit: '股票浮动收益',
+    fundTitle: '基金持仓分析',
     fundBadge: 'M2 接入快速录入',
     fundAmount: '基金持有金额',
     fundProfit: '持有收益',
     fundReturn: '持有收益率',
     fundPosition: '当前仓位',
     fundEmptyTitle: '基金数据尚未接入',
-    fundEmptyDescription: 'M1 不伪造基金数据。下一阶段会增加基金类型、持有金额、目标仓位和卡片式快速录入。',
-    stockTitle: '股票持仓',
+    fundEmptyDescription: '基金区只做基金持仓、收益、仓位和风险分析，不使用股票资金流水、公司行为或券商 CSV。',
+    stockTitle: '股票持仓分析',
     stockCount: '共 {count} 项',
+    stockAccount: '股票账户',
+    allStockAccounts: '全部股票账户',
+    stockCostMethod: '股票成本口径',
+    fifo: '先进先出',
+    avg: '均价成本',
+    refresh: '刷新股票数据',
+    refreshing: '刷新中',
+    noStockAccount: '当前没有股票账户，可进入“股票高级管理”创建账户并添加股票。',
     noStockTitle: '暂无股票持仓',
-    noStockDescription: '高级账本中录入交易或导入券商 CSV 后，股票持仓会显示在这里。',
-    accountColumn: '账户',
-    code: '代码',
-    quantity: '数量',
+    noStockDescription: '进入“股票高级管理”录入股票交易后，持仓会显示在这里。',
+    accountColumn: '股票账户',
+    code: '股票代码',
+    quantity: '持有数量',
     avgCost: '平均成本',
     currentPrice: '当前价格',
-    marketValue: '市值',
+    marketValue: '股票市值',
     profit: '浮动盈亏',
     returnPct: '收益率',
-    riskTitle: '个人风险概览',
-    topWeight: '最大单项占比',
-    currentDrawdown: '当前回撤',
-    stopLoss: '止损提醒',
-    aiRisk: 'AI 风险信号',
-    riskUnavailable: '风险数据暂不可用，持仓快照仍可正常查看。',
-    advancedTitle: '高级账本',
-    advancedDescription: '交易录入、资金流水、分红拆股、券商 CSV、账户管理和精确成本核算。默认收起，日常查看不需要维护这些内容。',
-    advancedOpen: '展开高级账本',
-    advancedClose: '收起高级账本',
-    advancedLoading: '正在加载高级账本…',
-    noAccounts: '当前没有持仓账户。请展开高级账本创建一个账户。',
+    stockToolsTitle: '股票高级管理',
+    stockToolsDescription: '股票专用工具：交易录入、资金流水、公司行为、券商 CSV 和股票账户管理。',
+    tradeEntry: '交易录入',
+    cashLedger: '资金流水',
+    corporateActions: '公司行为',
+    brokerCsv: '券商 CSV',
+    stockAccounts: '股票账户',
+    openStockTools: '进入股票高级管理',
+    riskTitle: '股票风险概览',
+    topWeight: '最大股票占比',
+    currentDrawdown: '股票账户回撤',
+    stopLoss: '股票止损提醒',
+    aiRisk: '股票 AI 风险信号',
+    riskUnavailable: '股票风险数据暂不可用，股票持仓快照仍可正常查看。',
   },
   en: {
-    documentTitle: 'Personal Portfolio - DSA',
-    title: 'Personal portfolio',
-    description: 'Focus on assets, returns, allocation, and risk. Detailed ledgers and broker tools stay in the advanced section.',
-    account: 'Account view',
-    allAccounts: 'All accounts',
-    costMethod: 'Cost method',
-    fifo: 'FIFO',
-    avg: 'Average cost',
-    refresh: 'Refresh',
-    refreshing: 'Refreshing',
-    totalAssets: 'Total assets',
+    documentTitle: 'My Holdings Analysis - DSA',
+    title: 'My holdings analysis',
+    description: 'Funds and stocks are managed separately, with a focus on value, return, allocation, and risk.',
+    stockAccountAssets: 'Stock account assets',
     stockValue: 'Stock market value',
-    availableCash: 'Available cash',
-    holdingProfit: 'Unrealized P/L',
-    fundTitle: 'Fund holdings',
+    stockCash: 'Stock cash',
+    stockProfit: 'Stock unrealized P/L',
+    fundTitle: 'Fund holdings analysis',
     fundBadge: 'Quick entry in M2',
     fundAmount: 'Fund value',
     fundProfit: 'Holding profit',
     fundReturn: 'Holding return',
     fundPosition: 'Allocation',
     fundEmptyTitle: 'Fund data is not connected yet',
-    fundEmptyDescription: 'M1 does not fabricate fund data. M2 will add fund types, holding value, target allocation, and card-based quick entry.',
-    stockTitle: 'Stock holdings',
+    fundEmptyDescription: 'The fund area is only for fund holdings, return, allocation, and risk. Stock cash ledgers, corporate actions, and broker CSV tools do not appear here.',
+    stockTitle: 'Stock holdings analysis',
     stockCount: '{count} positions',
+    stockAccount: 'Stock account',
+    allStockAccounts: 'All stock accounts',
+    stockCostMethod: 'Stock cost method',
+    fifo: 'FIFO',
+    avg: 'Average cost',
+    refresh: 'Refresh stock data',
+    refreshing: 'Refreshing',
+    noStockAccount: 'No stock account exists. Open Stock advanced management to create an account and add stocks.',
     noStockTitle: 'No stock holdings',
-    noStockDescription: 'Enter trades or import a broker CSV from the advanced ledger to populate this table.',
-    accountColumn: 'Account',
-    code: 'Code',
+    noStockDescription: 'Enter stock trades in Stock advanced management and positions will appear here.',
+    accountColumn: 'Stock account',
+    code: 'Stock code',
     quantity: 'Quantity',
     avgCost: 'Avg cost',
     currentPrice: 'Current price',
-    marketValue: 'Market value',
+    marketValue: 'Stock value',
     profit: 'Unrealized P/L',
     returnPct: 'Return',
-    riskTitle: 'Personal risk overview',
-    topWeight: 'Largest position',
-    currentDrawdown: 'Current drawdown',
-    stopLoss: 'Stop-loss alerts',
-    aiRisk: 'AI risk signals',
-    riskUnavailable: 'Risk data is temporarily unavailable. The portfolio snapshot is still available.',
-    advancedTitle: 'Advanced ledger',
-    advancedDescription: 'Trade entry, cash ledger, dividends and splits, broker CSV, account management, and exact cost accounting. Collapsed by default.',
-    advancedOpen: 'Open advanced ledger',
-    advancedClose: 'Close advanced ledger',
-    advancedLoading: 'Loading advanced ledger…',
-    noAccounts: 'No portfolio account exists. Open the advanced ledger to create one.',
+    stockToolsTitle: 'Stock advanced management',
+    stockToolsDescription: 'Stock-only tools: trade entry, cash ledger, corporate actions, broker CSV, and stock account management.',
+    tradeEntry: 'Trade entry',
+    cashLedger: 'Cash ledger',
+    corporateActions: 'Corporate actions',
+    brokerCsv: 'Broker CSV',
+    stockAccounts: 'Stock accounts',
+    openStockTools: 'Open stock advanced management',
+    riskTitle: 'Stock risk overview',
+    topWeight: 'Largest stock weight',
+    currentDrawdown: 'Stock account drawdown',
+    stopLoss: 'Stock stop-loss alerts',
+    aiRisk: 'Stock AI risk signals',
+    riskUnavailable: 'Stock risk data is temporarily unavailable. The stock snapshot is still available.',
   },
 } as const;
 
@@ -133,9 +138,11 @@ function formatCount(template: string, count: number): string {
 }
 
 const PersonalPortfolioPage: React.FC = () => {
+  const navigate = useNavigate();
   const { language } = useUiLanguage();
   const text = TEXT[language];
   const [accounts, setAccounts] = useState<PortfolioAccountItem[]>([]);
+  const [accountsLoaded, setAccountsLoaded] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<AccountOption>('all');
   const [costMethod, setCostMethod] = useState<PortfolioCostMethod>('fifo');
   const [snapshot, setSnapshot] = useState<PortfolioSnapshotResponse | null>(null);
@@ -143,22 +150,25 @@ const PersonalPortfolioPage: React.FC = () => {
   const [error, setError] = useState<ParsedApiError | null>(null);
   const [riskWarning, setRiskWarning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   useEffect(() => {
     document.title = text.documentTitle;
-  }, [text.documentTitle, advancedOpen]);
+  }, [text.documentTitle]);
 
   const accountId = selectedAccount === 'all' ? undefined : selectedAccount;
 
   const loadAccounts = useCallback(async () => {
-    const response = await portfolioApi.getAccounts(false);
-    const nextAccounts = response.accounts || [];
-    setAccounts(nextAccounts);
-    setSelectedAccount((current) => {
-      if (current === 'all') return current;
-      return nextAccounts.some((item) => item.id === current) ? current : 'all';
-    });
+    try {
+      const response = await portfolioApi.getAccounts(false);
+      const nextAccounts = response.accounts || [];
+      setAccounts(nextAccounts);
+      setSelectedAccount((current) => {
+        if (current === 'all') return current;
+        return nextAccounts.some((item) => item.id === current) ? current : 'all';
+      });
+    } finally {
+      setAccountsLoaded(true);
+    }
   }, []);
 
   const loadOverview = useCallback(async () => {
@@ -216,59 +226,22 @@ const PersonalPortfolioPage: React.FC = () => {
     }
   };
 
+  const openStockManagement = () => {
+    navigate('/portfolio/stock-management');
+  };
+
   return (
     <div className="min-h-screen space-y-5 p-4 md:p-6" data-testid="personal-portfolio-workbench">
-      <section className="space-y-3">
-        <div>
-          <h1 className="text-xl font-semibold text-foreground md:text-2xl">{text.title}</h1>
-          <p className="mt-1 text-xs leading-6 text-secondary md:text-sm">{text.description}</p>
-        </div>
-
-        <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
-          <label className="space-y-1 text-xs text-secondary">
-            <span>{text.account}</span>
-            <select
-              className="input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground"
-              value={String(selectedAccount)}
-              onChange={(event) => setSelectedAccount(event.target.value === 'all' ? 'all' : Number(event.target.value))}
-            >
-              <option value="all">{text.allAccounts}</option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>{account.name}</option>
-              ))}
-            </select>
-          </label>
-          <label className="space-y-1 text-xs text-secondary">
-            <span>{text.costMethod}</span>
-            <select
-              className="input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground"
-              value={costMethod}
-              onChange={(event) => setCostMethod(event.target.value as PortfolioCostMethod)}
-            >
-              <option value="fifo">{text.fifo}</option>
-              <option value="avg">{text.avg}</option>
-            </select>
-          </label>
-          <button
-            type="button"
-            className="btn-secondary flex h-11 items-center justify-center gap-2 px-4 text-sm"
-            disabled={isLoading}
-            onClick={() => void handleRefresh()}
-          >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
-            {isLoading ? text.refreshing : text.refresh}
-          </button>
-        </div>
+      <section className="space-y-2">
+        <h1 className="text-xl font-semibold text-foreground md:text-2xl">{text.title}</h1>
+        <p className="text-xs leading-6 text-secondary md:text-sm">{text.description}</p>
       </section>
 
       {error ? <ApiErrorAlert error={error} onDismiss={() => setError(null)} /> : null}
-      {accounts.length === 0 && !isLoading ? (
-        <InlineAlert variant="warning" message={text.noAccounts} />
-      ) : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="portfolio summary">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="stock portfolio summary">
         <Card variant="gradient" padding="md">
-          <p className="text-xs text-secondary">{text.totalAssets}</p>
+          <p className="text-xs text-secondary">{text.stockAccountAssets}</p>
           <p className="mt-2 text-xl font-semibold text-foreground">{formatMoney(snapshot?.totalEquity, currency)}</p>
         </Card>
         <Card variant="gradient" padding="md">
@@ -276,18 +249,18 @@ const PersonalPortfolioPage: React.FC = () => {
           <p className="mt-2 text-xl font-semibold text-foreground">{formatMoney(snapshot?.totalMarketValue, currency)}</p>
         </Card>
         <Card variant="gradient" padding="md">
-          <p className="text-xs text-secondary">{text.availableCash}</p>
+          <p className="text-xs text-secondary">{text.stockCash}</p>
           <p className="mt-2 text-xl font-semibold text-foreground">{formatMoney(snapshot?.totalCash, currency)}</p>
         </Card>
         <Card variant="gradient" padding="md">
-          <p className="text-xs text-secondary">{text.holdingProfit}</p>
+          <p className="text-xs text-secondary">{text.stockProfit}</p>
           <p className={`mt-2 text-xl font-semibold ${(snapshot?.unrealizedPnl || 0) >= 0 ? 'text-success' : 'text-danger'}`}>
             {formatMoney(snapshot?.unrealizedPnl, currency)}
           </p>
         </Card>
       </section>
 
-      <section className="space-y-3">
+      <section className="space-y-3" data-testid="fund-portfolio-section">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-semibold text-foreground">{text.fundTitle}</h2>
           <span className="rounded-full border border-cyan/30 bg-cyan/10 px-3 py-1 text-xs text-cyan">{text.fundBadge}</span>
@@ -310,11 +283,60 @@ const PersonalPortfolioPage: React.FC = () => {
         </Card>
       </section>
 
-      <section className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-base font-semibold text-foreground">{text.stockTitle}</h2>
-          <span className="text-xs text-secondary">{formatCount(text.stockCount, stockRows.length)}</span>
+      <section className="space-y-3" data-testid="stock-portfolio-section">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">{text.stockTitle}</h2>
+            <span className="mt-1 block text-xs text-secondary">{formatCount(text.stockCount, stockRows.length)}</span>
+          </div>
+          <button type="button" className="btn-secondary flex items-center gap-2 text-sm" onClick={openStockManagement}>
+            <Settings2 className="h-4 w-4" aria-hidden="true" />
+            {text.stockToolsTitle}
+          </button>
         </div>
+
+        {accounts.length > 0 ? (
+          <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-3 md:grid-cols-[minmax(0,1fr)_220px_auto] md:items-end">
+            <label className="space-y-1 text-xs text-secondary">
+              <span>{text.stockAccount}</span>
+              <select
+                className="input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground"
+                value={String(selectedAccount)}
+                onChange={(event) => setSelectedAccount(event.target.value === 'all' ? 'all' : Number(event.target.value))}
+              >
+                <option value="all">{text.allStockAccounts}</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>{account.name}</option>
+                ))}
+              </select>
+            </label>
+            <label className="space-y-1 text-xs text-secondary">
+              <span>{text.stockCostMethod}</span>
+              <select
+                className="input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground"
+                value={costMethod}
+                onChange={(event) => setCostMethod(event.target.value as PortfolioCostMethod)}
+              >
+                <option value="fifo">{text.fifo}</option>
+                <option value="avg">{text.avg}</option>
+              </select>
+            </label>
+            <button
+              type="button"
+              className="btn-secondary flex h-11 items-center justify-center gap-2 px-4 text-sm"
+              disabled={isLoading}
+              onClick={() => void handleRefresh()}
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} aria-hidden="true" />
+              {isLoading ? text.refreshing : text.refresh}
+            </button>
+          </div>
+        ) : null}
+
+        {accountsLoaded && accounts.length === 0 ? (
+          <InlineAlert variant="warning" message={text.noStockAccount} />
+        ) : null}
+
         <Card padding="md">
           {stockRows.length === 0 ? (
             <EmptyState
@@ -324,7 +346,7 @@ const PersonalPortfolioPage: React.FC = () => {
             />
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-[820px] w-full text-sm">
+              <table className="min-w-[860px] w-full text-sm">
                 <thead className="border-b border-white/10 text-xs text-secondary">
                   <tr>
                     <th className="py-2 pr-3 text-left">{text.accountColumn}</th>
@@ -359,6 +381,23 @@ const PersonalPortfolioPage: React.FC = () => {
             </div>
           )}
         </Card>
+
+        <Card padding="md">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="font-semibold text-foreground">{text.stockToolsTitle}</h3>
+              <p className="mt-1 text-xs leading-5 text-secondary">{text.stockToolsDescription}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {[text.tradeEntry, text.cashLedger, text.corporateActions, text.brokerCsv, text.stockAccounts].map((item) => (
+                  <span key={item} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-secondary">{item}</span>
+                ))}
+              </div>
+            </div>
+            <button type="button" className="btn-secondary shrink-0 text-sm" onClick={openStockManagement}>
+              {text.openStockTools}
+            </button>
+          </div>
+        </Card>
       </section>
 
       <section className="space-y-3">
@@ -370,31 +409,6 @@ const PersonalPortfolioPage: React.FC = () => {
           <Card padding="md"><p className="text-xs text-secondary">{text.stopLoss}</p><p className="mt-2 text-lg font-semibold text-foreground">{stopLossCount}</p></Card>
           <Card padding="md"><p className="text-xs text-secondary">{text.aiRisk}</p><p className="mt-2 text-lg font-semibold text-foreground">{risk?.decisionSignalRisk?.total ?? 0}</p></Card>
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between gap-4 rounded-xl px-2 py-2 text-left"
-          aria-expanded={advancedOpen}
-          onClick={() => setAdvancedOpen((current) => !current)}
-        >
-          <span>
-            <span className="block font-semibold text-foreground">{text.advancedTitle}</span>
-            <span className="mt-1 block text-xs leading-5 text-secondary">{text.advancedDescription}</span>
-          </span>
-          <span className="flex shrink-0 items-center gap-2 text-xs text-cyan">
-            {advancedOpen ? text.advancedClose : text.advancedOpen}
-            {advancedOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </span>
-        </button>
-        {advancedOpen ? (
-          <div className="mt-3 border-t border-white/10 pt-3" data-testid="advanced-ledger-content">
-            <Suspense fallback={<div className="px-4 py-8 text-center text-sm text-secondary">{text.advancedLoading}</div>}>
-              <AdvancedPortfolioLedger />
-            </Suspense>
-          </div>
-        ) : null}
       </section>
     </div>
   );
