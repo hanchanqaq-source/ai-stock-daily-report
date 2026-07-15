@@ -99,7 +99,7 @@ try {
   }
 
   if ($Target -eq 'portable') {
-    npx electron-builder --config electron-builder.portable.cjs --win dir --x64 --publish never
+    npx electron-builder --config electron-builder.portable.cjs --win --x64 --dir --publish never
   } else {
     npx electron-builder --win nsis --publish never
   }
