@@ -10,10 +10,12 @@ test('settings credential smoke Electron driver registers IPC without loading fo
   assert.doesNotMatch(source, /require\(['"]\.\.\/main(?:\.js)?['"]\)/);
 });
 
-test('settings credential smoke Electron driver captures trusted root before settings route', () => {
+test('settings credential smoke Electron driver captures trusted root before SPA settings route', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokeElectron.js'), 'utf8');
+  const routeSource = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokePageRoute.js'), 'utf8');
   assert.match(source, /desktop_version=smoke&cache_bust/);
-  assert.match(source, /\/settings/);
+  assert.match(source, /switchToSettingsRoute/);
+  assert.match(routeSource, /\/settings/);
 });
 
 
@@ -34,4 +36,24 @@ test('settings credential smoke Electron driver has fixed low-sensitivity naviga
 test('settings credential smoke Electron driver does not decide backend leak status', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokeElectron.js'), 'utf8');
   assert.doesNotMatch(source, /mockBackendSecretLeakFree:\s*true/);
+});
+
+
+test('settings credential smoke Electron driver only performs the trusted root loadURL', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokeElectron.js'), 'utf8');
+  assert.equal((source.match(/waitForLoad\(/g) || []).length, 1);
+  assert.match(source, /desktop_version=smoke&cache_bust/);
+  assert.doesNotMatch(source, /`http:\/\/127\.0\.0\.1:\$\{port\}\/settings`/);
+});
+
+test('settings credential smoke Electron driver checks bridge and fields after SPA route success', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokeElectron.js'), 'utf8');
+  const routeIndex = source.indexOf('const settingsRouteError = await switchToSettingsRoute');
+  const bridgeIndex = source.indexOf('if (!await hasDesktopBridge(win))');
+  const setIndex = source.indexOf('const setError = await automateSet(win)');
+  const clearIndex = source.indexOf('const result = await automateRestartReadClear(win)');
+  assert.ok(routeIndex > -1);
+  assert.ok(bridgeIndex > routeIndex);
+  assert.ok(setIndex > bridgeIndex);
+  assert.ok(clearIndex > bridgeIndex);
 });

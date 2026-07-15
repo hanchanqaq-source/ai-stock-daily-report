@@ -3,6 +3,7 @@ const { app, BrowserWindow } = require('electron');
 const { bootstrapDesktopMain } = require('../credentialIpc');
 const { ERROR_CODES, makeResult } = require('./windowsSettingsCredentialSmokeProtocol');
 const { waitForLoad } = require('./windowsSettingsCredentialSmokePageLoad');
+const { switchToSettingsRoute } = require('./windowsSettingsCredentialSmokePageRoute');
 const { resolveChildSmokeTempLocalAppData } = require('./windowsSettingsCredentialSmokeController');
 
 const TEST_KEY = 'APP_M423B1_TEST_TOKEN';
@@ -133,12 +134,11 @@ async function run() {
       ERROR_CODES.INITIAL_NAVIGATION_FAILED,
     );
     if (initialError) return makeResult(phase, { errorCode: initialError });
-    const settingsError = await waitForLoad(
+    const settingsRouteError = await switchToSettingsRoute(
       win,
-      `http://127.0.0.1:${port}/settings`,
       ERROR_CODES.SETTINGS_NAVIGATION_FAILED,
     );
-    if (settingsError) return makeResult(phase, { errorCode: settingsError });
+    if (settingsRouteError) return makeResult(phase, { errorCode: settingsRouteError });
     await sleep(500);
     if (!await hasDesktopBridge(win)) {
       return makeResult(phase, { errorCode: ERROR_CODES.DESKTOP_BRIDGE_UNAVAILABLE });
