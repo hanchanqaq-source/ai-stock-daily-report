@@ -67,8 +67,14 @@ const fallbackContext: PortfolioUserContextValue = {
   renameUser: () => false,
   removeUser: () => false,
   setActiveUserId: () => undefined,
-  addFundHolding: (_userId, input) => ({ ...input, id: 'fallback-fund' }),
-  addStockHolding: (_userId, input) => ({ ...input, id: 'fallback-stock' }),
+  addFundHolding: (userId, input) => {
+    void userId;
+    return { ...input, id: 'fallback-fund' };
+  },
+  addStockHolding: (userId, input) => {
+    void userId;
+    return { ...input, id: 'fallback-stock' };
+  },
   removeFundHolding: () => undefined,
   removeStockHolding: () => undefined,
 };
