@@ -29,8 +29,13 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
   onOpenMobileNav,
 }) => {
   const location = useLocation();
-  const { t } = useUiLanguage();
+  const { t, language } = useUiLanguage();
   const current = TITLES[location.pathname];
+  const isUsersRoute = location.pathname === '/users';
+  const title = isUsersRoute ? (language === 'en' ? 'Users' : '用户') : current ? t(current.title) : t('layout.appFallbackTitle');
+  const description = isUsersRoute
+    ? (language === 'en' ? 'Manage separate portfolio user profiles' : '管理独立的持仓用户档案')
+    : current ? t(current.description) : t('layout.appFallbackDescription');
 
   return (
     <header className="sticky top-0 z-30 border-b border-border/60 bg-background/84 backdrop-blur-xl">
@@ -54,8 +59,8 @@ export const ShellHeader: React.FC<ShellHeaderProps> = ({
         </button>
 
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-foreground">{current ? t(current.title) : t('layout.appFallbackTitle')}</p>
-          <p className="truncate text-xs text-secondary-text">{current ? t(current.description) : t('layout.appFallbackDescription')}</p>
+          <p className="truncate text-sm font-semibold text-foreground">{title}</p>
+          <p className="truncate text-xs text-secondary-text">{description}</p>
         </div>
 
         <UiLanguageToggle />
