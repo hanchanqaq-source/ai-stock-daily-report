@@ -7,7 +7,7 @@
     "dev": "electron .",
     "build": "electron-builder",
     "build:portable": "electron-builder --config electron-builder.portable.cjs --win --x64 --dir --publish never",
-    "test": "node --test tests/*.test.js",
+    "test": "node --test",
     "smoke:credential-store:windows": "node scripts/windowsCredentialSmokePreflight.js",
     "smoke:settings-credential:windows": "node scripts/windowsSettingsCredentialSmokeController.js"
   },
