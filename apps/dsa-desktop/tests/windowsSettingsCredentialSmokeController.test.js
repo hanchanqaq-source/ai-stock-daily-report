@@ -3,7 +3,40 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { createChildEnvironment, findPort, makeConfig, printSummary, resolveChildSmokeTempLocalAppData, runSmoke } = require('../scripts/windowsSettingsCredentialSmokeController');
+const { createChildEnvironment, findPort, makeAuthStatus, makeConfig, makeSetupStatus, printSummary, resolveChildSmokeTempLocalAppData, runSmoke } = require('../scripts/windowsSettingsCredentialSmokeController');
+
+
+test('settings credential smoke auth mock matches AuthStatusResponse contract', () => {
+  const status = makeAuthStatus();
+  assert.deepEqual(Object.keys(status).sort(), [
+    'authEnabled',
+    'loggedIn',
+    'passwordChangeable',
+    'passwordSet',
+    'setupState',
+  ].sort());
+  assert.equal(status.authEnabled, false);
+  assert.equal(status.loggedIn, false);
+  assert.equal(status.passwordSet, false);
+  assert.equal(status.passwordChangeable, false);
+  assert.ok(['enabled', 'password_retained', 'no_password'].includes(status.setupState));
+});
+
+test('settings credential smoke setup mock matches SetupStatusResponse API contract', () => {
+  const status = makeSetupStatus();
+  assert.deepEqual(Object.keys(status).sort(), [
+    'checks',
+    'is_complete',
+    'next_step_key',
+    'ready_for_smoke',
+    'required_missing_keys',
+  ].sort());
+  assert.equal(status.is_complete, true);
+  assert.equal(status.ready_for_smoke, true);
+  assert.deepEqual(status.required_missing_keys, []);
+  assert.equal(status.next_step_key, null);
+  assert.deepEqual(status.checks, []);
+});
 
 test('settings credential smoke skips non-Windows without creating secrets', async () => {
   const summary = await runSmoke({ platform: 'linux' });
@@ -116,4 +149,24 @@ test('settings credential smoke summary uses controller leak status instead of c
     console.log = originalLog;
   }
   assert.ok(lines.includes('Mock backend secret leak check: FAIL'));
+});
+
+
+test('settings credential smoke summary reports leak PASS when phase ends early without a leak', () => {
+  const lines = [];
+  const originalLog = console.log;
+  console.log = (line) => lines.push(line);
+  try {
+    printSummary({
+      success: false,
+      cleanupPassed: true,
+      errorCode: 'settings_field_timeout',
+      stages: [
+        { phase: 'set', settingsPageSet: false, mockBackendSecretLeakFree: true },
+      ],
+    });
+  } finally {
+    console.log = originalLog;
+  }
+  assert.ok(lines.includes('Mock backend secret leak check: PASS'));
 });

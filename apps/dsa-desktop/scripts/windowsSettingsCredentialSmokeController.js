@@ -22,8 +22,24 @@ function resolveElectronBinary() {
 function isDistMissing() { return !fs.existsSync(path.resolve(__dirname, '..', '..', '..', 'static', 'index.html')); }
 function contentType(file) { return file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : file.endsWith('.html') ? 'text/html' : 'application/octet-stream'; }
 function makeConfig() { return { config_version: 'app-m423b1-smoke', mask_token: '******', items: [{ key: TEST_KEY, value: '', raw_value_exists: false, is_masked: false, schema: { key: TEST_KEY, title: 'App M4.2.3B.1 Test Token', description: 'Fictional smoke-only sensitive field.', category: 'notification', data_type: 'string', ui_control: 'password', is_sensitive: true, is_required: false, is_editable: true, options: [], validation: {}, display_order: 1 } }] }; }
-function makeSetupStatus() { return { overall_status: 'ready', checks: [] }; }
-function makeAuthStatus() { return { authEnabled: false, passwordChangeable: false, setupState: 'disabled' }; }
+function makeSetupStatus() {
+  return {
+    is_complete: true,
+    ready_for_smoke: true,
+    required_missing_keys: [],
+    next_step_key: null,
+    checks: [],
+  };
+}
+function makeAuthStatus() {
+  return {
+    authEnabled: false,
+    loggedIn: false,
+    passwordSet: false,
+    passwordChangeable: false,
+    setupState: 'no_password',
+  };
+}
 
 async function isPortFree(port) { return new Promise((resolve) => { const server = net.createServer(); server.once('error', () => resolve(false)); server.listen(port, '127.0.0.1', () => server.close(() => resolve(true))); }); }
 async function findPort() { for (let port = PORT_START; port <= PORT_END; port += 1) if (await isPortFree(port)) return port; return null; }
@@ -135,16 +151,17 @@ async function runSmoke({ platform = process.platform } = {}) {
 function printSummary(summary) {
   const set = summary.stages.find((s) => s.phase === 'set');
   const restart = summary.stages.find((s) => s.phase === 'restart-read-clear');
-  const leakFree = summary.errorCode !== ERROR_CODES.MOCK_BACKEND_SECRET_LEAK;
+  const leakFree = summary.errorCode !== ERROR_CODES.MOCK_BACKEND_SECRET_LEAK
+    && !summary.stages.some((stage) => stage.mockBackendSecretLeakFree === false);
   console.log(`Settings page set: ${set?.settingsPageSet ? 'PASS' : 'FAIL'}`);
   console.log(`Restart configured state: ${restart?.restartConfiguredState ? 'PASS' : 'FAIL'}`);
   console.log(`Plaintext not returned: ${restart?.plaintextNotReturned ? 'PASS' : 'FAIL'}`);
   console.log(`Settings page clear: ${restart?.settingsPageClear ? 'PASS' : 'FAIL'}`);
-  console.log(`Mock backend secret leak check: ${leakFree && set?.mockBackendSecretLeakFree && restart?.mockBackendSecretLeakFree ? 'PASS' : 'FAIL'}`);
+  console.log(`Mock backend secret leak check: ${leakFree ? 'PASS' : 'FAIL'}`);
   console.log(`Temp cleanup: ${summary.cleanupPassed ? 'PASS' : 'FAIL'}`);
   console.log(`App-M4.2.3B.1 ${summary.success ? 'PASS' : 'FAIL'}`);
   if (summary.errorCode) console.log(`errorCode: ${summary.errorCode}`);
 }
 
 if (require.main === module) runSmoke().then((s) => { printSummary(s); process.exitCode = s.success ? 0 : 1; }).catch(() => { printSummary({ success: false, cleanupPassed: false, errorCode: ERROR_CODES.INVALID_RESULT, stages: [] }); process.exitCode = 1; });
-module.exports = { TEST_KEY, createChildEnvironment, findPort, makeConfig, printSummary, resolveChildSmokeTempLocalAppData, runSmoke, startMockServer };
+module.exports = { TEST_KEY, createChildEnvironment, findPort, makeAuthStatus, makeConfig, makeSetupStatus, printSummary, resolveChildSmokeTempLocalAppData, runSmoke, startMockServer };

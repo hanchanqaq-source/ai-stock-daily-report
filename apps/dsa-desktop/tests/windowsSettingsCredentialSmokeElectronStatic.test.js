@@ -19,9 +19,11 @@ test('settings credential smoke Electron driver captures trusted root before set
 
 test('settings credential smoke Electron driver has fixed low-sensitivity navigation diagnostics', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokeElectron.js'), 'utf8');
-  assert.match(source, /did-fail-load/);
-  assert.match(source, /did-finish-load/);
-  assert.match(source, /dom-ready/);
+  const pageLoadSource = fs.readFileSync(path.resolve(__dirname, '../scripts/windowsSettingsCredentialSmokePageLoad.js'), 'utf8');
+  assert.match(pageLoadSource, /did-fail-load/);
+  assert.match(pageLoadSource, /did-finish-load/);
+  assert.match(pageLoadSource, /dom-ready/);
+  assert.match(pageLoadSource, /setTimeout/);
   assert.match(source, /INITIAL_NAVIGATION_FAILED/);
   assert.match(source, /SETTINGS_NAVIGATION_FAILED/);
   assert.match(source, /DESKTOP_BRIDGE_UNAVAILABLE/);

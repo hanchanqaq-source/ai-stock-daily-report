@@ -2,6 +2,7 @@ const path = require('node:path');
 const { app, BrowserWindow } = require('electron');
 const { bootstrapDesktopMain } = require('../credentialIpc');
 const { ERROR_CODES, makeResult } = require('./windowsSettingsCredentialSmokeProtocol');
+const { waitForLoad } = require('./windowsSettingsCredentialSmokePageLoad');
 const { resolveChildSmokeTempLocalAppData } = require('./windowsSettingsCredentialSmokeController');
 
 const TEST_KEY = 'APP_M423B1_TEST_TOKEN';
@@ -30,37 +31,6 @@ async function runInPage(win, source, ...args) {
   return win.webContents.executeJavaScript(`(${source})(...${JSON.stringify(args)})`, true);
 }
 
-async function waitForLoad(win, url, errorCode) {
-  return new Promise((resolve) => {
-    let settled = false;
-    let loadPromise;
-    const finish = (ok) => {
-      if (settled) return;
-      settled = true;
-      win.webContents.removeListener('did-fail-load', onFail);
-      win.webContents.removeListener('did-finish-load', onFinish);
-      win.webContents.removeListener('dom-ready', onDomReady);
-      resolve(ok ? null : errorCode);
-    };
-    const onFail = (_event, _errorCode, _errorDescription, _validatedURL, isMainFrame) => {
-      if (isMainFrame !== false) finish(false);
-    };
-    const onFinish = () => finish(true);
-    const onDomReady = () => {
-      // Observe DOM readiness for stage diagnostics without emitting browser details.
-    };
-    win.webContents.on('did-fail-load', onFail);
-    win.webContents.once('did-finish-load', onFinish);
-    win.webContents.once('dom-ready', onDomReady);
-    try {
-      loadPromise = win.loadURL(url);
-    } catch (_error) {
-      finish(false);
-      return;
-    }
-    Promise.resolve(loadPromise).catch(() => finish(false));
-  });
-}
 
 async function hasDesktopBridge(win) {
   try {
