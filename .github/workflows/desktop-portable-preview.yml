@@ -54,11 +54,24 @@ jobs:
 
       - name: Build portable ZIP
         shell: pwsh
-        run: powershell -ExecutionPolicy Bypass -File scripts/build-portable.ps1
+        run: |
+          New-Item -ItemType Directory -Path 'dist/portable-diagnostics' -Force | Out-Null
+          powershell -ExecutionPolicy Bypass -File scripts/build-portable.ps1 *>&1 |
+            Tee-Object -FilePath 'dist/portable-diagnostics/build.log'
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content -Path 'dist/portable-diagnostics/build.log' -Tail 160
+            exit $LASTEXITCODE
+          }
 
       - name: Launch portable ZIP smoke
         shell: pwsh
-        run: powershell -ExecutionPolicy Bypass -File scripts/smoke-portable.ps1
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts/smoke-portable.ps1 *>&1 |
+            Tee-Object -FilePath 'dist/portable-diagnostics/smoke.log'
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content -Path 'dist/portable-diagnostics/smoke.log' -Tail 160
+            exit $LASTEXITCODE
+          }
 
       - name: Show portable assets
         if: always()
@@ -67,9 +80,23 @@ jobs:
           if (Test-Path 'dist/portable-assets') {
             Get-ChildItem -Path 'dist/portable-assets' -File | Sort-Object Name | Format-Table Name, Length, LastWriteTime
           }
-          if (Test-Path 'dist/portable-package/股票基金质量分析系统/logs/desktop.log') {
-            Get-Content -Path 'dist/portable-package/股票基金质量分析系统/logs/desktop.log' -Tail 200
+          if (Test-Path 'dist/portable-diagnostics/build.log') {
+            Write-Host '--- portable build tail ---'
+            Get-Content -Path 'dist/portable-diagnostics/build.log' -Tail 80
           }
+          if (Test-Path 'dist/portable-diagnostics/smoke.log') {
+            Write-Host '--- portable smoke tail ---'
+            Get-Content -Path 'dist/portable-diagnostics/smoke.log' -Tail 80
+          }
+
+      - name: Upload portable diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-portable-diagnostics-${{ github.run_number }}
+          path: dist/portable-diagnostics/*
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Upload portable artifact
         uses: actions/upload-artifact@v6
