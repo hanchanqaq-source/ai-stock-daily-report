@@ -1031,6 +1031,20 @@ class SystemConfigServiceTestCase(unittest.TestCase):
         self.assertEqual(channel_checks["llm_primary"]["status"], "needs_action")
         self.assertFalse(channel_status["ready_for_smoke"])
 
+    def test_setup_status_overlay_does_not_accept_structured_header_presence(self) -> None:
+        self._rewrite_env(
+            "LLM_CHANNELS=custom",
+            "LLM_CUSTOM_EXTRA_HEADERS=",
+            "LLM_CUSTOM_MODELS=gpt-5.5",
+            "STOCK_LIST=600519",
+        )
+
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(ConfigValidationError) as context:
+                self.service.get_setup_status_overlay(configured_secret_keys=["LLM_CUSTOM_EXTRA_HEADERS"])
+
+        self.assertEqual(context.exception.issues[0]["code"], "unsupported_configured_secret_key")
+
     def test_setup_status_overlay_keeps_notification_combination_requirements(self) -> None:
         self._rewrite_env(
             "LITELLM_MODEL=gemini/gemini-3-flash-preview",
@@ -1062,6 +1076,33 @@ class SystemConfigServiceTestCase(unittest.TestCase):
             )
         partial_notification = next(check for check in partial_status["checks"] if check["key"] == "notification")
         self.assertEqual(partial_notification["status"], "optional")
+
+    def test_setup_status_overlay_handles_url_presence_without_fake_url_parsing(self) -> None:
+        base_lines = [
+            "LITELLM_MODEL=gemini/gemini-3-flash-preview",
+            "GEMINI_API_KEY=secret-key-value",
+            "STOCK_LIST=600519",
+        ]
+
+        self._rewrite_env(*base_lines)
+        with patch.dict(os.environ, {}, clear=True):
+            ntfy_status = self.service.get_setup_status_overlay(configured_secret_keys=["NTFY_URL"])
+        ntfy_notification = next(check for check in ntfy_status["checks"] if check["key"] == "notification")
+        self.assertEqual(ntfy_notification["status"], "configured")
+
+        self._rewrite_env(*base_lines)
+        with patch.dict(os.environ, {}, clear=True):
+            gotify_partial = self.service.get_setup_status_overlay(configured_secret_keys=["GOTIFY_URL"])
+        gotify_partial_notification = next(check for check in gotify_partial["checks"] if check["key"] == "notification")
+        self.assertEqual(gotify_partial_notification["status"], "optional")
+
+        self._rewrite_env(*base_lines)
+        with patch.dict(os.environ, {}, clear=True):
+            gotify_complete = self.service.get_setup_status_overlay(
+                configured_secret_keys=["GOTIFY_URL", "GOTIFY_TOKEN"]
+            )
+        gotify_complete_notification = next(check for check in gotify_complete["checks"] if check["key"] == "notification")
+        self.assertEqual(gotify_complete_notification["status"], "configured")
 
     def test_setup_status_overlay_ready_for_smoke_depends_only_on_primary_and_stock_list(self) -> None:
         self._rewrite_env("LITELLM_MODEL=gemini/gemini-3-flash-preview")

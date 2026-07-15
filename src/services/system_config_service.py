@@ -147,8 +147,6 @@ class SystemConfigService:
         "LLM_USAGE_HMAC_SECRET",
     }
     _MASKED_VALUE_PLACEHOLDERS: Set[str] = {"masked-value", "********"}
-    _SETUP_SECRET_PRESENT_SENTINEL = "__DSA_DESKTOP_SECRET_CONFIGURED__"
-
     _NOTIFICATION_TEST_CHANNELS: Tuple[str, ...] = (
         "wechat",
         "feishu",
@@ -556,20 +554,36 @@ class SystemConfigService:
             configured_secret_keys,
             effective_map=effective_map,
         )
-        overlaid_map = dict(effective_map)
-        for key in accepted_keys:
-            overlaid_map[key] = self._SETUP_SECRET_PRESENT_SENTINEL
-        return self._build_setup_status_from_effective_map(overlaid_map)
+        return self._build_setup_status_from_effective_map(
+            effective_map,
+            configured_secret_keys=accepted_keys,
+        )
 
-    def _build_setup_status_from_effective_map(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+    def _build_setup_status_from_effective_map(
+        self,
+        effective_map: Dict[str, str],
+        *,
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> Dict[str, Any]:
         """Build setup status from an already-resolved effective config map."""
-        llm_check = self._build_setup_primary_llm_check(effective_map)
-        agent_check = self._build_setup_agent_llm_check(effective_map, llm_check)
+        secret_presence = configured_secret_keys or set()
+        llm_check = self._build_setup_primary_llm_check(
+            effective_map,
+            configured_secret_keys=secret_presence,
+        )
+        agent_check = self._build_setup_agent_llm_check(
+            effective_map,
+            llm_check,
+            configured_secret_keys=secret_presence,
+        )
         checks = [
             llm_check,
             agent_check,
             self._build_setup_stock_list_check(effective_map),
-            self._build_setup_notification_check(effective_map),
+            self._build_setup_notification_check(
+                effective_map,
+                configured_secret_keys=secret_presence,
+            ),
             self._build_setup_storage_check(effective_map),
         ]
 
@@ -3183,20 +3197,40 @@ class SystemConfigService:
         return self._build_display_config_map(effective_map)
 
     @staticmethod
-    def _has_any_config_value(effective_map: Dict[str, str], keys: Sequence[str]) -> bool:
-        return any((effective_map.get(key) or "").strip() for key in keys)
+    def _has_any_config_value(
+        effective_map: Dict[str, str],
+        keys: Sequence[str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> bool:
+        secret_presence = configured_secret_keys or set()
+        return any(key in secret_presence or (effective_map.get(key) or "").strip() for key in keys)
 
     @staticmethod
-    def _has_valid_ntfy_endpoint(effective_map: Dict[str, str]) -> bool:
+    def _has_valid_ntfy_endpoint(
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> bool:
+        if "NTFY_URL" in (configured_secret_keys or set()):
+            return True
         ntfy_server_url, ntfy_topic = resolve_ntfy_endpoint(effective_map.get("NTFY_URL"))
         return bool(ntfy_server_url and ntfy_topic)
 
     @staticmethod
-    def _has_valid_gotify_config(effective_map: Dict[str, str]) -> bool:
-        return bool(
-            resolve_gotify_message_endpoint(effective_map.get("GOTIFY_URL"))
-            and (effective_map.get("GOTIFY_TOKEN") or "").strip()
+    def _has_valid_gotify_config(
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> bool:
+        secret_presence = configured_secret_keys or set()
+        has_endpoint = (
+            "GOTIFY_URL" in secret_presence
+            or bool(resolve_gotify_message_endpoint(effective_map.get("GOTIFY_URL")))
         )
+        has_token = SystemConfigService._has_any_config_value(
+            effective_map,
+            ("GOTIFY_TOKEN",),
+            secret_presence,
+        )
+        return bool(has_endpoint and has_token)
 
     @classmethod
     def _anspire_legacy_llm_enabled(cls, effective_map: Dict[str, str]) -> bool:
@@ -3212,22 +3246,31 @@ class SystemConfigService:
         return True
 
     @classmethod
-    def _provider_has_setup_credentials(cls, provider: str, effective_map: Dict[str, str]) -> bool:
+    def _provider_has_setup_credentials(
+        cls,
+        provider: str,
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> bool:
         normalized = canonicalize_llm_channel_protocol(provider)
         if normalized == "ollama":
             return True
         if normalized == "gemini" or normalized == "vertex_ai":
-            return cls._has_any_config_value(effective_map, ("GEMINI_API_KEYS", "GEMINI_API_KEY"))
+            return cls._has_any_config_value(effective_map, ("GEMINI_API_KEYS", "GEMINI_API_KEY"), configured_secret_keys)
         if normalized == "anthropic":
-            return cls._has_any_config_value(effective_map, ("ANTHROPIC_API_KEYS", "ANTHROPIC_API_KEY"))
+            return cls._has_any_config_value(effective_map, ("ANTHROPIC_API_KEYS", "ANTHROPIC_API_KEY"), configured_secret_keys)
         if normalized == "deepseek":
-            return cls._has_any_config_value(effective_map, ("DEEPSEEK_API_KEYS", "DEEPSEEK_API_KEY"))
+            return cls._has_any_config_value(effective_map, ("DEEPSEEK_API_KEYS", "DEEPSEEK_API_KEY"), configured_secret_keys)
         if normalized == "openai":
-            if cls._has_any_config_value(effective_map, ("OPENAI_API_KEYS", "OPENAI_API_KEY", "AIHUBMIX_KEY")):
+            if cls._has_any_config_value(
+                effective_map,
+                ("OPENAI_API_KEYS", "OPENAI_API_KEY", "AIHUBMIX_KEY"),
+                configured_secret_keys,
+            ):
                 return True
             if (
                 cls._anspire_legacy_llm_enabled(effective_map)
-                and cls._has_any_config_value(effective_map, ("ANSPIRE_API_KEYS",))
+                and cls._has_any_config_value(effective_map, ("ANSPIRE_API_KEYS",), configured_secret_keys)
             ):
                 return True
             base_url = (effective_map.get("OPENAI_BASE_URL") or "").strip()
@@ -3237,18 +3280,29 @@ class SystemConfigService:
         return cls._has_any_config_value(
             effective_map,
             (f"{env_prefix}_API_KEYS", f"{env_prefix}_API_KEY"),
+            configured_secret_keys,
         )
 
     @classmethod
-    def _has_setup_runtime_source_for_model(cls, model: str, effective_map: Dict[str, str]) -> bool:
+    def _has_setup_runtime_source_for_model(
+        cls,
+        model: str,
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> bool:
         normalized_model = (model or "").strip()
         if not normalized_model:
             return False
         provider = _get_litellm_provider(normalized_model)
-        return cls._provider_has_setup_credentials(provider, effective_map)
+        return cls._provider_has_setup_credentials(provider, effective_map, configured_secret_keys)
 
     @classmethod
-    def _collect_setup_channel_models(cls, effective_map: Dict[str, str]) -> List[str]:
+    def _collect_setup_channel_models(
+        cls,
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> List[str]:
+        secret_presence = configured_secret_keys or set()
         models: List[str] = []
         seen: Set[str] = set()
         for raw_name in cls._split_csv(effective_map.get("LLM_CHANNELS") or ""):
@@ -3272,12 +3326,18 @@ class SystemConfigService:
             protocol = (effective_map.get(f"{prefix}_PROTOCOL") or "").strip()
             if name.lower() == "anspire" and not protocol:
                 protocol = "openai"
-            api_key = (
-                (effective_map.get(f"{prefix}_API_KEYS") or "").strip()
-                or (effective_map.get(f"{prefix}_API_KEY") or "").strip()
+            credential_keys = (f"{prefix}_API_KEYS", f"{prefix}_API_KEY")
+            api_key_configured = cls._has_any_config_value(
+                effective_map,
+                credential_keys,
+                secret_presence,
             )
-            if name.lower() == "anspire" and not api_key:
-                api_key = (effective_map.get("ANSPIRE_API_KEYS") or "").strip()
+            if name.lower() == "anspire" and not api_key_configured:
+                api_key_configured = cls._has_any_config_value(
+                    effective_map,
+                    ("ANSPIRE_API_KEYS",),
+                    secret_presence,
+                )
             raw_models = cls._split_csv(effective_map.get(f"{prefix}_MODELS") or "")
             if name.lower() == "anspire" and not raw_models:
                 raw_models = [
@@ -3310,7 +3370,7 @@ class SystemConfigService:
             )
             if not raw_models or not resolved_protocol:
                 continue
-            if not api_key and not channel_allows_empty_api_key(resolved_protocol, base_url):
+            if not api_key_configured and not channel_allows_empty_api_key(resolved_protocol, base_url):
                 continue
 
             for raw_model in raw_models:
@@ -3321,21 +3381,29 @@ class SystemConfigService:
         return models
 
     @classmethod
-    def _infer_setup_legacy_primary_model(cls, effective_map: Dict[str, str]) -> str:
-        if cls._has_any_config_value(effective_map, ("GEMINI_API_KEYS", "GEMINI_API_KEY")):
+    def _infer_setup_legacy_primary_model(
+        cls,
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> str:
+        if cls._has_any_config_value(effective_map, ("GEMINI_API_KEYS", "GEMINI_API_KEY"), configured_secret_keys):
             model = (effective_map.get("GEMINI_MODEL") or "gemini-3.1-pro-preview").strip()
             return model if "/" in model else f"gemini/{model}"
-        if cls._has_any_config_value(effective_map, ("ANTHROPIC_API_KEYS", "ANTHROPIC_API_KEY")):
+        if cls._has_any_config_value(effective_map, ("ANTHROPIC_API_KEYS", "ANTHROPIC_API_KEY"), configured_secret_keys):
             model = (effective_map.get("ANTHROPIC_MODEL") or "claude-sonnet-4-6").strip()
             return model if "/" in model else f"anthropic/{model}"
-        if cls._has_any_config_value(effective_map, ("DEEPSEEK_API_KEYS", "DEEPSEEK_API_KEY")):
+        if cls._has_any_config_value(effective_map, ("DEEPSEEK_API_KEYS", "DEEPSEEK_API_KEY"), configured_secret_keys):
             return "deepseek/deepseek-chat"
-        if cls._has_any_config_value(effective_map, ("OPENAI_API_KEYS", "OPENAI_API_KEY", "AIHUBMIX_KEY")):
+        if cls._has_any_config_value(
+            effective_map,
+            ("OPENAI_API_KEYS", "OPENAI_API_KEY", "AIHUBMIX_KEY"),
+            configured_secret_keys,
+        ):
             model = (effective_map.get("OPENAI_MODEL") or "gpt-5.5").strip()
             return model if "/" in model else f"openai/{model}"
         if (
             cls._anspire_legacy_llm_enabled(effective_map)
-            and cls._has_any_config_value(effective_map, ("ANSPIRE_API_KEYS",))
+            and cls._has_any_config_value(effective_map, ("ANSPIRE_API_KEYS",), configured_secret_keys)
         ):
             model = (
                 effective_map.get("ANSPIRE_LLM_MODEL")
@@ -3348,15 +3416,23 @@ class SystemConfigService:
             return model if model.startswith("ollama/") else (f"ollama/{model}" if model else "ollama/local")
         return ""
 
-    def _resolve_setup_primary_model(self, effective_map: Dict[str, str]) -> Tuple[str, str]:
+    def _resolve_setup_primary_model(
+        self,
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> Tuple[str, str]:
         explicit_model = (effective_map.get("LITELLM_MODEL") or "").strip()
         yaml_models = self._collect_yaml_models_from_map(effective_map)
-        channel_models = self._collect_setup_channel_models(effective_map)
+        channel_models = self._collect_setup_channel_models(effective_map, configured_secret_keys)
 
         if explicit_model:
             if _uses_direct_env_provider(explicit_model):
                 return explicit_model, "explicit"
-            has_direct_source = self._has_setup_runtime_source_for_model(explicit_model, effective_map)
+            has_direct_source = self._has_setup_runtime_source_for_model(
+                explicit_model,
+                effective_map,
+                configured_secret_keys,
+            )
             if yaml_models and explicit_model not in set(yaml_models):
                 return "", "主模型未出现在当前 LiteLLM YAML model_list 中"
             if channel_models and explicit_model not in set(channel_models):
@@ -3370,13 +3446,17 @@ class SystemConfigService:
         if channel_models:
             return channel_models[0], "channel"
 
-        legacy_model = self._infer_setup_legacy_primary_model(effective_map)
+        legacy_model = self._infer_setup_legacy_primary_model(effective_map, configured_secret_keys)
         if legacy_model:
             return legacy_model, "legacy"
 
         return "", "尚未检测到主模型配置"
 
-    def _build_setup_primary_llm_check(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+    def _build_setup_primary_llm_check(
+        self,
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> Dict[str, Any]:
         generation_backend = normalize_backend_id(
             effective_map.get("GENERATION_BACKEND"),
             default=LITELLM_BACKEND_ID,
@@ -3412,7 +3492,7 @@ class SystemConfigService:
                 ),
             )
 
-        model, source = self._resolve_setup_primary_model(effective_map)
+        model, source = self._resolve_setup_primary_model(effective_map, configured_secret_keys)
         if model:
             source_label = {
                 "explicit": "显式主模型",
@@ -3442,6 +3522,7 @@ class SystemConfigService:
         self,
         effective_map: Dict[str, str],
         primary_check: Dict[str, Any],
+        configured_secret_keys: Optional[Set[str]] = None,
     ) -> Dict[str, Any]:
         generation_backend = normalize_backend_id(
             effective_map.get("GENERATION_BACKEND"),
@@ -3467,7 +3548,7 @@ class SystemConfigService:
         non_hermes_routes = set(self._collect_non_hermes_channel_models_from_map(effective_map))
         if not agent_model_raw:
             if generation_backend in LOCAL_CLI_GENERATION_BACKEND_IDS:
-                litellm_model, _source = self._resolve_setup_primary_model(effective_map)
+                litellm_model, _source = self._resolve_setup_primary_model(effective_map, configured_secret_keys)
                 if litellm_model:
                     if litellm_model in hermes_routes and litellm_model not in non_hermes_routes:
                         return self._setup_check(
@@ -3509,7 +3590,7 @@ class SystemConfigService:
                     "如需使用 Ask-Stock Agent，请配置 LiteLLM 模型，或将 AGENT_GENERATION_BACKEND 固定为 litellm 后补齐模型配置。",
                 )
             if primary_check["status"] == "configured":
-                primary_model, _source = self._resolve_setup_primary_model(effective_map)
+                primary_model, _source = self._resolve_setup_primary_model(effective_map, configured_secret_keys)
                 if primary_model in hermes_routes and primary_model not in non_hermes_routes:
                     return self._setup_check(
                         "llm_agent",
@@ -3540,7 +3621,7 @@ class SystemConfigService:
 
         configured_models = set(
             self._collect_yaml_models_from_map(effective_map)
-            or self._collect_setup_channel_models(effective_map)
+            or self._collect_setup_channel_models(effective_map, configured_secret_keys)
         )
         agent_model = normalize_agent_litellm_model(agent_model_raw, configured_models=configured_models)
         if agent_model in hermes_routes and agent_model not in non_hermes_routes:
@@ -3569,7 +3650,7 @@ class SystemConfigService:
             )
         if (
             not configured_models
-            and self._has_setup_runtime_source_for_model(agent_model, effective_map)
+            and self._has_setup_runtime_source_for_model(agent_model, effective_map, configured_secret_keys)
         ) or agent_model in configured_models:
             return self._setup_check(
                 "llm_agent",
@@ -3611,34 +3692,43 @@ class SystemConfigService:
             "请至少添加 1 只股票用于首次试跑。",
         )
 
-    def _build_setup_notification_check(self, effective_map: Dict[str, str]) -> Dict[str, Any]:
+    def _build_setup_notification_check(
+        self,
+        effective_map: Dict[str, str],
+        configured_secret_keys: Optional[Set[str]] = None,
+    ) -> Dict[str, Any]:
+        secret_presence = configured_secret_keys or set()
         configured = (
-            self._has_any_config_value(effective_map, ("WECHAT_WEBHOOK_URL", "DISCORD_WEBHOOK_URL"))
+            self._has_any_config_value(effective_map, ("WECHAT_WEBHOOK_URL", "DISCORD_WEBHOOK_URL"), secret_presence)
             or is_feishu_static_env_configured(effective_map)
             or (
-                self._has_any_config_value(effective_map, ("TELEGRAM_BOT_TOKEN",))
-                and self._has_any_config_value(effective_map, ("TELEGRAM_CHAT_ID",))
+                self._has_any_config_value(effective_map, ("TELEGRAM_BOT_TOKEN",), secret_presence)
+                and self._has_any_config_value(effective_map, ("TELEGRAM_CHAT_ID",), secret_presence)
             )
             or (
-                self._has_any_config_value(effective_map, ("EMAIL_SENDER",))
-                and self._has_any_config_value(effective_map, ("EMAIL_PASSWORD",))
+                self._has_any_config_value(effective_map, ("EMAIL_SENDER",), secret_presence)
+                and self._has_any_config_value(effective_map, ("EMAIL_PASSWORD",), secret_presence)
             )
             or (
-                self._has_any_config_value(effective_map, ("DINGTALK_APP_KEY",))
-                and self._has_any_config_value(effective_map, ("DINGTALK_APP_SECRET",))
+                self._has_any_config_value(effective_map, ("DINGTALK_APP_KEY",), secret_presence)
+                and self._has_any_config_value(effective_map, ("DINGTALK_APP_SECRET",), secret_presence)
             )
             or (
-                self._has_any_config_value(effective_map, ("DISCORD_BOT_TOKEN",))
-                and self._has_any_config_value(effective_map, ("DISCORD_MAIN_CHANNEL_ID", "DISCORD_CHANNEL_ID"))
+                self._has_any_config_value(effective_map, ("DISCORD_BOT_TOKEN",), secret_presence)
+                and self._has_any_config_value(
+                    effective_map,
+                    ("DISCORD_MAIN_CHANNEL_ID", "DISCORD_CHANNEL_ID"),
+                    secret_presence,
+                )
             )
             or (
-                self._has_any_config_value(effective_map, ("PUSHOVER_USER_KEY",))
-                and self._has_any_config_value(effective_map, ("PUSHOVER_API_TOKEN",))
+                self._has_any_config_value(effective_map, ("PUSHOVER_USER_KEY",), secret_presence)
+                and self._has_any_config_value(effective_map, ("PUSHOVER_API_TOKEN",), secret_presence)
             )
-            or self._has_any_config_value(effective_map, ("SLACK_WEBHOOK_URL",))
+            or self._has_any_config_value(effective_map, ("SLACK_WEBHOOK_URL",), secret_presence)
             or (
-                self._has_any_config_value(effective_map, ("SLACK_BOT_TOKEN",))
-                and self._has_any_config_value(effective_map, ("SLACK_CHANNEL_ID",))
+                self._has_any_config_value(effective_map, ("SLACK_BOT_TOKEN",), secret_presence)
+                and self._has_any_config_value(effective_map, ("SLACK_CHANNEL_ID",), secret_presence)
             )
             or self._has_any_config_value(
                 effective_map,
@@ -3649,9 +3739,10 @@ class SystemConfigService:
                     "WECOM_WEBHOOK_URL",
                     "ASTRBOT_URL",
                 ),
+                secret_presence,
             )
-            or self._has_valid_ntfy_endpoint(effective_map)
-            or self._has_valid_gotify_config(effective_map)
+            or self._has_valid_ntfy_endpoint(effective_map, secret_presence)
+            or self._has_valid_gotify_config(effective_map, secret_presence)
         )
         if configured:
             return self._setup_check(

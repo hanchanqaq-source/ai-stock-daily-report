@@ -26,7 +26,7 @@ POST /api/v1/system/config/setup/status/overlay
 2. Electron 设置页先通过现有 `systemConfigApi.getConfig()` 获得已叠加 DPAPI 状态的配置项。
 3. 前端只从已加载配置中收集 `schema.isSensitive && rawValueExists && isMasked` 的字段名。
 4. 桌面端将这些低敏字段名提交到 overlay 接口。
-5. 后端只在函数内的 `effective_map` 使用固定 sentinel 表示这些敏感键“存在”，并复用既有 Setup Status 计算逻辑重新生成结果。
+5. 后端将这些字段名作为独立 presence set 传入 Setup Status 计算，只在凭证存在性判断处查询该 set；不会把统一 sentinel 写入 URL、JSON、header 或凭证字段。
 
 ## 安全边界
 

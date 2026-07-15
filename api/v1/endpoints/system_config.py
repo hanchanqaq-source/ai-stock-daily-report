@@ -6,6 +6,7 @@ import logging
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import ValidationError
 
 from api.deps import get_runtime_scheduler_service, get_system_config_service
 from api.v1.schemas.common import ErrorResponse
@@ -201,14 +202,48 @@ def get_setup_status(
         "contains secret values."
     ),
 )
-def overlay_setup_status(
-    request: SetupStatusOverlayRequest,
+async def overlay_setup_status(
+    request: Request,
     service: SystemConfigService = Depends(get_system_config_service),
 ) -> SetupStatusResponse:
     """Return setup status with desktop secret presence overlaid in-memory only."""
     try:
+        raw_payload = await request.json()
+    except Exception:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "invalid_overlay_payload",
+                "message": "Setup status overlay payload must be a JSON object",
+                "issues": [{"code": "invalid_payload", "message": "Invalid setup status overlay payload"}],
+            },
+        )
+
+    if not isinstance(raw_payload, dict) or set(raw_payload.keys()) != {"configured_secret_keys"}:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "invalid_overlay_payload",
+                "message": "Setup status overlay payload shape is invalid",
+                "issues": [{"code": "invalid_payload", "message": "Invalid setup status overlay payload"}],
+            },
+        )
+
+    try:
+        overlay_request = SetupStatusOverlayRequest.model_validate(raw_payload)
+    except ValidationError:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "error": "invalid_overlay_payload",
+                "message": "Setup status overlay payload is invalid",
+                "issues": [{"code": "invalid_payload", "message": "Invalid setup status overlay payload"}],
+            },
+        )
+
+    try:
         payload = service.get_setup_status_overlay(
-            configured_secret_keys=request.configured_secret_keys,
+            configured_secret_keys=overlay_request.configured_secret_keys,
         )
         return SetupStatusResponse.model_validate(payload)
     except ConfigValidationError as exc:
