@@ -64,16 +64,13 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const renameUser = useCallback((id: string, name: string): boolean => {
     const normalized = normalizeName(name);
-    if (!normalized) return false;
+    if (!normalized || !users.some((user) => user.id === id)) return false;
 
-    let updated = false;
-    setUsers((current) => current.map((user) => {
-      if (user.id !== id) return user;
-      updated = true;
-      return { ...user, name: normalized };
-    }));
-    return updated;
-  }, []);
+    setUsers((current) => current.map((user) => (
+      user.id === id ? { ...user, name: normalized } : user
+    )));
+    return true;
+  }, [users]);
 
   const removeUser = useCallback((id: string): boolean => {
     const target = users.find((user) => user.id === id);
