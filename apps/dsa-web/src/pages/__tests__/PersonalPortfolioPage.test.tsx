@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
+import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
 import PersonalPortfolioPage from '../PersonalPortfolioPage';
 
 const { getAccounts, getSnapshot, getRisk } = vi.hoisted(() => ({
@@ -130,6 +131,7 @@ describe('PersonalPortfolioPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
+    window.localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'zh');
     getAccounts.mockResolvedValue({
       accounts: [
         {
