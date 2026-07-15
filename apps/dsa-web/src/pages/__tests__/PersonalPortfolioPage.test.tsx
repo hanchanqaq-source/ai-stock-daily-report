@@ -1,4 +1,3 @@
-import type React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
@@ -151,7 +150,7 @@ describe('PersonalPortfolioPage', () => {
     renderPage();
 
     expect(await screen.findByRole('heading', { name: '个人持仓' })).toBeInTheDocument();
-    expect(await screen.findByText('¥100,000.00')).toBeInTheDocument();
+    expect(await screen.findByText('CNY 100,000.00')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '基金持仓' })).toBeInTheDocument();
     expect(screen.getByText('基金数据尚未接入')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '股票持仓' })).toBeInTheDocument();
