@@ -213,6 +213,45 @@ export type FundIndustryCycleReadonlyResponse = {
   errorCode?: string;
 };
 
+export type FundPortfolioAdviceResult = {
+  data_status: 'available' | 'partial';
+  risk_level: 'high' | 'medium' | 'low' | 'insufficient';
+  total_amount: string;
+  total_profit: string;
+  holding_count: number;
+  unique_fund_count: number;
+  top_fund_weight_pct: string;
+  top3_weight_pct: string;
+  public_evidence_codes: string[];
+  public_evidence_coverage_pct: string;
+  funds: Array<{
+    code: string; name: string; amount: string; weight_pct: string; profit: string;
+    target_allocation_pct: string | null; target_drift_pct: string | null; public_evidence_included: boolean;
+  }>;
+  findings: Array<{ category: string; severity: 'high' | 'medium'; title: string; evidence: string }>;
+  suggestions: Array<{ priority: 'high' | 'medium' | 'low'; title: string; reason: string; action_scope: string }>;
+  missing_evidence: string[];
+  warnings: string[];
+  scope: 'active-user-in-memory-fund-portfolio-review';
+  advice_boundary: 'educational-review-not-investment-order';
+};
+
+export type FundPortfolioAdviceReadonlyResponse = {
+  status: 'completed-readonly' | 'unavailable' | 'blocked' | 'timeout';
+  providerLabel: string;
+  readOnly: true;
+  advice?: FundPortfolioAdviceResult;
+  errorCode?: string;
+};
+
+export type FundPortfolioAdviceHolding = {
+  code: string;
+  name: string;
+  amount: number;
+  profit: number;
+  targetAllocation?: number;
+};
+
 export const fundDataApi = {
   async fetchAksharePublicFund(code: string): Promise<FundPublicReadonlyResponse> {
     const response = await apiClient.post<FundPublicReadonlyResponse>('/api/v1/provider-readonly/akshare/fund', {
@@ -256,6 +295,26 @@ export const fundDataApi = {
         provider: 'akshare_fund_public',
         codes,
         sections: ['funds', 'disclosed-holdings', 'industry-cycle-evidence', 'productivity-proxy-evidence'],
+        humanApproved: true,
+        readOnly: true,
+        allowAccountRead: false,
+        allowTrading: false,
+        allowNotificationSend: false,
+        allowAiCall: false,
+        allowPersistence: false,
+      },
+    );
+    return response.data;
+  },
+
+  async fetchAkshareFundPortfolioAdvice(holdings: FundPortfolioAdviceHolding[]): Promise<FundPortfolioAdviceReadonlyResponse> {
+    const response = await apiClient.post<FundPortfolioAdviceReadonlyResponse>(
+      '/api/v1/provider-readonly/akshare/funds/portfolio-advice',
+      {
+        mode: 'fund-portfolio-advice-readonly',
+        provider: 'akshare_fund_public',
+        holdings: holdings.map((item) => ({ ...item, targetAllocation: item.targetAllocation ?? null })),
+        sections: ['portfolio-concentration', 'overlap', 'industry-cycle', 'target-drift'],
         humanApproved: true,
         readOnly: true,
         allowAccountRead: false,
