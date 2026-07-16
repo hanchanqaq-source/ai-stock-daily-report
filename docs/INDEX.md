@@ -83,6 +83,7 @@
 | [App-M4.2.2 前端敏感字段安全交互](app_m4_2_2_frontend_sensitive_interaction.md) | Web 设置页敏感字段 keep/set/clear 交互、明确修改/取消/清除、掩码占位保护、非敏感字段兼容和未启用真实 Provider / DPAPI / 本地迁移边界 |
 | [App-M4.2.3A Windows 桌面端安全凭证存储基础](app_m4_2_3a_windows_secure_credential_store.md) | Electron 主进程 safeStorage 加密、LOCALAPPDATA 凭证文件、IPC/preload 最小边界和本阶段未接 SettingsPage / 后端 / Provider 的安全说明 |
 | [App-M4.2.3A.1 Windows DPAPI / safeStorage 本地实机 Smoke 验收工具](app_m4_2_3a_1_windows_dpapi_smoke.md) | Windows 本机两阶段 write / restart-read-clear Smoke、临时 LOCALAPPDATA 隔离、磁盘无明文检查、低敏输出、BAT 入口和 mock 测试不等于 DPAPI 实机通过的说明 |
+| [股票基金双中心 Build D1：AKShare 基金公开数据只读接入](stock_fund_dual_center_build_d1.md) | 基金首页本机手动只读查询、基金概况/正式净值/披露持仓到 Build C 契约的映射、逐次确认、localhost 门禁、离线测试与 Build D2/D3 边界 |
 
 ## 多语言
 
