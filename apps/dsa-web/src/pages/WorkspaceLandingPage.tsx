@@ -13,8 +13,8 @@ const TEXT = {
     currentUser: '当前用户', userHint: '切换中心不会切换用户，避免误用其他人的持仓。',
     stocks: '股票中心', stockDescription: '股票分析、问股票、股票持仓、选股策略、AI 建议、回测和告警。',
     funds: '基金中心', fundDescription: '基金持仓、问基金、基金对比、行业穿透、行业周期和风险建议。',
-    enter: '进入', manageUsers: '管理用户', boundaryTitle: 'Build A 边界',
-    boundary: '基金真实数据、行业计算和 AI 建议尚未接入；相关页面会明确显示缺失状态，不生成虚假结果。',
+    enter: '进入', manageUsers: '管理用户', boundaryTitle: '当前基金能力边界',
+    boundary: '公开基金资料、净值、披露持仓、基金对比和披露行业穿透已接入；行业周期、生产力、配置建议和 AI 仍未接入，不生成虚假结果。',
   },
   en: {
     documentTitle: 'Stock and Fund Quality Analysis', title: 'Choose a workspace',
@@ -22,8 +22,8 @@ const TEXT = {
     currentUser: 'Current user', userHint: 'Changing workspaces keeps the same user to prevent cross-user portfolio use.',
     stocks: 'Stock center', stockDescription: 'Stock analysis, stock Q&A, holdings, screening, AI signals, backtests, and alerts.',
     funds: 'Fund center', fundDescription: 'Fund holdings, fund Q&A, comparisons, industry exposure, cycles, and risk guidance.',
-    enter: 'Open', manageUsers: 'Manage users', boundaryTitle: 'Build A boundary',
-    boundary: 'Real fund data, industry calculations, and AI advice are not connected yet. Pages show missing status and never fabricate results.',
+    enter: 'Open', manageUsers: 'Manage users', boundaryTitle: 'Current fund capability boundary',
+    boundary: 'Public profiles, NAV, disclosed holdings, fund comparison, and disclosed industry exposure are connected. Cycles, productivity, allocation advice, and AI remain unavailable and are never fabricated.',
   },
 } as const;
 

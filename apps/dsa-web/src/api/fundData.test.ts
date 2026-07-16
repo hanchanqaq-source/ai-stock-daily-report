@@ -30,4 +30,26 @@ describe('fundDataApi', () => {
       allowPersistence: false,
     });
   });
+
+  it('sends the fixed read-only comparison contract with no enabled capabilities', async () => {
+    apiClientMock.post.mockResolvedValue({
+      data: { status: 'unavailable', providerLabel: 'AKShare 公开基金数据', readOnly: true },
+    });
+
+    await fundDataApi.compareAksharePublicFunds(['000001', '110022']);
+
+    expect(apiClientMock.post).toHaveBeenCalledWith('/api/v1/provider-readonly/akshare/funds/compare', {
+      mode: 'fund-comparison-readonly',
+      provider: 'akshare_fund_public',
+      codes: ['000001', '110022'],
+      sections: ['profile', 'nav', 'holdings', 'industry-exposure'],
+      humanApproved: true,
+      readOnly: true,
+      allowAccountRead: false,
+      allowTrading: false,
+      allowNotificationSend: false,
+      allowAiCall: false,
+      allowPersistence: false,
+    });
+  });
 });
