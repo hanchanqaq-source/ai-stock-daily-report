@@ -670,7 +670,7 @@ function extendMacDesktopBackendPath(rawPath) {
 
   const seen = new Set();
   const entries = String(rawPath || '')
-    .split(path.delimiter)
+    .split(':')
     .map((entry) => entry.trim())
     .filter(Boolean)
     .filter((entry) => {
@@ -688,7 +688,7 @@ function extendMacDesktopBackendPath(rawPath) {
     }
   });
 
-  return entries.join(path.delimiter);
+  return entries.join(':');
 }
 
 function buildBackendEnvironment({ envFile, dbPath, logDir, port = null, sourceEnv = process.env }) {
@@ -706,6 +706,10 @@ function buildBackendEnvironment({ envFile, dbPath, logDir, port = null, sourceE
     DINGTALK_STREAM_ENABLED: 'false',
     FEISHU_STREAM_ENABLED: 'false',
   };
+
+  // The packaged backend is application runtime, even when its desktop smoke test runs in Actions.
+  // main.py intentionally suppresses Web serving when GITHUB_ACTIONS=true.
+  delete env.GITHUB_ACTIONS;
 
   if (Number.isInteger(selectedPort) && selectedPort >= 1 && selectedPort <= 65535) {
     env.WEBUI_PORT = String(selectedPort);

@@ -119,7 +119,7 @@ $pyInstallerArgs = @(
   '--name', 'stock_analysis',
   '--onedir',
   '--noconfirm',
-  '--noconsole',
+  '--console',
   '--add-data', 'static;static',
   '--add-data', 'strategies;strategies',
   '--collect-data', 'litellm',

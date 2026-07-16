@@ -149,7 +149,7 @@ test('buildBackendEnvironment extends macOS GUI PATH with Homebrew CLI directori
     },
   });
 
-  const entries = env.PATH.split(path.delimiter);
+  const entries = env.PATH.split(':');
   assert.deepEqual(entries.slice(0, 4), ['/usr/bin', '/bin', '/usr/sbin', '/sbin']);
   assert.ok(entries.includes('/opt/homebrew/bin'));
   assert.ok(entries.includes('/usr/local/bin'));
@@ -177,6 +177,26 @@ test('buildBackendEnvironment keeps non-macOS PATH unchanged', (t) => {
   assert.equal(env.PATH, '/custom/bin:/usr/bin');
 });
 
+test('buildBackendEnvironment removes GitHub Actions mode from the runtime backend', (t) => {
+  const mainModule = loadMainModule(t, { platform: 'win32' });
+  const sourceEnv = {
+    PATH: 'C:\\Windows\\System32',
+    GITHUB_ACTIONS: 'true',
+    CUSTOM_FLAG: 'kept',
+  };
+
+  const env = mainModule.buildBackendEnvironment({
+    envFile: 'C:\\portable\\.env',
+    dbPath: 'C:\\portable\\data\\stock_analysis.db',
+    logDir: 'C:\\portable\\logs',
+    sourceEnv,
+  });
+
+  assert.equal(env.GITHUB_ACTIONS, undefined);
+  assert.equal(sourceEnv.GITHUB_ACTIONS, 'true');
+  assert.equal(env.CUSTOM_FLAG, 'kept');
+});
+
 test('buildBackendEnvironment pins WEBUI_PORT to the Electron-selected backend port', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
 
@@ -200,7 +220,7 @@ test('extendMacDesktopBackendPath preserves existing order and avoids duplicates
   const extended = mainModule.extendMacDesktopBackendPath(
     '/opt/homebrew/bin:/custom/bin:/usr/bin:/custom/bin'
   );
-  const entries = extended.split(path.delimiter);
+  const entries = extended.split(':');
 
   assert.deepEqual(entries.slice(0, 3), ['/opt/homebrew/bin', '/custom/bin', '/usr/bin']);
   assert.equal(entries.filter((entry) => entry === '/opt/homebrew/bin').length, 1);

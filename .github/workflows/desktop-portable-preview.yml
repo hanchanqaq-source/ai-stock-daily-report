@@ -1,0 +1,119 @@
+name: Windows Portable Preview
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/desktop-portable-preview.yml'
+      - 'apps/dsa-desktop/**'
+      - 'apps/dsa-web/**'
+      - 'api/**'
+      - 'src/**'
+      - 'data_provider/**'
+      - 'main.py'
+      - 'requirements.txt'
+      - 'scripts/build-backend.ps1'
+      - 'scripts/build-desktop.ps1'
+      - 'scripts/build-portable.ps1'
+      - 'scripts/smoke-portable.ps1'
+      - 'static/**'
+      - 'strategies/**'
+
+concurrency:
+  group: windows-portable-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-portable:
+    name: Windows Portable build and launch smoke
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      DSA_SKIP_DEVMODE_CHECK: 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: |
+            apps/dsa-web/package-lock.json
+            apps/dsa-desktop/package-lock.json
+
+      - name: Cache Electron downloads
+        uses: actions/cache@v5
+        with:
+          path: |
+            .electron-cache
+            .electron-builder-cache
+          key: electron-windows-${{ hashFiles('apps/dsa-desktop/package-lock.json') }}
+          restore-keys: |
+            electron-windows-
+
+      - name: Build portable ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path 'dist/portable-diagnostics' -Force | Out-Null
+          & ./scripts/build-portable.ps1 *>&1 |
+            Tee-Object -FilePath 'dist/portable-diagnostics/build.log'
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content -Path 'dist/portable-diagnostics/build.log' -Tail 160
+            exit $LASTEXITCODE
+          }
+
+      - name: Launch portable ZIP smoke
+        shell: pwsh
+        run: |
+          & ./scripts/smoke-portable.ps1 *>&1 |
+            Tee-Object -FilePath 'dist/portable-diagnostics/smoke.log'
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content -Path 'dist/portable-diagnostics/smoke.log' -Tail 160
+            exit $LASTEXITCODE
+          }
+
+      - name: Show portable assets
+        if: always()
+        shell: pwsh
+        run: |
+          if (Test-Path 'dist/portable-assets') {
+            Get-ChildItem -Path 'dist/portable-assets' -File | Sort-Object Name | Format-Table Name, Length, LastWriteTime
+          }
+          if (Test-Path 'dist/portable-diagnostics/build.log') {
+            Write-Host '--- portable build tail ---'
+            Get-Content -Path 'dist/portable-diagnostics/build.log' -Tail 80
+          }
+          if (Test-Path 'dist/portable-diagnostics/smoke.log') {
+            Write-Host '--- portable smoke tail ---'
+            Get-Content -Path 'dist/portable-diagnostics/smoke.log' -Tail 80
+          }
+
+      - name: Upload portable diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-portable-diagnostics-${{ github.run_number }}
+          path: dist/portable-diagnostics/*
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: windows-portable-preview-${{ github.run_number }}
+          path: |
+            dist/portable-assets/*.zip
+            dist/portable-assets/*.sha256
+          if-no-files-found: error
+          retention-days: 14
