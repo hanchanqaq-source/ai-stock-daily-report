@@ -18,7 +18,7 @@ type QuickHoldingEntryDrawerProps = {
 const inputClass = 'input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground';
 
 const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = ({ isOpen, initialMode, fixedAssetType, onClose }) => {
-  const { activeUser, activeUserId, addFundHolding, addStockHolding } = usePortfolioUsers();
+  const { activeUser, addFundHolding, addStockHolding } = usePortfolioUsers();
   const [mode, setMode] = useState<EntryMode>(initialMode);
   const [assetType, setAssetType] = useState<AssetType>('fund');
   const selectedAssetType = fixedAssetType ?? assetType;
@@ -65,7 +65,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
         setFeedback('请填写有效的基金持有金额。');
         return;
       }
-      addFundHolding(activeUserId, {
+      addFundHolding({
         code: normalizedCode,
         name: normalizedName || normalizedCode,
         amount: numericAmount,
@@ -81,7 +81,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
         setFeedback('请填写有效的持有数量和平均成本。');
         return;
       }
-      addStockHolding(activeUserId, {
+      addStockHolding({
         code: normalizedCode,
         name: normalizedName || normalizedCode,
         quantity: numericQuantity,

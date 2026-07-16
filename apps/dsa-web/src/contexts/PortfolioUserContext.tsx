@@ -27,11 +27,6 @@ export type QuickStockHolding = {
   notes?: string;
 };
 
-type UserQuickHoldings = {
-  funds: QuickFundHolding[];
-  stocks: QuickStockHolding[];
-};
-
 type FundHoldingInput = Omit<QuickFundHolding, 'id'>;
 type StockHoldingInput = Omit<QuickStockHolding, 'id'>;
 
@@ -39,15 +34,16 @@ type PortfolioUserContextValue = {
   users: PortfolioUserProfile[];
   activeUser: PortfolioUserProfile;
   activeUserId: string;
-  activeHoldings: UserQuickHoldings;
+  activeFundHoldings: readonly QuickFundHolding[];
+  activeStockHoldings: readonly QuickStockHolding[];
   addUser: (name: string) => PortfolioUserProfile | null;
   renameUser: (id: string, name: string) => boolean;
   removeUser: (id: string) => boolean;
   setActiveUserId: (id: string) => void;
-  addFundHolding: (userId: string, input: FundHoldingInput) => QuickFundHolding;
-  addStockHolding: (userId: string, input: StockHoldingInput) => QuickStockHolding;
-  removeFundHolding: (userId: string, holdingId: string) => void;
-  removeStockHolding: (userId: string, holdingId: string) => void;
+  addFundHolding: (input: FundHoldingInput) => QuickFundHolding;
+  addStockHolding: (input: StockHoldingInput) => QuickStockHolding;
+  removeFundHolding: (holdingId: string) => void;
+  removeStockHolding: (holdingId: string) => void;
 };
 
 const PRIMARY_USER: PortfolioUserProfile = {
@@ -56,25 +52,21 @@ const PRIMARY_USER: PortfolioUserProfile = {
   isPrimary: true,
 };
 
-const EMPTY_HOLDINGS: UserQuickHoldings = { funds: [], stocks: [] };
+const EMPTY_FUND_HOLDINGS: readonly QuickFundHolding[] = [];
+const EMPTY_STOCK_HOLDINGS: readonly QuickStockHolding[] = [];
 
 const fallbackContext: PortfolioUserContextValue = {
   users: [PRIMARY_USER],
   activeUser: PRIMARY_USER,
   activeUserId: PRIMARY_USER.id,
-  activeHoldings: EMPTY_HOLDINGS,
+  activeFundHoldings: EMPTY_FUND_HOLDINGS,
+  activeStockHoldings: EMPTY_STOCK_HOLDINGS,
   addUser: () => null,
   renameUser: () => false,
   removeUser: () => false,
   setActiveUserId: () => undefined,
-  addFundHolding: (userId, input) => {
-    void userId;
-    return { ...input, id: 'fallback-fund' };
-  },
-  addStockHolding: (userId, input) => {
-    void userId;
-    return { ...input, id: 'fallback-stock' };
-  },
+  addFundHolding: (input) => ({ ...input, id: 'fallback-fund' }),
+  addStockHolding: (input) => ({ ...input, id: 'fallback-stock' }),
   removeFundHolding: () => undefined,
   removeStockHolding: () => undefined,
 };
@@ -92,12 +84,16 @@ function createHoldingId(prefix: string): string {
 export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<PortfolioUserProfile[]>([PRIMARY_USER]);
   const [activeUserId, setActiveUserIdState] = useState(PRIMARY_USER.id);
-  const [holdingsByUser, setHoldingsByUser] = useState<Record<string, UserQuickHoldings>>({
-    [PRIMARY_USER.id]: EMPTY_HOLDINGS,
+  const [fundHoldingsByUser, setFundHoldingsByUser] = useState<Record<string, readonly QuickFundHolding[]>>({
+    [PRIMARY_USER.id]: EMPTY_FUND_HOLDINGS,
+  });
+  const [stockHoldingsByUser, setStockHoldingsByUser] = useState<Record<string, readonly QuickStockHolding[]>>({
+    [PRIMARY_USER.id]: EMPTY_STOCK_HOLDINGS,
   });
 
   const activeUser = users.find((user) => user.id === activeUserId) ?? users[0] ?? PRIMARY_USER;
-  const activeHoldings = holdingsByUser[activeUser.id] ?? EMPTY_HOLDINGS;
+  const activeFundHoldings = fundHoldingsByUser[activeUser.id] ?? EMPTY_FUND_HOLDINGS;
+  const activeStockHoldings = stockHoldingsByUser[activeUser.id] ?? EMPTY_STOCK_HOLDINGS;
 
   const setActiveUserId = useCallback((id: string) => {
     setActiveUserIdState((current) => (users.some((user) => user.id === id) ? id : current));
@@ -113,7 +109,8 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
       isPrimary: false,
     };
     setUsers((current) => [...current, nextUser]);
-    setHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_HOLDINGS }));
+    setFundHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_FUND_HOLDINGS }));
+    setStockHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_STOCK_HOLDINGS }));
     setActiveUserIdState(nextUser.id);
     return nextUser;
   }, []);
@@ -133,7 +130,12 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     if (!target || target.isPrimary) return false;
 
     setUsers((current) => current.filter((user) => user.id !== id));
-    setHoldingsByUser((current) => {
+    setFundHoldingsByUser((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+    setStockHoldingsByUser((current) => {
       const next = { ...current };
       delete next[id];
       return next;
@@ -142,43 +144,44 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     return true;
   }, [users]);
 
-  const addFundHolding = useCallback((userId: string, input: FundHoldingInput): QuickFundHolding => {
+  const addFundHolding = useCallback((input: FundHoldingInput): QuickFundHolding => {
     const holding = { ...input, id: createHoldingId('fund') };
-    setHoldingsByUser((current) => {
-      const holdings = current[userId] ?? EMPTY_HOLDINGS;
-      return { ...current, [userId]: { ...holdings, funds: [...holdings.funds, holding] } };
-    });
+    setFundHoldingsByUser((current) => ({
+      ...current,
+      [activeUser.id]: [...(current[activeUser.id] ?? EMPTY_FUND_HOLDINGS), holding],
+    }));
     return holding;
-  }, []);
+  }, [activeUser.id]);
 
-  const addStockHolding = useCallback((userId: string, input: StockHoldingInput): QuickStockHolding => {
+  const addStockHolding = useCallback((input: StockHoldingInput): QuickStockHolding => {
     const holding = { ...input, id: createHoldingId('stock') };
-    setHoldingsByUser((current) => {
-      const holdings = current[userId] ?? EMPTY_HOLDINGS;
-      return { ...current, [userId]: { ...holdings, stocks: [...holdings.stocks, holding] } };
-    });
+    setStockHoldingsByUser((current) => ({
+      ...current,
+      [activeUser.id]: [...(current[activeUser.id] ?? EMPTY_STOCK_HOLDINGS), holding],
+    }));
     return holding;
-  }, []);
+  }, [activeUser.id]);
 
-  const removeFundHolding = useCallback((userId: string, holdingId: string) => {
-    setHoldingsByUser((current) => {
-      const holdings = current[userId] ?? EMPTY_HOLDINGS;
-      return { ...current, [userId]: { ...holdings, funds: holdings.funds.filter((item) => item.id !== holdingId) } };
-    });
-  }, []);
+  const removeFundHolding = useCallback((holdingId: string) => {
+    setFundHoldingsByUser((current) => ({
+      ...current,
+      [activeUser.id]: (current[activeUser.id] ?? EMPTY_FUND_HOLDINGS).filter((item) => item.id !== holdingId),
+    }));
+  }, [activeUser.id]);
 
-  const removeStockHolding = useCallback((userId: string, holdingId: string) => {
-    setHoldingsByUser((current) => {
-      const holdings = current[userId] ?? EMPTY_HOLDINGS;
-      return { ...current, [userId]: { ...holdings, stocks: holdings.stocks.filter((item) => item.id !== holdingId) } };
-    });
-  }, []);
+  const removeStockHolding = useCallback((holdingId: string) => {
+    setStockHoldingsByUser((current) => ({
+      ...current,
+      [activeUser.id]: (current[activeUser.id] ?? EMPTY_STOCK_HOLDINGS).filter((item) => item.id !== holdingId),
+    }));
+  }, [activeUser.id]);
 
   const value = useMemo<PortfolioUserContextValue>(() => ({
     users,
     activeUser,
     activeUserId: activeUser.id,
-    activeHoldings,
+    activeFundHoldings,
+    activeStockHoldings,
     addUser,
     renameUser,
     removeUser,
@@ -188,7 +191,8 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     removeFundHolding,
     removeStockHolding,
   }), [
-    activeHoldings,
+    activeFundHoldings,
+    activeStockHoldings,
     activeUser,
     addFundHolding,
     addStockHolding,

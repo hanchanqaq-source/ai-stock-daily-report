@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- [改进] Build B 将运行期快速持仓拆为独立的股票/基金用户状态仓库，持仓增删只作用于当前用户和当前领域，移除混合持仓页面模式，并补充跨用户、跨领域与删除用户清理测试；重启持久化仍属于 Build E。
 - [新功能] 建立股票中心与基金中心双工作区，新增全局中心/用户切换、股票功能分域路由、基金安全骨架、股票/基金持仓展示隔离及旧路由兼容跳转；当前不接真实基金数据、Provider、AI 建议或自动交易。
 - [测试] 新增 App-M4.2.3B.1 Windows 设置页安全凭证实机 Smoke 验收工具。
 - [测试] 新增 App-M4.2.3A.1 Windows DPAPI / Electron safeStorage 本地实机 Smoke 验收工具、双击 BAT 入口、控制流单元测试和文档；仅使用临时目录与虚构测试值，不接 SettingsPage、后端、Provider 或真实凭证。

@@ -12,7 +12,7 @@ const TEXT = {
     addTitle: '新增用户', placeholder: '输入用户名称，例如：家人A', add: '添加用户',
     listTitle: '用户档案', current: '当前用户', primary: '默认用户', switchTo: '切换到此用户',
     rename: '重命名', save: '保存', remove: '删除用户', emptyName: '请输入用户名称。',
-    noticeTitle: 'M1.1 说明', notice: '本阶段只建立前端用户档案。刷新页面后新增用户会恢复；M2 再接持仓录入和正式保存。',
+    noticeTitle: 'Build B 数据边界', notice: '股票持仓和基金持仓已按当前用户分开保存于本次运行内存；切换用户不会串用。刷新页面仍会恢复，正式持久化属于 Build E。',
   },
   en: {
     documentTitle: 'User Profiles - DSA', title: 'User profiles',
@@ -20,7 +20,7 @@ const TEXT = {
     addTitle: 'Add user', placeholder: 'Enter a user name, for example: Family A', add: 'Add user',
     listTitle: 'Profiles', current: 'Current user', primary: 'Default user', switchTo: 'Switch to this user',
     rename: 'Rename', save: 'Save', remove: 'Delete user', emptyName: 'Enter a user name.',
-    noticeTitle: 'M1.1 scope', notice: 'This stage only creates in-memory profiles. Added users reset after refresh. M2 will add holdings entry and persistence.',
+    noticeTitle: 'Build B data boundary', notice: 'Stock and fund holdings are separated by active user in runtime memory. Switching users does not mix data. Refresh still resets data; durable persistence belongs to Build E.',
   },
 } as const;
 

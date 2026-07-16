@@ -25,10 +25,10 @@ import {
 
 type AccountOption = 'all' | number;
 type EntryMode = 'manual' | 'screenshot';
-type PortfolioDomain = 'all' | 'stock' | 'fund';
+type PortfolioDomain = 'stock' | 'fund';
 
 type PersonalPortfolioPageProps = {
-  domain?: PortfolioDomain;
+  domain: PortfolioDomain;
 };
 
 type StockPositionRow = PortfolioPositionItem & {
@@ -175,31 +175,28 @@ function formatCount(template: string, count: number): string {
   return template.replace('{count}', String(count));
 }
 
-const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 'all' }) => {
+const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain }) => {
   const navigate = useNavigate();
   const { language } = useUiLanguage();
   const {
     users,
     activeUser,
     activeUserId,
-    activeHoldings,
+    activeFundHoldings,
+    activeStockHoldings,
     setActiveUserId,
     removeFundHolding,
     removeStockHolding,
   } = usePortfolioUsers();
   const text = TEXT[language];
-  const showStocks = domain !== 'fund';
-  const showFunds = domain !== 'stock';
+  const showStocks = domain === 'stock';
+  const showFunds = domain === 'fund';
   const pageTitle = domain === 'stock'
     ? (language === 'zh' ? '股票持仓' : 'Stock holdings')
-    : domain === 'fund'
-      ? (language === 'zh' ? '基金持仓' : 'Fund holdings')
-      : text.title;
+    : (language === 'zh' ? '基金持仓' : 'Fund holdings');
   const pageDescription = domain === 'stock'
     ? (language === 'zh' ? '只显示当前用户的股票持仓、证券账户和股票风险。' : 'Shows stock holdings, securities accounts, and stock risk for the active user only.')
-    : domain === 'fund'
-      ? (language === 'zh' ? '只显示当前用户的基金持仓；真实净值、行业穿透和周期分析将在后续阶段接入。' : 'Shows fund holdings for the active user only. Real NAV, exposure, and cycle analysis follow later.')
-      : text.description;
+    : (language === 'zh' ? '只显示当前用户的基金持仓；真实净值、行业穿透和周期分析将在后续阶段接入。' : 'Shows fund holdings for the active user only. Real NAV, exposure, and cycle analysis follow later.');
   const isPrimaryUser = activeUser.isPrimary;
   const [entryMode, setEntryMode] = useState<EntryMode>('manual');
   const [entryOpen, setEntryOpen] = useState(false);
@@ -284,17 +281,17 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 
   ), [snapshot]);
 
   const fundSummary = useMemo(() => {
-    const amount = activeHoldings.funds.reduce((total, item) => total + item.amount, 0);
-    const profit = activeHoldings.funds.reduce((total, item) => total + item.profit, 0);
+    const amount = activeFundHoldings.reduce((total, item) => total + item.amount, 0);
+    const profit = activeFundHoldings.reduce((total, item) => total + item.profit, 0);
     const cost = amount - profit;
     return { amount, profit, returnPct: cost > 0 ? (profit / cost) * 100 : null };
-  }, [activeHoldings.funds]);
+  }, [activeFundHoldings]);
 
   const currency = snapshot?.currency || 'CNY';
   const stopLossCount = (risk?.stopLoss?.triggeredCount || 0) + (risk?.stopLoss?.nearCount || 0);
   const summaryValue = (value: number | null | undefined) => isPrimaryUser ? formatMoney(value, currency) : '--';
   const riskValue = (value: number | null | undefined) => isPrimaryUser ? formatPct(value) : '--';
-  const totalStockCount = stockRows.length + activeHoldings.stocks.length;
+  const totalStockCount = stockRows.length + activeStockHoldings.length;
 
   const openEntry = (mode: EntryMode) => {
     setEntryMode(mode);
@@ -358,14 +355,14 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 
         </div>
         <Card className="overflow-hidden" padding="md">
           <div className="rounded-2xl border border-cyan/15 bg-gradient-to-br from-cyan/10 via-transparent to-transparent p-4">
-            <p className="text-xs text-secondary">{text.fundAmount}</p><p className="mt-2 text-3xl font-semibold text-foreground">{activeHoldings.funds.length ? formatMoney(fundSummary.amount) : '--'}</p>
+            <p className="text-xs text-secondary">{text.fundAmount}</p><p className="mt-2 text-3xl font-semibold text-foreground">{activeFundHoldings.length ? formatMoney(fundSummary.amount) : '--'}</p>
             <div className="mt-5 grid grid-cols-3 gap-3 text-xs">
-              <div><p className="text-secondary">{text.fundProfit}</p><p className="mt-1 font-medium text-foreground">{activeHoldings.funds.length ? formatMoney(fundSummary.profit) : '--'}</p></div>
+              <div><p className="text-secondary">{text.fundProfit}</p><p className="mt-1 font-medium text-foreground">{activeFundHoldings.length ? formatMoney(fundSummary.profit) : '--'}</p></div>
               <div><p className="text-secondary">{text.fundReturn}</p><p className="mt-1 font-medium text-foreground">{fundSummary.returnPct == null ? '--' : formatSignedPct(fundSummary.returnPct)}</p></div>
               <div><p className="text-secondary">{text.fundPosition}</p><p className="mt-1 font-medium text-foreground">--</p></div>
             </div>
           </div>
-          {activeHoldings.funds.length === 0 ? (
+          {activeFundHoldings.length === 0 ? (
             <EmptyState title={text.fundEmptyTitle} description={text.fundEmptyDescription} className="mt-3 border-none bg-transparent px-3 py-5 shadow-none" />
           ) : (
             <div className="mt-4 overflow-x-auto">
@@ -373,9 +370,9 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 
                 <thead className="border-b border-white/10 text-xs text-secondary"><tr>
                   <th className="py-2 pr-3 text-left">{text.fundCode}</th><th className="py-2 pr-3 text-left">{text.fundName}</th><th className="py-2 pr-3 text-right">{text.fundAmount}</th><th className="py-2 pr-3 text-right">{text.fundProfit}</th><th className="py-2 pr-3 text-right">{text.targetAllocation}</th><th className="py-2 text-right">{text.action}</th>
                 </tr></thead>
-                <tbody>{activeHoldings.funds.map((item) => (
+                <tbody>{activeFundHoldings.map((item) => (
                   <tr key={item.id} className="border-b border-white/5">
-                    <td className="py-3 pr-3 font-mono text-foreground">{item.code || '--'}</td><td className="py-3 pr-3 text-foreground">{item.name}</td><td className="py-3 pr-3 text-right">{formatMoney(item.amount)}</td><td className={`py-3 pr-3 text-right ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatMoney(item.profit)}</td><td className="py-3 pr-3 text-right">{item.targetAllocation == null ? '--' : `${item.targetAllocation.toFixed(1)}%`}</td><td className="py-3 text-right"><button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => removeFundHolding(activeUserId, item.id)}><Trash2 className="h-3.5 w-3.5" />{text.remove}</button></td>
+                    <td className="py-3 pr-3 font-mono text-foreground">{item.code || '--'}</td><td className="py-3 pr-3 text-foreground">{item.name}</td><td className="py-3 pr-3 text-right">{formatMoney(item.amount)}</td><td className={`py-3 pr-3 text-right ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatMoney(item.profit)}</td><td className="py-3 pr-3 text-right">{item.targetAllocation == null ? '--' : `${item.targetAllocation.toFixed(1)}%`}</td><td className="py-3 text-right"><button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => removeFundHolding(item.id)}><Trash2 className="h-3.5 w-3.5" />{text.remove}</button></td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -392,7 +389,7 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 
           </button>
         </div>
 
-        {activeHoldings.stocks.length > 0 ? (
+        {activeStockHoldings.length > 0 ? (
           <Card padding="md">
             <h3 className="mb-3 font-semibold text-foreground">{text.quickStockTitle}</h3>
             <div className="overflow-x-auto">
@@ -400,9 +397,9 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 
                 <thead className="border-b border-white/10 text-xs text-secondary"><tr>
                   <th className="py-2 pr-3 text-left">{text.accountColumn}</th><th className="py-2 pr-3 text-left">{text.code}</th><th className="py-2 pr-3 text-left">{text.name}</th><th className="py-2 pr-3 text-right">{text.quantity}</th><th className="py-2 pr-3 text-right">{text.avgCost}</th><th className="py-2 pr-3 text-right">{text.entryCost}</th><th className="py-2 text-right">{text.action}</th>
                 </tr></thead>
-                <tbody>{activeHoldings.stocks.map((item) => (
+                <tbody>{activeStockHoldings.map((item) => (
                   <tr key={item.id} className="border-b border-white/5">
-                    <td className="py-3 pr-3 text-secondary">{item.securitiesAccount}</td><td className="py-3 pr-3 font-mono text-foreground">{item.code || '--'}</td><td className="py-3 pr-3 text-foreground">{item.name}</td><td className="py-3 pr-3 text-right">{item.quantity.toFixed(2)}</td><td className="py-3 pr-3 text-right">{item.averageCost.toFixed(4)}</td><td className="py-3 pr-3 text-right">{formatMoney(item.quantity * item.averageCost)}</td><td className="py-3 text-right"><button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => removeStockHolding(activeUserId, item.id)}><Trash2 className="h-3.5 w-3.5" />{text.remove}</button></td>
+                    <td className="py-3 pr-3 text-secondary">{item.securitiesAccount}</td><td className="py-3 pr-3 font-mono text-foreground">{item.code || '--'}</td><td className="py-3 pr-3 text-foreground">{item.name}</td><td className="py-3 pr-3 text-right">{item.quantity.toFixed(2)}</td><td className="py-3 pr-3 text-right">{item.averageCost.toFixed(4)}</td><td className="py-3 pr-3 text-right">{formatMoney(item.quantity * item.averageCost)}</td><td className="py-3 text-right"><button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => removeStockHolding(item.id)}><Trash2 className="h-3.5 w-3.5" />{text.remove}</button></td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -435,7 +432,7 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 
 
         <Card padding="md">
           {stockRows.length === 0 ? (
-            activeHoldings.stocks.length === 0 ? <EmptyState title={text.noStockTitle} description={text.noStockDescription} className="border-none bg-transparent px-4 py-8 shadow-none" /> : <InlineAlert variant="info" message="快速录入股票已显示在上方；接入行情后再计算当前价格、市值和收益。" />
+            activeStockHoldings.length === 0 ? <EmptyState title={text.noStockTitle} description={text.noStockDescription} className="border-none bg-transparent px-4 py-8 shadow-none" /> : <InlineAlert variant="info" message="快速录入股票已显示在上方；接入行情后再计算当前价格、市值和收益。" />
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-[860px] w-full text-sm">
@@ -476,7 +473,7 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 
       <QuickHoldingEntryDrawer
         isOpen={entryOpen}
         initialMode={entryMode}
-        fixedAssetType={domain === 'all' ? undefined : domain}
+        fixedAssetType={domain}
         onClose={() => setEntryOpen(false)}
       />
     </div>
