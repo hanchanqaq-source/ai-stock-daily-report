@@ -707,6 +707,10 @@ function buildBackendEnvironment({ envFile, dbPath, logDir, port = null, sourceE
     FEISHU_STREAM_ENABLED: 'false',
   };
 
+  // The packaged backend is application runtime, even when its desktop smoke test runs in Actions.
+  // main.py intentionally suppresses Web serving when GITHUB_ACTIONS=true.
+  delete env.GITHUB_ACTIONS;
+
   if (Number.isInteger(selectedPort) && selectedPort >= 1 && selectedPort <= 65535) {
     env.WEBUI_PORT = String(selectedPort);
   }
