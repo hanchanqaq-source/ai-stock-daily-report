@@ -21,6 +21,8 @@ $smokeRoot = Join-Path ([System.IO.Path]::GetTempPath()) "dsa-portable-smoke-$PI
 $appRoot = Join-Path $smokeRoot '股票基金质量分析系统'
 $exePath = Join-Path $appRoot '股票基金质量分析系统.exe'
 $logPath = Join-Path $appRoot 'logs\desktop.log'
+$diagnosticsDir = Join-Path $repoRoot 'dist\portable-diagnostics'
+$desktopDiagnosticsPath = Join-Path $diagnosticsDir 'desktop.log'
 $process = $null
 
 Write-Host "Portable smoke archive: $resolvedZip"
@@ -85,6 +87,27 @@ try {
 
   Write-Host 'Portable smoke passed: packaged backend, 127.0.0.1 binding, and main UI were observed.'
 } finally {
+  New-Item -ItemType Directory -Path $diagnosticsDir -Force | Out-Null
+  if (Test-Path $logPath) {
+    Copy-Item -Path $logPath -Destination $desktopDiagnosticsPath -Force
+    Write-Host '--- portable desktop log ---'
+    Get-Content -Path $logPath -Tail 200 -ErrorAction SilentlyContinue
+  } else {
+    Write-Host "Portable desktop log was not created: $logPath"
+  }
+
+  if ($process) {
+    try {
+      $process.Refresh()
+      Write-Host "Portable process state: exited=$($process.HasExited)"
+      if ($process.HasExited) {
+        Write-Host "Portable process exit code: $($process.ExitCode)"
+      }
+    } catch {
+      Write-Host "Portable process state could not be read: $($_.Exception.Message)"
+    }
+  }
+
   if ($process -and -not $process.HasExited) {
     & taskkill.exe /PID $process.Id /T /F *> $null
   }
