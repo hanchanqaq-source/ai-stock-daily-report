@@ -86,6 +86,7 @@
 | [股票基金双中心 Build D1：AKShare 基金公开数据只读接入](stock_fund_dual_center_build_d1.md) | 基金首页本机手动只读查询、基金概况/正式净值/披露持仓到 Build C 契约的映射、逐次确认、localhost 门禁、离线测试与 Build D2/D3 边界 |
 | [股票基金双中心 Build D2：基金对比与披露行业穿透](stock_fund_dual_center_build_d2.md) | 1–4 只基金手动只读比较、基金披露行业配置、集中度、前十大持仓重合下限、日期警告、安全门禁与 Build D3/D4 边界 |
 | [股票基金双中心 Build D3：行业周期与经营生产力代理证据](stock_fund_dual_center_build_d3.md) | 1–4 只基金手动只读周期证据、固定阈值阶段、经营生产力代理、证据日期/置信度/缺失项、安全门禁与 Build D4 边界 |
+| [股票基金双中心 Build D4：组合风险与配置建议](stock_fund_dual_center_build_d4.md) | 当前用户基金组合集中度、重合、周期风险、目标偏离、证据覆盖与人工复核建议 |
 
 ## 多语言
 

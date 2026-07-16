@@ -74,4 +74,28 @@ describe('fundDataApi', () => {
       allowPersistence: false,
     });
   });
+
+  it('sends the active in-memory holdings through the fixed local D4 contract', async () => {
+    apiClientMock.post.mockResolvedValue({
+      data: { status: 'completed-readonly', providerLabel: 'AKShare 公开基金数据', readOnly: true },
+    });
+
+    await fundDataApi.fetchAkshareFundPortfolioAdvice([
+      { code: '000001', name: '基金A', amount: 1000, profit: 20 },
+    ]);
+
+    expect(apiClientMock.post).toHaveBeenCalledWith('/api/v1/provider-readonly/akshare/funds/portfolio-advice', {
+      mode: 'fund-portfolio-advice-readonly',
+      provider: 'akshare_fund_public',
+      holdings: [{ code: '000001', name: '基金A', amount: 1000, profit: 20, targetAllocation: null }],
+      sections: ['portfolio-concentration', 'overlap', 'industry-cycle', 'target-drift'],
+      humanApproved: true,
+      readOnly: true,
+      allowAccountRead: false,
+      allowTrading: false,
+      allowNotificationSend: false,
+      allowAiCall: false,
+      allowPersistence: false,
+    });
+  });
 });

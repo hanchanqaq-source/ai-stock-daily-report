@@ -6,6 +6,7 @@ import { fundDataApi, type FundPublicReadonlyResponse } from '../api/fundData';
 import { Card, EmptyState, InlineAlert } from '../components/common';
 import FundComparisonPanel from '../components/funds/FundComparisonPanel';
 import FundIndustryCyclePanel from '../components/funds/FundIndustryCyclePanel';
+import FundPortfolioAdvicePanel from '../components/funds/FundPortfolioAdvicePanel';
 import { usePortfolioUsers } from '../contexts/PortfolioUserContext';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 
@@ -43,11 +44,12 @@ const HOME_LINKS = [
 const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
   const navigate = useNavigate();
   const { language } = useUiLanguage();
-  const { activeUser } = usePortfolioUsers();
+  const { activeUser, activeFundHoldings } = usePortfolioUsers();
   const [title, description] = SECTION_META[language][section];
   const isHome = section === 'home';
   const isD2Page = section === 'compare' || section === 'industry-exposure';
   const isD3Page = section === 'industry-cycle';
+  const isD4Page = section === 'advice';
   const [fundCode, setFundCode] = useState('');
   const [readOnlyApproved, setReadOnlyApproved] = useState(false);
   const [lookupResult, setLookupResult] = useState<FundPublicReadonlyResponse | null>(null);
@@ -86,15 +88,19 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
       <InlineAlert
         variant="info"
         title={language === 'zh'
-          ? (isD3Page ? 'Build D3 已接入行业周期与经营生产力代理证据' : isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
-          : (isD3Page ? 'Build D3 industry-cycle and operating-productivity proxy evidence is connected' : isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
+          ? (isD4Page ? 'Build D4 已接入当前用户基金组合风险与配置复核建议' : isD3Page ? 'Build D3 已接入行业周期与经营生产力代理证据' : isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
+          : (isD4Page ? 'Build D4 active-user fund portfolio risk and allocation review is connected' : isD3Page ? 'Build D3 industry-cycle and operating-productivity proxy evidence is connected' : isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
         message={language === 'zh'
-          ? (isD3Page
+          ? (isD4Page
+              ? '使用当前页面内存基金持仓计算集中度、目标偏离和公开证据覆盖；建议只供人工复核，不读取真实账户、不自动执行。'
+              : isD3Page
               ? '周期只使用行业行情、成交额、市场广度和相对强弱；生产力只使用公开业绩报表代理，证据不足时不生成阶段，不输出配置或买卖建议。'
               : isD2Page
               ? '输入基金代码并逐次确认后，读取公开资料、净值、前十大持仓和基金披露行业配置；不推测未知行业，不生成周期或配置建议。'
               : 'Build D1 仅在您输入六位基金代码并逐次确认后读取公开资料、正式净值和披露持仓；不读取账户，不调用 AI，不通知、不交易、不持久化。')
-          : (isD3Page
+          : (isD4Page
+              ? 'Uses current in-memory fund holdings for concentration, target drift, and public-evidence coverage. Guidance is review-only, with no account access or automatic execution.'
+              : isD3Page
               ? 'Cycle stages use only industry prices, turnover, breadth, and relative strength. Productivity uses public financial-report proxies only. Missing evidence never becomes a stage or allocation/trading advice.'
               : isD2Page
               ? 'After manual approval, read public profiles, NAV, top holdings, and disclosed fund industry allocation. Unknown industries are not inferred, and no cycle or allocation advice is generated.'
@@ -219,12 +225,14 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
         <FundComparisonPanel mode={section === 'compare' ? 'compare' : 'industry-exposure'} language={language} />
       ) : isD3Page ? (
         <FundIndustryCyclePanel language={language} />
+      ) : isD4Page ? (
+        <FundPortfolioAdvicePanel language={language} activeUserName={activeUser.name} holdings={activeFundHoldings} />
       ) : (
         <Card padding="lg">
           <EmptyState
             icon={<BookOpenCheck className="h-7 w-7" />}
             title={language === 'zh' ? '基金事实、对比、行业穿透和周期证据已接入' : 'Fund facts, comparison, exposure, and cycle evidence are ready'}
-            description={language === 'zh' ? 'Build D3 已把短期行业周期与长期经营生产力代理分开；当前用户组合风险和配置建议仍等待 Build D4。' : 'Build D3 separates short industry cycles from longer-horizon operating-productivity proxies. Active-user portfolio risk and allocation advice remain in Build D4.'}
+            description={language === 'zh' ? '当前页面没有对应的自动分析；请返回基金首页选择明确功能。' : 'No automatic analysis exists for this page. Return to Fund home and select an explicit function.'}
           />
         </Card>
       )}

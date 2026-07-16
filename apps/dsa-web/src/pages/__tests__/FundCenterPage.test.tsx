@@ -10,6 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   fetchAksharePublicFund: vi.fn(),
   compareAksharePublicFunds: vi.fn(),
   fetchAkshareFundIndustryCycle: vi.fn(),
+  fetchAkshareFundPortfolioAdvice: vi.fn(),
 }));
 
 vi.mock('../../api/fundData', () => ({
@@ -17,10 +18,11 @@ vi.mock('../../api/fundData', () => ({
     fetchAksharePublicFund: apiMocks.fetchAksharePublicFund,
     compareAksharePublicFunds: apiMocks.compareAksharePublicFunds,
     fetchAkshareFundIndustryCycle: apiMocks.fetchAkshareFundIndustryCycle,
+    fetchAkshareFundPortfolioAdvice: apiMocks.fetchAkshareFundPortfolioAdvice,
   },
 }));
 
-function renderPage(section: 'home' | 'ask' | 'compare' | 'industry-exposure' | 'industry-cycle') {
+function renderPage(section: 'home' | 'ask' | 'compare' | 'industry-exposure' | 'industry-cycle' | 'advice') {
   render(
     <UiLanguageProvider>
       <PortfolioUserProvider>
@@ -37,6 +39,7 @@ describe('FundCenterPage', () => {
     apiMocks.fetchAksharePublicFund.mockReset();
     apiMocks.compareAksharePublicFunds.mockReset();
     apiMocks.fetchAkshareFundIndustryCycle.mockReset();
+    apiMocks.fetchAkshareFundPortfolioAdvice.mockReset();
   });
 
   it('shows fund-only tasks and the real-data boundary on the fund home', () => {
@@ -85,7 +88,16 @@ describe('FundCenterPage', () => {
 
     expect(screen.getByRole('heading', { name: '问基金' })).toBeInTheDocument();
     expect(screen.getByText(/输入六位基金代码并逐次确认后读取公开资料/)).toBeInTheDocument();
-    expect(screen.getByText(/当前用户组合风险和配置建议仍等待 Build D4/)).toBeInTheDocument();
+    expect(screen.getByText(/当前页面没有对应的自动分析/)).toBeInTheDocument();
+  });
+
+  it('shows D4 advice for the active user without reading automatically', () => {
+    renderPage('advice');
+
+    expect(screen.getByText('Build D4 已接入当前用户基金组合风险与配置复核建议')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '本人的基金组合' })).toBeInTheDocument();
+    expect(screen.getByText(/请先到“基金持仓”录入/)).toBeInTheDocument();
+    expect(apiMocks.fetchAkshareFundPortfolioAdvice).not.toHaveBeenCalled();
   });
 
   it('requires two unique codes and per-request approval on the comparison page', async () => {
