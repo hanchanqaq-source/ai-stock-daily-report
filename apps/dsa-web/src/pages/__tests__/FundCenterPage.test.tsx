@@ -6,13 +6,19 @@ import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
 import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
 import FundCenterPage from '../FundCenterPage';
 
-const apiMocks = vi.hoisted(() => ({ fetchAksharePublicFund: vi.fn() }));
-
-vi.mock('../../api/fundData', () => ({
-  fundDataApi: { fetchAksharePublicFund: apiMocks.fetchAksharePublicFund },
+const apiMocks = vi.hoisted(() => ({
+  fetchAksharePublicFund: vi.fn(),
+  compareAksharePublicFunds: vi.fn(),
 }));
 
-function renderPage(section: 'home' | 'ask' | 'industry-cycle') {
+vi.mock('../../api/fundData', () => ({
+  fundDataApi: {
+    fetchAksharePublicFund: apiMocks.fetchAksharePublicFund,
+    compareAksharePublicFunds: apiMocks.compareAksharePublicFunds,
+  },
+}));
+
+function renderPage(section: 'home' | 'ask' | 'compare' | 'industry-exposure' | 'industry-cycle') {
   render(
     <UiLanguageProvider>
       <PortfolioUserProvider>
@@ -27,6 +33,7 @@ describe('FundCenterPage', () => {
     localStorage.clear();
     localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'zh');
     apiMocks.fetchAksharePublicFund.mockReset();
+    apiMocks.compareAksharePublicFunds.mockReset();
   });
 
   it('shows fund-only tasks and the real-data boundary on the fund home', () => {
@@ -67,7 +74,7 @@ describe('FundCenterPage', () => {
 
     await waitFor(() => expect(apiMocks.fetchAksharePublicFund).toHaveBeenCalledWith('000001'));
     expect(await screen.findByTestId('fund-public-readonly-result')).toHaveTextContent('公开基金');
-    expect(screen.getByText('待 D2 映射')).toBeInTheDocument();
+    expect(screen.getByText('见行业穿透页')).toBeInTheDocument();
   });
 
   it('keeps fund questions separate from the stock chat implementation', () => {
@@ -75,7 +82,44 @@ describe('FundCenterPage', () => {
 
     expect(screen.getByRole('heading', { name: '问基金' })).toBeInTheDocument();
     expect(screen.getByText(/输入六位基金代码并逐次确认后读取公开资料/)).toBeInTheDocument();
-    expect(screen.getByText(/本页仍不生成虚假基金对比/)).toBeInTheDocument();
+    expect(screen.getByText(/这些能力分别等待 Build D3\/D4/)).toBeInTheDocument();
+  });
+
+  it('requires two unique codes and per-request approval on the comparison page', async () => {
+    apiMocks.compareAksharePublicFunds.mockResolvedValue({
+      status: 'completed-readonly',
+      providerLabel: 'AKShare 公开基金数据',
+      readOnly: true,
+      comparison: {
+        requested_codes: ['000001', '110022'],
+        data_status: 'partial',
+        source: { provider: 'akshare_fund_public', source_kind: 'provider', source_status: 'partial', fetched_at: '2026-07-16T10:00:00+00:00', effective_at: null, report_period: null, stale: false, stale_reason: '', confidence: '0.85', missing_fields: [], missing_reasons: {} },
+        funds: [], pair_overlaps: [], missing_funds: [], reason: '测试为部分数据',
+      },
+    });
+    renderPage('compare');
+
+    expect(apiMocks.compareAksharePublicFunds).not.toHaveBeenCalled();
+    const button = screen.getByRole('button', { name: '读取并计算' });
+    fireEvent.change(screen.getByLabelText('基金代码'), { target: { value: '000001' } });
+    fireEvent.click(screen.getByLabelText(/我确认本次只读取公开基金披露/));
+    expect(button).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('基金代码'), { target: { value: '000001, 110022' } });
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+
+    await waitFor(() => expect(apiMocks.compareAksharePublicFunds).toHaveBeenCalledWith(['000001', '110022']));
+    expect(await screen.findByTestId('fund-comparison-result')).toHaveTextContent('测试为部分数据');
+  });
+
+  it('allows a single code on the industry exposure page without calling automatically', () => {
+    renderPage('industry-exposure');
+
+    fireEvent.change(screen.getByLabelText('基金代码'), { target: { value: '000001' } });
+    fireEvent.click(screen.getByLabelText(/我确认本次只读取公开基金披露/));
+    expect(screen.getByRole('button', { name: '读取并计算' })).toBeEnabled();
+    expect(apiMocks.compareAksharePublicFunds).not.toHaveBeenCalled();
+    expect(screen.getByText(/结果不是行业周期、生产力或买卖建议/)).toBeInTheDocument();
   });
 
   it('describes the required evidence boundary for industry cycles', () => {

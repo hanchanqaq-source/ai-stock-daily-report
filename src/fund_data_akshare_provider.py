@@ -348,7 +348,7 @@ class AkshareFundDataProvider:
             if parsed_weight < 0 or parsed_weight > 100:
                 continue
             seen.add(security_code)
-            industry_reason = "Build D2 尚未执行证券到行业的可核验映射。"
+            industry_reason = "Build D2 使用基金披露行业配置；不把单只证券名称强行推测为行业。"
             industry = FundIndustryMapping(
                 status="unknown",
                 industry_code=None,

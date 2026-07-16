@@ -6,6 +6,7 @@ from pydantic import BaseModel, Extra
 
 from src.public_market_readonly import run_public_market_readonly_with_timeout, REDACTED_PROVIDER_LABEL
 from src.fund_data_akshare_provider import run_akshare_fund_readonly_with_timeout
+from src.fund_comparison import run_akshare_fund_comparison_with_timeout
 
 router = APIRouter()
 
@@ -38,6 +39,20 @@ class FundPublicReadonlyRequestModel(BaseModel, extra=Extra.forbid):
     allowPersistence: bool
 
 
+class FundComparisonReadonlyRequestModel(BaseModel, extra=Extra.forbid):
+    mode: str
+    provider: str
+    codes: List[str]
+    sections: List[str]
+    humanApproved: bool
+    readOnly: bool
+    allowAccountRead: bool
+    allowTrading: bool
+    allowNotificationSend: bool
+    allowAiCall: bool
+    allowPersistence: bool
+
+
 def _is_local(request: Request) -> bool:
     host = request.client.host if request.client else ""
     return host in {"127.0.0.1", "::1", "testclient"}
@@ -59,3 +74,18 @@ async def akshare_fund_public_readonly(payload: FundPublicReadonlyRequestModel, 
             "readOnly": True,
         }
     return await run_akshare_fund_readonly_with_timeout(payload.dict())
+
+
+@router.post("/akshare/funds/compare")
+async def akshare_fund_comparison_readonly(
+    payload: FundComparisonReadonlyRequestModel,
+    request: Request,
+) -> Dict[str, Any]:
+    if not _is_local(request):
+        return {
+            "status": "blocked",
+            "errorCode": "fund-comparison.localhost-only",
+            "providerLabel": "AKShare 公开基金数据",
+            "readOnly": True,
+        }
+    return await run_akshare_fund_comparison_with_timeout(payload.dict())

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fundDataApi, type FundPublicReadonlyResponse } from '../api/fundData';
 import { Card, EmptyState, InlineAlert } from '../components/common';
+import FundComparisonPanel from '../components/funds/FundComparisonPanel';
 import { usePortfolioUsers } from '../contexts/PortfolioUserContext';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 
@@ -44,6 +45,7 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
   const { activeUser } = usePortfolioUsers();
   const [title, description] = SECTION_META[language][section];
   const isHome = section === 'home';
+  const isD2Page = section === 'compare' || section === 'industry-exposure';
   const [fundCode, setFundCode] = useState('');
   const [readOnlyApproved, setReadOnlyApproved] = useState(false);
   const [lookupResult, setLookupResult] = useState<FundPublicReadonlyResponse | null>(null);
@@ -81,10 +83,16 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
 
       <InlineAlert
         variant="info"
-        title={language === 'zh' ? 'AKShare 基金公开数据支持本机手动只读查询' : 'AKShare public fund data supports manual local read-only lookup'}
+        title={language === 'zh'
+          ? (isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
+          : (isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
         message={language === 'zh'
-          ? 'Build D1 仅在您输入六位基金代码并逐次确认后读取公开资料、正式净值和披露持仓；不读取账户，不调用 AI，不通知、不交易、不持久化。'
-          : 'Build D1 reads public profile, official NAV, and disclosed holdings only after you enter a six-digit fund code and approve each request. It does not read accounts, call AI, notify, trade, or persist data.'}
+          ? (isD2Page
+              ? '输入基金代码并逐次确认后，读取公开资料、净值、前十大持仓和基金披露行业配置；不推测未知行业，不生成周期或配置建议。'
+              : 'Build D1 仅在您输入六位基金代码并逐次确认后读取公开资料、正式净值和披露持仓；不读取账户，不调用 AI，不通知、不交易、不持久化。')
+          : (isD2Page
+              ? 'After manual approval, read public profiles, NAV, top holdings, and disclosed fund industry allocation. Unknown industries are not inferred, and no cycle or allocation advice is generated.'
+              : 'Build D1 reads public profile, official NAV, and disclosed holdings only after you enter a six-digit fund code and approve each request. It does not read accounts, call AI, notify, trade, or persist data.')}
       />
 
       <Card padding="md">
@@ -107,7 +115,7 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
           <Card padding="md">
             <h2 className="font-semibold text-foreground">{language === 'zh' ? '读取公开基金数据' : 'Read public fund data'}</h2>
             <p className="mt-2 text-sm leading-6 text-secondary-text">
-              {language === 'zh' ? '数据来自 AKShare 公共接口，仅保存在当前页面内存中。行业映射等待 Build D2，未知行业不会被强行归类。' : 'Data comes from public AKShare interfaces and remains in page memory only. Industry mapping follows in Build D2; unknown industries are never forced into a category.'}
+              {language === 'zh' ? '数据来自 AKShare 公共接口，仅保存在当前页面内存中。基金披露行业配置已在“行业持仓穿透”页面接入；单只证券行业仍不强行推测。' : 'Data comes from public AKShare interfaces and remains in page memory only. Fund-level disclosed industry allocation is available on Industry exposure; individual security industries are not inferred.'}
             </p>
             <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
               <label className="flex-1 text-sm text-secondary-text">
@@ -177,7 +185,7 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
                               <td className="py-2 text-foreground">{position.security_code}</td>
                               <td className="text-foreground">{position.security_name}</td>
                               <td className="text-foreground">{position.weight_pct}%</td>
-                              <td className="text-secondary-text">{position.industry.industry_name ?? (language === 'zh' ? '待 D2 映射' : 'Pending D2')}</td>
+                              <td className="text-secondary-text">{position.industry.industry_name ?? (language === 'zh' ? '见行业穿透页' : 'See industry exposure')}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -201,12 +209,14 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
             })}
           </section>
         </>
+      ) : isD2Page ? (
+        <FundComparisonPanel mode={section === 'compare' ? 'compare' : 'industry-exposure'} language={language} />
       ) : (
         <Card padding="lg">
           <EmptyState
             icon={<BookOpenCheck className="h-7 w-7" />}
-            title={language === 'zh' ? '公开数据入口已建立，分析能力按 Build D 分阶段接入' : 'Public data lookup is ready; analysis follows through Build D'}
-            description={language === 'zh' ? 'Build D1 只在基金首页手动读取公开资料、净值和披露持仓；本页仍不生成虚假基金对比、行业周期或买卖建议。' : 'Build D1 reads public profile, NAV, and disclosed holdings manually on the fund home only. This page still does not fabricate comparisons, cycles, or trading suggestions.'}
+            title={language === 'zh' ? '基金对比与行业穿透已接入，其他能力继续分阶段建设' : 'Fund comparison and industry exposure are ready; other capabilities remain staged'}
+            description={language === 'zh' ? 'Build D2 不把对比结果误当成行业周期、生产力证据或配置建议；这些能力分别等待 Build D3/D4。' : 'Build D2 does not present comparison results as cycle, productivity, or allocation advice. Those capabilities remain in Build D3/D4.'}
           />
         </Card>
       )}
