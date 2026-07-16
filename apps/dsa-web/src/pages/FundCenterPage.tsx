@@ -55,12 +55,27 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
       </section>
 
       <InlineAlert
-        variant="warning"
-        title={language === 'zh' ? '真实基金数据尚未接入' : 'Real fund data is not connected'}
+        variant="info"
+        title={language === 'zh' ? '基金数据契约已建立，真实数据尚未接入' : 'Fund data contracts are ready; real data is not connected'}
         message={language === 'zh'
-          ? 'Build A 只建立独立基金工作区和边界。本页不会请求真实净值、持仓或 Provider，也不会生成虚假周期和买卖结论。'
-          : 'Build A establishes the separate fund workspace and boundaries only. It does not request real NAV, holdings, or providers, and does not fabricate cycles or trading conclusions.'}
+          ? 'Build C 已定义基金资料、净值、披露持仓、行业映射及来源元数据。正式运行只返回“未接入/缺失”状态，不使用测试 fixture，不发起真实 Provider 请求。'
+          : 'Build C defines fund profiles, NAV, disclosed holdings, industry mapping, and provenance. Production returns an explicit not-connected/missing state, does not use test fixtures, and makes no real provider request.'}
       />
+
+      <Card padding="md">
+        <h2 className="font-semibold text-foreground">{language === 'zh' ? 'Build C 基金数据契约' : 'Build C fund data contract'}</h2>
+        <p className="mt-2 text-sm leading-6 text-secondary-text">
+          {language === 'zh'
+            ? '未来每条基金事实必须携带来源、抓取时间、生效日或报告期、过期状态、置信度以及字段级缺失原因；未知行业保持未知。'
+            : 'Every future fund fact must carry its source, fetch time, effective date or report period, stale state, confidence, and field-level missing reasons. Unknown industries remain unknown.'}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-secondary-text">
+          {(language === 'zh'
+            ? ['基金资料', '净值快照', '披露持仓', '行业映射']
+            : ['Fund profile', 'NAV snapshot', 'Disclosed holdings', 'Industry mapping']
+          ).map((item) => <span key={item} className="rounded-full border border-border px-3 py-1">{item}</span>)}
+        </div>
+      </Card>
 
       {isHome ? (
         <>
@@ -81,8 +96,8 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
         <Card padding="lg">
           <EmptyState
             icon={<BookOpenCheck className="h-7 w-7" />}
-            title={language === 'zh' ? '功能入口已分开，数据能力等待后续阶段' : 'The workspace is separated; data capabilities follow later'}
-            description={language === 'zh' ? 'Build C 接入基金数据契约，Build D 接入基金对比、行业周期和建议。当前只显示安全空状态。' : 'Build C adds fund data contracts and Build D adds comparisons, cycles, and advice. This page currently shows a safe empty state.'}
+            title={language === 'zh' ? '数据契约已准备，分析能力等待 Build D' : 'Data contracts are ready; analysis follows in Build D'}
+            description={language === 'zh' ? '当前只显示可审计的缺失状态，不生成虚假基金对比、行业周期或买卖建议。' : 'The page currently shows an auditable missing state and does not fabricate fund comparisons, industry cycles, or trading suggestions.'}
           />
         </Card>
       )}
