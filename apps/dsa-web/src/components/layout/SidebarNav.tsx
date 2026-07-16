@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, BarChart3, Bell, BriefcaseBusiness, Gauge, Home, LogOut, MessageSquareQuote, Search, Settings2, UsersRound } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { Activity, BarChart3, Bell, BriefcaseBusiness, Gauge, GitCompareArrows, Home, Layers3, LogOut, MessageSquareQuote, Search, Settings2, ShieldAlert, TrendingUp, UsersRound } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAgentChatStore } from '../../stores/agentChatStore';
@@ -11,6 +11,8 @@ import { ConfirmDialog } from '../common/ConfirmDialog';
 import { StatusDot } from '../common/StatusDot';
 import { UiLanguageToggle } from '../i18n/UiLanguageToggle';
 import { ThemeToggle } from '../theme/ThemeToggle';
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
+import { centerFromPath, readRememberedCenter } from '../../utils/workspaceCenter';
 
 type SidebarNavProps = {
   collapsed?: boolean;
@@ -28,21 +30,35 @@ type NavItem = {
   badge?: 'completion';
 };
 
-const NAV_ITEMS: NavItem[] = [
-  { key: 'home', labelKey: 'layout.nav.home', to: '/', icon: Home, exact: true },
-  { key: 'chat', labelKey: 'layout.nav.chat', to: '/chat', icon: MessageSquareQuote, badge: 'completion' },
-  { key: 'screening', labelKey: 'layout.nav.screening', to: '/screening', icon: Search },
-  { key: 'portfolio', labelKey: 'layout.nav.portfolio', to: '/portfolio', icon: BriefcaseBusiness },
-  { key: 'decision-signals', labelKey: 'layout.nav.decisionSignals', to: '/decision-signals', icon: Activity },
-  { key: 'backtest', labelKey: 'layout.nav.backtest', to: '/backtest', icon: BarChart3 },
+const STOCK_NAV_ITEMS: NavItem[] = [
+  { key: 'stock-home', label: { zh: '股票首页', en: 'Stock home' }, to: '/stocks', icon: Home, exact: true },
+  { key: 'stock-chat', label: { zh: '问股票', en: 'Ask stocks' }, to: '/stocks/ask', icon: MessageSquareQuote, badge: 'completion' },
+  { key: 'screening', label: { zh: '选股策略', en: 'Screening' }, to: '/stocks/screening', icon: Search },
+  { key: 'stock-portfolio', label: { zh: '股票持仓', en: 'Stock holdings' }, to: '/stocks/portfolio', icon: BriefcaseBusiness },
+  { key: 'stock-advice', label: { zh: '股票建议', en: 'Stock advice' }, to: '/stocks/advice', icon: Activity },
+  { key: 'stock-backtest', label: { zh: '股票回测', en: 'Stock backtest' }, to: '/stocks/backtest', icon: BarChart3 },
+  { key: 'stock-alerts', label: { zh: '股票告警', en: 'Stock alerts' }, to: '/stocks/alerts', icon: Bell },
+];
+
+const FUND_NAV_ITEMS: NavItem[] = [
+  { key: 'fund-home', label: { zh: '基金首页', en: 'Fund home' }, to: '/funds', icon: Home, exact: true },
+  { key: 'fund-chat', label: { zh: '问基金', en: 'Ask funds' }, to: '/funds/ask', icon: MessageSquareQuote },
+  { key: 'fund-portfolio', label: { zh: '基金持仓', en: 'Fund holdings' }, to: '/funds/portfolio', icon: BriefcaseBusiness },
+  { key: 'fund-compare', label: { zh: '基金对比', en: 'Fund compare' }, to: '/funds/compare', icon: GitCompareArrows },
+  { key: 'fund-exposure', label: { zh: '行业穿透', en: 'Industry exposure' }, to: '/funds/industry-exposure', icon: Layers3 },
+  { key: 'fund-cycle', label: { zh: '行业周期', en: 'Industry cycle' }, to: '/funds/industry-cycle', icon: TrendingUp },
+  { key: 'fund-advice', label: { zh: '基金建议', en: 'Fund advice' }, to: '/funds/advice', icon: ShieldAlert },
+];
+
+const SHARED_NAV_ITEMS: NavItem[] = [
   { key: 'settings', labelKey: 'layout.nav.settings', to: '/settings', icon: Settings2 },
-  { key: 'alerts', labelKey: 'layout.nav.alerts', to: '/alerts', icon: Bell },
   { key: 'usage', labelKey: 'layout.nav.usage', to: '/usage', icon: Gauge },
-  { key: 'users', label: { zh: '用户', en: 'Users' }, to: '/users', icon: UsersRound },
+  { key: 'users', label: { zh: '用户管理', en: 'Users' }, to: '/users', icon: UsersRound },
 ];
 
 export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNavigate, variant = 'default' }) => {
   const { authEnabled, logout } = useAuth();
+  const location = useLocation();
   const { t, language } = useUiLanguage();
   const completionBadge = useAgentChatStore((state) => state.completionBadge);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -75,7 +91,10 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
     };
   }, []);
 
-  const navItems = showAlphaSiftNav ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.key !== 'screening');
+  const activeCenter = centerFromPath(location.pathname) ?? readRememberedCenter();
+  const centerItems = activeCenter === 'funds' ? FUND_NAV_ITEMS : STOCK_NAV_ITEMS;
+  const visibleCenterItems = showAlphaSiftNav ? centerItems : centerItems.filter((item) => item.key !== 'screening');
+  const navItems = [...visibleCenterItems, ...SHARED_NAV_ITEMS];
   const isRail = variant === 'rail';
   const itemBaseClass = cn(
     'group relative flex h-[var(--nav-item-height)] w-full items-center overflow-hidden rounded-2xl border border-transparent text-sm leading-none text-secondary-text transition-all',
@@ -114,6 +133,8 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
           <p className={cn('min-w-0 truncate font-semibold text-foreground', isRail ? 'text-[0.95rem] leading-none' : 'text-sm')}>DSA</p>
         ) : null}
       </div>
+
+      <WorkspaceSwitcher compact={collapsed} onNavigate={onNavigate} />
 
       <nav className={cn('flex flex-col gap-1.5', isRail ? '' : 'flex-1')} aria-label={t('layout.mainNav')}>
         {navItems.map(({ key, labelKey, label: literalLabel, to, icon: Icon, exact, badge }) => {

@@ -11,15 +11,17 @@ type AssetType = 'fund' | 'stock';
 type QuickHoldingEntryDrawerProps = {
   isOpen: boolean;
   initialMode: EntryMode;
+  fixedAssetType?: AssetType;
   onClose: () => void;
 };
 
 const inputClass = 'input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground';
 
-const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = ({ isOpen, initialMode, onClose }) => {
+const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = ({ isOpen, initialMode, fixedAssetType, onClose }) => {
   const { activeUser, activeUserId, addFundHolding, addStockHolding } = usePortfolioUsers();
   const [mode, setMode] = useState<EntryMode>(initialMode);
   const [assetType, setAssetType] = useState<AssetType>('fund');
+  const selectedAssetType = fixedAssetType ?? assetType;
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -57,7 +59,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
       return;
     }
 
-    if (assetType === 'fund') {
+    if (selectedAssetType === 'fund') {
       const numericAmount = Number(amount);
       if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
         setFeedback('请填写有效的基金持有金额。');
@@ -117,15 +119,19 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
 
         {mode === 'manual' ? (
           <form className="space-y-4" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" className={assetType === 'fund' ? 'btn-primary' : 'btn-secondary'} onClick={() => setAssetType('fund')}>基金</button>
-              <button type="button" className={assetType === 'stock' ? 'btn-primary' : 'btn-secondary'} onClick={() => setAssetType('stock')}>股票</button>
-            </div>
+            {fixedAssetType ? (
+              <InlineAlert variant="info" message={fixedAssetType === 'fund' ? '当前位于基金中心，本次只录入基金持仓。' : '当前位于股票中心，本次只录入股票持仓。'} />
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <button type="button" className={selectedAssetType === 'fund' ? 'btn-primary' : 'btn-secondary'} onClick={() => setAssetType('fund')}>基金</button>
+                <button type="button" className={selectedAssetType === 'stock' ? 'btn-primary' : 'btn-secondary'} onClick={() => setAssetType('stock')}>股票</button>
+              </div>
+            )}
             <div className="grid gap-3 sm:grid-cols-2">
-              <label className="space-y-1 text-xs text-secondary"><span>{assetType === 'fund' ? '基金代码' : '股票代码'}</span><input className={inputClass} value={code} onChange={(event) => setCode(event.target.value)} placeholder={assetType === 'fund' ? '如 017811' : '如 600519'} /></label>
+              <label className="space-y-1 text-xs text-secondary"><span>{selectedAssetType === 'fund' ? '基金代码' : '股票代码'}</span><input className={inputClass} value={code} onChange={(event) => setCode(event.target.value)} placeholder={selectedAssetType === 'fund' ? '如 017811' : '如 600519'} /></label>
               <label className="space-y-1 text-xs text-secondary"><span>名称</span><input className={inputClass} value={name} onChange={(event) => setName(event.target.value)} placeholder="代码和名称至少填一项" /></label>
             </div>
-            {assetType === 'fund' ? (
+            {selectedAssetType === 'fund' ? (
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="space-y-1 text-xs text-secondary"><span>持有金额</span><input className={inputClass} type="number" min="0" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} /></label>
                 <label className="space-y-1 text-xs text-secondary"><span>持有收益</span><input className={inputClass} type="number" step="0.01" value={profit} onChange={(event) => setProfit(event.target.value)} /></label>

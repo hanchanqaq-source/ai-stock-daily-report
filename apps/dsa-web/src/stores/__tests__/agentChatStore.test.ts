@@ -48,7 +48,7 @@ beforeEach(() => {
     sessions: [],
     sessionsLoading: false,
     chatError: null,
-    currentRoute: '/chat',
+    currentRoute: '/stocks/ask',
     completionBadge: false,
     hasInitialLoad: true,
     abortController: null,
@@ -86,6 +86,18 @@ describe('agentChatStore.startStream', () => {
     });
     expect(state.messages[1].thinkingSteps).toHaveLength(2);
     expect(state.progressSteps).toEqual([]);
+    expect(state.completionBadge).toBe(false);
+  });
+
+  it('raises the stock completion badge outside the stock ask route', async () => {
+    useAgentChatStore.setState({ currentRoute: '/funds/ask' });
+    vi.mocked(agentApi.chatStream).mockResolvedValue(
+      createStreamResponse(['data: {"type":"done","success":true,"content":"后台股票分析完成"}']),
+    );
+
+    await useAgentChatStore.getState().startStream({ message: '分析茅台', session_id: 'session-test' });
+
+    expect(useAgentChatStore.getState().completionBadge).toBe(true);
   });
 
   it('preserves multiple selected skills on streamed user and assistant messages', async () => {

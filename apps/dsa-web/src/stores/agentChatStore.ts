@@ -8,6 +8,7 @@ import {
   type ParsedApiError,
 } from '../api/error';
 import { generateUUID } from '../utils/uuid';
+import { isStockAskRoute } from '../utils/workspaceCenter';
 
 const STORAGE_KEY_SESSION = 'dsa_chat_session_id';
 
@@ -341,7 +342,7 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
         }));
       }
 
-      if (currentRoute !== '/chat') {
+      if (!isStockAskRoute(currentRoute)) {
         set({ completionBadge: true });
       }
     } catch (error: unknown) {
@@ -350,7 +351,7 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
       } else {
         set({ chatError: getParsedApiError(error) });
         const { currentRoute } = get();
-        if (currentRoute !== '/chat') {
+        if (!isStockAskRoute(currentRoute)) {
           set({ completionBadge: true });
         }
       }
