@@ -20,6 +20,7 @@ from src.fund_comparison import (
     AkshareFundComparisonConfig,
     AkshareFundComparisonService,
     FundComparisonItem,
+    FundComparisonResult,
     MAX_FUNDS,
 )
 from src.fund_data_akshare_provider import (
@@ -547,7 +548,12 @@ class AkshareFundIndustryCycleService:
             self.akshare_module = ak
         return self.akshare_module
 
-    def fetch(self, codes: tuple[str, ...]) -> FundIndustryCycleResult:
+    def fetch(
+        self,
+        codes: tuple[str, ...],
+        *,
+        comparison_result: FundComparisonResult | None = None,
+    ) -> FundIndustryCycleResult:
         fetched_at = _utc_now_iso()
         if not (self.config.network_enabled and self.config.human_approved):
             return FundIndustryCycleResult(
@@ -562,15 +568,17 @@ class AkshareFundIndustryCycleService:
                 warnings=("必须由用户在本机逐次确认后读取公开证据。",),
             )
         akshare_module = self._akshare()
-        comparison = AkshareFundComparisonService(
-            config=AkshareFundComparisonConfig(
-                network_enabled=True,
-                human_approved=True,
-                years=self.config.years or (self.now.year, self.now.year - 1),
-            ),
-            akshare_module=akshare_module,
-            now=self.now,
-        ).fetch(codes)
+        comparison = comparison_result
+        if comparison is None or comparison.requested_codes != codes:
+            comparison = AkshareFundComparisonService(
+                config=AkshareFundComparisonConfig(
+                    network_enabled=True,
+                    human_approved=True,
+                    years=self.config.years or (self.now.year, self.now.year - 1),
+                ),
+                akshare_module=akshare_module,
+                now=self.now,
+            ).fetch(codes)
         try:
             boards = _board_map(akshare_module)
         except Exception:

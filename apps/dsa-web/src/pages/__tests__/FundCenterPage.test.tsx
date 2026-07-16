@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PortfolioUserProvider } from '../../contexts/PortfolioUserContext';
+import { PortfolioUserProvider, usePortfolioUsers } from '../../contexts/PortfolioUserContext';
 import { UiLanguageProvider } from '../../contexts/UiLanguageContext';
 import { UI_LANGUAGE_STORAGE_KEY } from '../../utils/uiLanguage';
 import FundCenterPage from '../FundCenterPage';
@@ -10,6 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   fetchAksharePublicFund: vi.fn(),
   compareAksharePublicFunds: vi.fn(),
   fetchAkshareFundIndustryCycle: vi.fn(),
+  fetchAkshareFundPortfolioAdvice: vi.fn(),
 }));
 
 vi.mock('../../api/fundData', () => ({
@@ -17,14 +18,36 @@ vi.mock('../../api/fundData', () => ({
     fetchAksharePublicFund: apiMocks.fetchAksharePublicFund,
     compareAksharePublicFunds: apiMocks.compareAksharePublicFunds,
     fetchAkshareFundIndustryCycle: apiMocks.fetchAkshareFundIndustryCycle,
+    fetchAkshareFundPortfolioAdvice: apiMocks.fetchAkshareFundPortfolioAdvice,
   },
 }));
 
-function renderPage(section: 'home' | 'ask' | 'compare' | 'industry-exposure' | 'industry-cycle') {
+function renderPage(section: 'home' | 'ask' | 'compare' | 'industry-exposure' | 'industry-cycle' | 'advice') {
   render(
     <UiLanguageProvider>
       <PortfolioUserProvider>
         <MemoryRouter><FundCenterPage section={section} /></MemoryRouter>
+      </PortfolioUserProvider>
+    </UiLanguageProvider>,
+  );
+}
+
+function AdviceControls() {
+  const { addFundHolding, addUser } = usePortfolioUsers();
+  return (
+    <>
+      <button type="button" onClick={() => addFundHolding({ code: '000001', name: '公开基金', amount: 1000, profit: 0, targetAllocation: 100 })}>seed-fund</button>
+      <button type="button" onClick={() => addUser('家人')}>switch-user</button>
+    </>
+  );
+}
+
+function renderAdvicePage() {
+  render(
+    <UiLanguageProvider>
+      <PortfolioUserProvider>
+        <AdviceControls />
+        <MemoryRouter><FundCenterPage section="advice" /></MemoryRouter>
       </PortfolioUserProvider>
     </UiLanguageProvider>,
   );
@@ -37,6 +60,7 @@ describe('FundCenterPage', () => {
     apiMocks.fetchAksharePublicFund.mockReset();
     apiMocks.compareAksharePublicFunds.mockReset();
     apiMocks.fetchAkshareFundIndustryCycle.mockReset();
+    apiMocks.fetchAkshareFundPortfolioAdvice.mockReset();
   });
 
   it('shows fund-only tasks and the real-data boundary on the fund home', () => {
@@ -85,7 +109,7 @@ describe('FundCenterPage', () => {
 
     expect(screen.getByRole('heading', { name: '问基金' })).toBeInTheDocument();
     expect(screen.getByText(/输入六位基金代码并逐次确认后读取公开资料/)).toBeInTheDocument();
-    expect(screen.getByText(/当前用户组合风险和配置建议仍等待 Build D4/)).toBeInTheDocument();
+    expect(screen.getByText(/Build D4 已在“基金仓位与风险建议”页面接入/)).toBeInTheDocument();
   });
 
   it('requires two unique codes and per-request approval on the comparison page', async () => {
@@ -156,5 +180,44 @@ describe('FundCenterPage', () => {
     await waitFor(() => expect(apiMocks.fetchAkshareFundIndustryCycle).toHaveBeenCalledWith(['000001']));
     expect(await screen.findByTestId('fund-industry-cycle-result')).toHaveTextContent('扩张');
     expect(screen.getByRole('heading', { name: /经营生产力代理证据：改善/ })).toBeInTheDocument();
+  });
+
+  it('uses only the active user normalized fund weights and clears the result after switching users', async () => {
+    apiMocks.fetchAkshareFundPortfolioAdvice.mockResolvedValue({
+      status: 'completed-readonly', providerLabel: 'AKShare 公开基金数据', readOnly: true,
+      advice: {
+        requested_codes: ['000001'], data_status: 'partial', fetched_at: '2026-07-16T12:30:00+00:00', risk_profile: 'balanced',
+        positions: [{ code: '000001', weight_pct: '100', target_weight_pct: '100' }],
+        input_privacy: { amount_shared: false, cost_basis_shared: false, user_identity_shared: false, account_read: false },
+        concentration: { status: 'high', largest_fund_weight_pct: '100', top_two_weight_pct: '100', herfindahl_index: '1', effective_fund_count: '1', attention_thresholds: { single_fund_pct: '40', top_two_pct: '70', scope: 'monitoring-thresholds-not-prescribed-allocation' } },
+        disclosed_overlap: { status: 'not-applicable', max_disclosed_holdings_overlap_pct: null, max_disclosed_industry_overlap_pct: null, highest_pair: null, pair_count: 0, scope: 'latest-disclosed-data-lower-bound' },
+        industry_exposure: { status: 'watch', disclosed_portfolio_coverage_pct: '60', unclassified_or_undisclosed_pct: '40', top_industries: [{ industry_name: '软件开发', portfolio_exposure_pct: '30' }], top_three_exposure_pct: '30', report_dates: ['2026-06-30'], attention_threshold_pct: '25', scope: 'provider-disclosed-look-through-not-complete-current-portfolio' },
+        nav_risk: { status: 'normal', weighted_average_fund_volatility_60d_pct: '12', volatility_coverage_pct: '100', worst_fund_drawdown_120d_pct: '-8', funds: [{ code: '000001', data_status: 'available', as_of_date: '2026-07-15', observations: 90, return_20d_pct: '3', return_60d_pct: '8', annualized_volatility_60d_pct: '12', max_drawdown_120d_pct: '-8', missing_evidence: [] }], attention_thresholds: { annualized_volatility_pct: '25', drawdown_magnitude_pct: '15' }, scope: 'weighted-average-of-fund-volatility-not-covariance-portfolio-volatility' },
+        cycle_exposure: { status: 'watch', analyzed_portfolio_exposure_pct: '30', phase_exposure_pct: { expansion: '20', slowdown: '10' }, pressure_exposure_pct: '10', weakening_productivity_proxy_exposure_pct: '0', financial_report_period: '2026-Q2', scope: 'selected-disclosed-industry-evidence-not-market-timing-signal' },
+        allocation_guidance: [{ id: 'fund-concentration', priority: 'high', title: '基金集中度需要复核', reason: '超过关注阈值', evidence: ['状态 high'], action: '核对当前占比是否符合目标。' }],
+        missing_evidence: [], warnings: ['只用于人工复核。'], method: 'deterministic-current-user-fund-risk-and-allocation-review',
+      },
+    });
+    renderAdvicePage();
+
+    expect(screen.getByText('当前用户还没有可分析的基金持仓。')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'seed-fund' }));
+    expect(screen.getByText(/000001 · 100.00%/)).toBeInTheDocument();
+    const runButton = screen.getByRole('button', { name: '分析当前组合' });
+    expect(runButton).toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/我确认本次只发送基金代码/));
+    fireEvent.click(runButton);
+
+    await waitFor(() => expect(apiMocks.fetchAkshareFundPortfolioAdvice).toHaveBeenCalledWith(
+      [{ code: '000001', weightPct: 100, targetWeightPct: 100 }],
+      'balanced',
+    ));
+    expect(await screen.findByTestId('fund-portfolio-advice-result')).toHaveTextContent('基金集中度需要复核');
+    expect(screen.getByText(/金额\/成本\/用户身份未发送/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'switch-user' }));
+    await waitFor(() => expect(screen.queryByTestId('fund-portfolio-advice-result')).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', { name: '家人 的基金组合' })).toBeInTheDocument();
+    expect(screen.getByText('当前用户还没有可分析的基金持仓。')).toBeInTheDocument();
   });
 });

@@ -8,6 +8,7 @@ from src.public_market_readonly import run_public_market_readonly_with_timeout, 
 from src.fund_data_akshare_provider import run_akshare_fund_readonly_with_timeout
 from src.fund_comparison import run_akshare_fund_comparison_with_timeout
 from src.fund_industry_cycle import run_akshare_fund_industry_cycle_with_timeout
+from src.fund_portfolio_advice import run_akshare_fund_portfolio_advice_with_timeout
 
 router = APIRouter()
 
@@ -58,6 +59,27 @@ class FundIndustryCycleReadonlyRequestModel(BaseModel, extra=Extra.forbid):
     mode: str
     provider: str
     codes: List[str]
+    sections: List[str]
+    humanApproved: bool
+    readOnly: bool
+    allowAccountRead: bool
+    allowTrading: bool
+    allowNotificationSend: bool
+    allowAiCall: bool
+    allowPersistence: bool
+
+
+class FundPortfolioPositionModel(BaseModel, extra=Extra.forbid):
+    code: str
+    weightPct: float
+    targetWeightPct: float | None
+
+
+class FundPortfolioAdviceReadonlyRequestModel(BaseModel, extra=Extra.forbid):
+    mode: str
+    provider: str
+    positions: List[FundPortfolioPositionModel]
+    riskProfile: str
     sections: List[str]
     humanApproved: bool
     readOnly: bool
@@ -119,3 +141,18 @@ async def akshare_fund_industry_cycle_readonly(
             "readOnly": True,
         }
     return await run_akshare_fund_industry_cycle_with_timeout(payload.dict())
+
+
+@router.post("/akshare/funds/portfolio-advice")
+async def akshare_fund_portfolio_advice_readonly(
+    payload: FundPortfolioAdviceReadonlyRequestModel,
+    request: Request,
+) -> Dict[str, Any]:
+    if not _is_local(request):
+        return {
+            "status": "blocked",
+            "errorCode": "fund-portfolio-advice.localhost-only",
+            "providerLabel": "AKShare 公开基金数据",
+            "readOnly": True,
+        }
+    return await run_akshare_fund_portfolio_advice_with_timeout(payload.dict())

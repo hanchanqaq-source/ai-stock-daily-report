@@ -74,4 +74,37 @@ describe('fundDataApi', () => {
       allowPersistence: false,
     });
   });
+
+  it('sends only normalized weights and targets for the D4 current-user review', async () => {
+    apiClientMock.post.mockResolvedValue({
+      data: { status: 'unavailable', providerLabel: 'AKShare 公开基金数据', readOnly: true },
+    });
+
+    await fundDataApi.fetchAkshareFundPortfolioAdvice([
+      { code: '000001', weightPct: 60, targetWeightPct: 50 },
+      { code: '110022', weightPct: 40, targetWeightPct: 50 },
+    ], 'balanced');
+
+    expect(apiClientMock.post).toHaveBeenCalledWith('/api/v1/provider-readonly/akshare/funds/portfolio-advice', {
+      mode: 'fund-portfolio-advice-readonly',
+      provider: 'akshare_fund_public',
+      positions: [
+        { code: '000001', weightPct: 60, targetWeightPct: 50 },
+        { code: '110022', weightPct: 40, targetWeightPct: 50 },
+      ],
+      riskProfile: 'balanced',
+      sections: ['portfolio-allocation', 'nav-risk', 'disclosed-overlap', 'industry-cycle', 'allocation-guidance'],
+      humanApproved: true,
+      readOnly: true,
+      allowAccountRead: false,
+      allowTrading: false,
+      allowNotificationSend: false,
+      allowAiCall: false,
+      allowPersistence: false,
+    });
+    const body = apiClientMock.post.mock.calls[0][1];
+    expect(body).not.toHaveProperty('userId');
+    expect(body.positions[0]).not.toHaveProperty('amount');
+    expect(body.positions[0]).not.toHaveProperty('cost');
+  });
 });

@@ -213,6 +213,113 @@ export type FundIndustryCycleReadonlyResponse = {
   errorCode?: string;
 };
 
+export type FundRiskProfile = 'conservative' | 'balanced' | 'aggressive';
+export type FundRiskDimensionStatus = 'normal' | 'watch' | 'high' | 'insufficient' | 'not-applicable';
+
+export type FundPortfolioAdvicePosition = {
+  code: string;
+  weightPct: number;
+  targetWeightPct: number | null;
+};
+
+export type FundPortfolioAdviceResult = {
+  requested_codes: string[];
+  data_status: 'available' | 'partial' | 'missing';
+  fetched_at: string;
+  risk_profile: FundRiskProfile;
+  positions: Array<{
+    code: string;
+    weight_pct: string;
+    target_weight_pct: string | null;
+  }>;
+  input_privacy: {
+    amount_shared: false;
+    cost_basis_shared: false;
+    user_identity_shared: false;
+    account_read: false;
+  };
+  concentration: {
+    status: FundRiskDimensionStatus;
+    largest_fund_weight_pct: string;
+    top_two_weight_pct: string;
+    herfindahl_index: string;
+    effective_fund_count: string;
+    attention_thresholds: {
+      single_fund_pct: string;
+      top_two_pct: string;
+      scope: 'monitoring-thresholds-not-prescribed-allocation';
+    };
+  };
+  disclosed_overlap: {
+    status: FundRiskDimensionStatus;
+    max_disclosed_holdings_overlap_pct: string | null;
+    max_disclosed_industry_overlap_pct: string | null;
+    highest_pair: string | null;
+    pair_count: number;
+    scope: 'latest-disclosed-data-lower-bound';
+  };
+  industry_exposure: {
+    status: FundRiskDimensionStatus;
+    disclosed_portfolio_coverage_pct: string;
+    unclassified_or_undisclosed_pct: string;
+    top_industries: Array<{ industry_name: string; portfolio_exposure_pct: string }>;
+    top_three_exposure_pct: string;
+    report_dates: string[];
+    attention_threshold_pct: string;
+    scope: 'provider-disclosed-look-through-not-complete-current-portfolio';
+  };
+  nav_risk: {
+    status: FundRiskDimensionStatus;
+    weighted_average_fund_volatility_60d_pct: string | null;
+    volatility_coverage_pct: string;
+    worst_fund_drawdown_120d_pct: string | null;
+    funds: Array<{
+      code: string;
+      data_status: 'available' | 'partial' | 'missing';
+      as_of_date: string | null;
+      observations: number;
+      return_20d_pct: string | null;
+      return_60d_pct: string | null;
+      annualized_volatility_60d_pct: string | null;
+      max_drawdown_120d_pct: string | null;
+      missing_evidence: string[];
+    }>;
+    attention_thresholds: {
+      annualized_volatility_pct: string;
+      drawdown_magnitude_pct: string;
+    };
+    scope: 'weighted-average-of-fund-volatility-not-covariance-portfolio-volatility';
+  };
+  cycle_exposure: {
+    status: FundRiskDimensionStatus;
+    analyzed_portfolio_exposure_pct: string;
+    phase_exposure_pct: Record<string, string>;
+    pressure_exposure_pct: string;
+    weakening_productivity_proxy_exposure_pct: string;
+    financial_report_period: string | null;
+    scope: 'selected-disclosed-industry-evidence-not-market-timing-signal';
+  };
+  allocation_guidance: Array<{
+    id: string;
+    priority: 'info' | 'watch' | 'high';
+    title: string;
+    reason: string;
+    evidence: string[];
+    action: string;
+  }>;
+  missing_evidence: string[];
+  warnings: string[];
+  method: 'deterministic-current-user-fund-risk-and-allocation-review';
+};
+
+export type FundPortfolioAdviceReadonlyResponse = {
+  status: 'completed-readonly' | 'unavailable' | 'blocked' | 'timeout';
+  providerLabel: string;
+  readOnly: true;
+  advice?: FundPortfolioAdviceResult;
+  errorCode?: string;
+};
+
 export const fundDataApi = {
   async fetchAksharePublicFund(code: string): Promise<FundPublicReadonlyResponse> {
     const response = await apiClient.post<FundPublicReadonlyResponse>('/api/v1/provider-readonly/akshare/fund', {
@@ -256,6 +363,30 @@ export const fundDataApi = {
         provider: 'akshare_fund_public',
         codes,
         sections: ['funds', 'disclosed-holdings', 'industry-cycle-evidence', 'productivity-proxy-evidence'],
+        humanApproved: true,
+        readOnly: true,
+        allowAccountRead: false,
+        allowTrading: false,
+        allowNotificationSend: false,
+        allowAiCall: false,
+        allowPersistence: false,
+      },
+    );
+    return response.data;
+  },
+
+  async fetchAkshareFundPortfolioAdvice(
+    positions: FundPortfolioAdvicePosition[],
+    riskProfile: FundRiskProfile,
+  ): Promise<FundPortfolioAdviceReadonlyResponse> {
+    const response = await apiClient.post<FundPortfolioAdviceReadonlyResponse>(
+      '/api/v1/provider-readonly/akshare/funds/portfolio-advice',
+      {
+        mode: 'fund-portfolio-advice-readonly',
+        provider: 'akshare_fund_public',
+        positions,
+        riskProfile,
+        sections: ['portfolio-allocation', 'nav-risk', 'disclosed-overlap', 'industry-cycle', 'allocation-guidance'],
         humanApproved: true,
         readOnly: true,
         allowAccountRead: false,
