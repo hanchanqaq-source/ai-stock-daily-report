@@ -83,7 +83,7 @@ const AppContent: React.FC = () => {
         )}
       >
         <Route path="/" element={<HomePage />} />
-        <Route path="/chat" element={<ChatPage />} />
+        <Route path="/chat" element={<ChatPage mode="stock" />} />\n        <Route path="/fund-chat" element={<ChatPage mode="fund" />} />
         <Route path="/portfolio" element={<PortfolioPage />} />
         <Route path="/portfolio/stock-management" element={<StockPortfolioManagementPage />} />
         <Route path="/users" element={<UsersPage />} />
