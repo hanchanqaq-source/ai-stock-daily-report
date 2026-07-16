@@ -177,6 +177,26 @@ test('buildBackendEnvironment keeps non-macOS PATH unchanged', (t) => {
   assert.equal(env.PATH, '/custom/bin:/usr/bin');
 });
 
+test('buildBackendEnvironment removes GitHub Actions mode from the runtime backend', (t) => {
+  const mainModule = loadMainModule(t, { platform: 'win32' });
+  const sourceEnv = {
+    PATH: 'C:\\Windows\\System32',
+    GITHUB_ACTIONS: 'true',
+    CUSTOM_FLAG: 'kept',
+  };
+
+  const env = mainModule.buildBackendEnvironment({
+    envFile: 'C:\\portable\\.env',
+    dbPath: 'C:\\portable\\data\\stock_analysis.db',
+    logDir: 'C:\\portable\\logs',
+    sourceEnv,
+  });
+
+  assert.equal(env.GITHUB_ACTIONS, undefined);
+  assert.equal(sourceEnv.GITHUB_ACTIONS, 'true');
+  assert.equal(env.CUSTOM_FLAG, 'kept');
+});
+
 test('buildBackendEnvironment pins WEBUI_PORT to the Electron-selected backend port', (t) => {
   const mainModule = loadMainModule(t, { platform: 'win32' });
 
