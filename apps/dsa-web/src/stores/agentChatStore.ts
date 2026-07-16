@@ -341,7 +341,7 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
         }));
       }
 
-      if (currentRoute !== '/chat') {
+      if (!['/chat', '/fund-chat'].includes(currentRoute)) {
         set({ completionBadge: true });
       }
     } catch (error: unknown) {
@@ -350,7 +350,7 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
       } else {
         set({ chatError: getParsedApiError(error) });
         const { currentRoute } = get();
-        if (currentRoute !== '/chat') {
+        if (!['/chat', '/fund-chat'].includes(currentRoute)) {
           set({ completionBadge: true });
         }
       }
