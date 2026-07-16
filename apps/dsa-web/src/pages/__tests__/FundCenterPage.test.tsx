@@ -27,7 +27,9 @@ describe('FundCenterPage', () => {
 
     expect(screen.getByRole('heading', { name: '基金首页' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /进入基金持仓/ })).toBeInTheDocument();
-    expect(screen.getByText('真实基金数据尚未接入')).toBeInTheDocument();
+    expect(screen.getByText('基金数据契约已建立，真实数据尚未接入')).toBeInTheDocument();
+    expect(screen.getByText('Build C 基金数据契约')).toBeInTheDocument();
+    expect(screen.getByText('披露持仓')).toBeInTheDocument();
     expect(screen.queryByText('股票回测')).not.toBeInTheDocument();
   });
 
@@ -35,8 +37,8 @@ describe('FundCenterPage', () => {
     renderPage('ask');
 
     expect(screen.getByRole('heading', { name: '问基金' })).toBeInTheDocument();
-    expect(screen.getByText(/不会请求真实净值、持仓或 Provider/)).toBeInTheDocument();
-    expect(screen.getByText(/当前只显示安全空状态/)).toBeInTheDocument();
+    expect(screen.getByText(/不使用测试 fixture，不发起真实 Provider 请求/)).toBeInTheDocument();
+    expect(screen.getByText(/当前只显示可审计的缺失状态/)).toBeInTheDocument();
   });
 
   it('describes the required evidence boundary for industry cycles', () => {
