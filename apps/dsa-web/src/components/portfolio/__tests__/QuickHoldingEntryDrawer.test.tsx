@@ -14,12 +14,12 @@ const HoldingsProbe = () => {
   );
 };
 
-function renderDrawer(initialMode: 'manual' | 'screenshot' = 'manual') {
+function renderDrawer(initialMode: 'manual' | 'screenshot' = 'manual', fixedAssetType?: 'fund' | 'stock') {
   render(
     <UiLanguageProvider>
       <PortfolioUserProvider>
         <HoldingsProbe />
-        <QuickHoldingEntryDrawer isOpen initialMode={initialMode} onClose={() => undefined} />
+        <QuickHoldingEntryDrawer isOpen initialMode={initialMode} fixedAssetType={fixedAssetType} onClose={() => undefined} />
       </PortfolioUserProvider>
     </UiLanguageProvider>,
   );
@@ -42,5 +42,13 @@ describe('QuickHoldingEntryDrawer', () => {
 
     expect(screen.getByText('识别结果确认区')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '等待识别服务接入' })).toBeDisabled();
+  });
+
+  it('locks quick entry to stocks inside the stock center', () => {
+    renderDrawer('manual', 'stock');
+
+    expect(screen.getByText('当前位于股票中心，本次只录入股票持仓。')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('如 600519')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '基金' })).not.toBeInTheDocument();
   });
 });

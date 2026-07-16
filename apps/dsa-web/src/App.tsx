@@ -11,8 +11,10 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { PortfolioUserProvider } from './contexts/PortfolioUserContext';
 import { UiLanguageProvider, useUiLanguage } from './contexts/UiLanguageContext';
 import { useAgentChatStore } from './stores/agentChatStore';
+import { readRememberedCenter } from './utils/workspaceCenter';
 import './App.css';
 
+const WorkspaceLandingPage = lazy(() => import('./pages/WorkspaceLandingPage'));
 const HomePage = lazy(() => import('./pages/HomePage'));
 const BacktestPage = lazy(() => import('./pages/BacktestPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
@@ -26,6 +28,16 @@ const DecisionSignalsPage = lazy(() => import('./pages/DecisionSignalsPage'));
 const AlertsPage = lazy(() => import('./pages/AlertsPage'));
 const TokenUsagePage = lazy(() => import('./pages/TokenUsagePage'));
 const StockScreeningPage = lazy(() => import('./pages/StockScreeningPage'));
+const FundCenterPage = lazy(() => import('./pages/FundCenterPage'));
+
+const LegacyRedirect: React.FC<{ to: string }> = ({ to }) => {
+  const location = useLocation();
+  return <Navigate to={`${to}${location.search}`} replace />;
+};
+
+const LegacyPortfolioRedirect: React.FC = () => (
+  <LegacyRedirect to={readRememberedCenter() === 'funds' ? '/funds/portfolio' : '/stocks/portfolio'} />
+);
 
 const AppContent: React.FC = () => {
   const location = useLocation();
@@ -82,15 +94,34 @@ const AppContent: React.FC = () => {
           </Shell>
         )}
       >
-        <Route path="/" element={<HomePage />} />
-        <Route path="/chat" element={<ChatPage />} />
-        <Route path="/portfolio" element={<PortfolioPage />} />
-        <Route path="/portfolio/stock-management" element={<StockPortfolioManagementPage />} />
+        <Route path="/" element={<WorkspaceLandingPage />} />
+
+        <Route path="/stocks" element={<HomePage />} />
+        <Route path="/stocks/ask" element={<ChatPage />} />
+        <Route path="/stocks/portfolio" element={<PortfolioPage domain="stock" />} />
+        <Route path="/stocks/portfolio/manage" element={<StockPortfolioManagementPage />} />
+        <Route path="/stocks/screening" element={<StockScreeningPage />} />
+        <Route path="/stocks/advice" element={<DecisionSignalsPage />} />
+        <Route path="/stocks/backtest" element={<BacktestPage />} />
+        <Route path="/stocks/alerts" element={<AlertsPage />} />
+
+        <Route path="/funds" element={<FundCenterPage section="home" />} />
+        <Route path="/funds/ask" element={<FundCenterPage section="ask" />} />
+        <Route path="/funds/portfolio" element={<PortfolioPage domain="fund" />} />
+        <Route path="/funds/compare" element={<FundCenterPage section="compare" />} />
+        <Route path="/funds/industry-exposure" element={<FundCenterPage section="industry-exposure" />} />
+        <Route path="/funds/industry-cycle" element={<FundCenterPage section="industry-cycle" />} />
+        <Route path="/funds/advice" element={<FundCenterPage section="advice" />} />
+
+        <Route path="/chat" element={<LegacyRedirect to="/stocks/ask" />} />
+        <Route path="/portfolio" element={<LegacyPortfolioRedirect />} />
+        <Route path="/portfolio/stock-management" element={<LegacyRedirect to="/stocks/portfolio/manage" />} />
+        <Route path="/decision-signals" element={<LegacyRedirect to="/stocks/advice" />} />
+        <Route path="/screening" element={<LegacyRedirect to="/stocks/screening" />} />
+        <Route path="/backtest" element={<LegacyRedirect to="/stocks/backtest" />} />
+        <Route path="/alerts" element={<LegacyRedirect to="/stocks/alerts" />} />
+
         <Route path="/users" element={<UsersPage />} />
-        <Route path="/decision-signals" element={<DecisionSignalsPage />} />
-        <Route path="/screening" element={<StockScreeningPage />} />
-        <Route path="/backtest" element={<BacktestPage />} />
-        <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/usage" element={<TokenUsagePage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />

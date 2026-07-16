@@ -70,9 +70,22 @@ function renderPage() {
           <AddFamilyUser />
           <Routes>
             <Route path="/portfolio" element={<PersonalPortfolioPage />} />
-            <Route path="/portfolio/stock-management" element={<div>stock-management-destination</div>} />
+            <Route path="/stocks/portfolio/manage" element={<div>stock-management-destination</div>} />
             <Route path="/users" element={<UsersPage />} />
           </Routes>
+        </MemoryRouter>
+      </PortfolioUserProvider>
+    </UiLanguageProvider>,
+  );
+}
+
+function renderDomainPage(domain: 'stock' | 'fund') {
+  const path = domain === 'stock' ? '/stocks/portfolio' : '/funds/portfolio';
+  render(
+    <UiLanguageProvider>
+      <PortfolioUserProvider>
+        <MemoryRouter initialEntries={[path]}>
+          <Routes><Route path={path} element={<PersonalPortfolioPage domain={domain} />} /></Routes>
         </MemoryRouter>
       </PortfolioUserProvider>
     </UiLanguageProvider>,
@@ -138,8 +151,27 @@ describe('PersonalPortfolioPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'add-family-user' }));
 
-    expect(await screen.findByText('该用户尚未接入持仓数据')).toBeInTheDocument();
+    expect(await screen.findByText('该用户尚未接入正式持仓数据')).toBeInTheDocument();
     expect(screen.queryByText('600519')).not.toBeInTheDocument();
     expect(screen.getByLabelText('当前用户')).not.toHaveValue('self');
+  });
+
+  it('keeps the stock and fund portfolio routes visually separated', async () => {
+    renderDomainPage('stock');
+
+    expect(await screen.findByRole('heading', { name: '股票持仓' })).toBeInTheDocument();
+    expect(screen.getByTestId('stock-portfolio-section')).toBeInTheDocument();
+    expect(screen.queryByTestId('fund-portfolio-section')).not.toBeInTheDocument();
+  });
+
+  it('does not load stock account APIs inside the fund portfolio route', async () => {
+    renderDomainPage('fund');
+
+    expect(await screen.findByRole('heading', { name: '基金持仓' })).toBeInTheDocument();
+    expect(screen.getByTestId('fund-portfolio-section')).toBeInTheDocument();
+    expect(screen.queryByTestId('stock-portfolio-section')).not.toBeInTheDocument();
+    expect(getAccounts).not.toHaveBeenCalled();
+    expect(getSnapshot).not.toHaveBeenCalled();
+    expect(getRisk).not.toHaveBeenCalled();
   });
 });

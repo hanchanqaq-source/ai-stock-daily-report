@@ -25,6 +25,11 @@ import {
 
 type AccountOption = 'all' | number;
 type EntryMode = 'manual' | 'screenshot';
+type PortfolioDomain = 'all' | 'stock' | 'fund';
+
+type PersonalPortfolioPageProps = {
+  domain?: PortfolioDomain;
+};
 
 type StockPositionRow = PortfolioPositionItem & {
   accountId: number;
@@ -170,7 +175,7 @@ function formatCount(template: string, count: number): string {
   return template.replace('{count}', String(count));
 }
 
-const PersonalPortfolioPage: React.FC = () => {
+const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain = 'all' }) => {
   const navigate = useNavigate();
   const { language } = useUiLanguage();
   const {
@@ -183,6 +188,18 @@ const PersonalPortfolioPage: React.FC = () => {
     removeStockHolding,
   } = usePortfolioUsers();
   const text = TEXT[language];
+  const showStocks = domain !== 'fund';
+  const showFunds = domain !== 'stock';
+  const pageTitle = domain === 'stock'
+    ? (language === 'zh' ? '股票持仓' : 'Stock holdings')
+    : domain === 'fund'
+      ? (language === 'zh' ? '基金持仓' : 'Fund holdings')
+      : text.title;
+  const pageDescription = domain === 'stock'
+    ? (language === 'zh' ? '只显示当前用户的股票持仓、证券账户和股票风险。' : 'Shows stock holdings, securities accounts, and stock risk for the active user only.')
+    : domain === 'fund'
+      ? (language === 'zh' ? '只显示当前用户的基金持仓；真实净值、行业穿透和周期分析将在后续阶段接入。' : 'Shows fund holdings for the active user only. Real NAV, exposure, and cycle analysis follow later.')
+      : text.description;
   const isPrimaryUser = activeUser.isPrimary;
   const [entryMode, setEntryMode] = useState<EntryMode>('manual');
   const [entryOpen, setEntryOpen] = useState(false);
@@ -196,12 +213,12 @@ const PersonalPortfolioPage: React.FC = () => {
   const [riskWarning, setRiskWarning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => { document.title = text.documentTitle; }, [text.documentTitle]);
+  useEffect(() => { document.title = `${pageTitle} - DSA`; }, [pageTitle]);
 
   const accountId = selectedAccount === 'all' ? undefined : selectedAccount;
 
   const loadAccounts = useCallback(async () => {
-    if (!isPrimaryUser) {
+    if (!showStocks || !isPrimaryUser) {
       setAccounts([]);
       setSelectedAccount('all');
       setAccountsLoaded(true);
@@ -218,10 +235,10 @@ const PersonalPortfolioPage: React.FC = () => {
     } finally {
       setAccountsLoaded(true);
     }
-  }, [isPrimaryUser]);
+  }, [isPrimaryUser, showStocks]);
 
   const loadOverview = useCallback(async () => {
-    if (!isPrimaryUser) {
+    if (!showStocks || !isPrimaryUser) {
       setSnapshot(null);
       setRisk(null);
       setError(null);
@@ -248,7 +265,7 @@ const PersonalPortfolioPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [accountId, costMethod, isPrimaryUser]);
+  }, [accountId, costMethod, isPrimaryUser, showStocks]);
 
   useEffect(() => {
     void loadAccounts().catch((loadError) => setError(getParsedApiError(loadError)));
@@ -301,8 +318,8 @@ const PersonalPortfolioPage: React.FC = () => {
       <section className="space-y-3">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div className="space-y-2">
-            <h1 className="text-xl font-semibold text-foreground md:text-2xl">{text.title}</h1>
-            <p className="text-xs leading-6 text-secondary md:text-sm">{text.description}</p>
+            <h1 className="text-xl font-semibold text-foreground md:text-2xl">{pageTitle}</h1>
+            <p className="text-xs leading-6 text-secondary md:text-sm">{pageDescription}</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
             <label className="min-w-[220px] space-y-1 text-xs text-secondary">
@@ -325,16 +342,16 @@ const PersonalPortfolioPage: React.FC = () => {
       </section>
 
       {!isPrimaryUser ? <InlineAlert variant="info" title={text.userNotConnectedTitle} message={text.userNotConnectedDescription} /> : null}
-      {error ? <ApiErrorAlert error={error} onDismiss={() => setError(null)} /> : null}
+      {showStocks && error ? <ApiErrorAlert error={error} onDismiss={() => setError(null)} /> : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="stock portfolio summary">
+      {showStocks ? <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="stock portfolio summary">
         <Card variant="gradient" padding="md"><p className="text-xs text-secondary">{text.stockAccountAssets}</p><p className="mt-2 text-xl font-semibold text-foreground">{summaryValue(snapshot?.totalEquity)}</p></Card>
         <Card variant="gradient" padding="md"><p className="text-xs text-secondary">{text.stockValue}</p><p className="mt-2 text-xl font-semibold text-foreground">{summaryValue(snapshot?.totalMarketValue)}</p></Card>
         <Card variant="gradient" padding="md"><p className="text-xs text-secondary">{text.stockCash}</p><p className="mt-2 text-xl font-semibold text-foreground">{summaryValue(snapshot?.totalCash)}</p></Card>
         <Card variant="gradient" padding="md"><p className="text-xs text-secondary">{text.stockProfit}</p><p className={`mt-2 text-xl font-semibold ${(snapshot?.unrealizedPnl || 0) >= 0 ? 'text-success' : 'text-danger'}`}>{summaryValue(snapshot?.unrealizedPnl)}</p></Card>
-      </section>
+      </section> : null}
 
-      <section className="space-y-3" data-testid="fund-portfolio-section">
+      {showFunds ? <section className="space-y-3" data-testid="fund-portfolio-section">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-semibold text-foreground">{text.fundTitle}</h2>
           <span className="rounded-full border border-cyan/30 bg-cyan/10 px-3 py-1 text-xs text-cyan">{text.fundBadge}</span>
@@ -365,12 +382,12 @@ const PersonalPortfolioPage: React.FC = () => {
             </div>
           )}
         </Card>
-      </section>
+      </section> : null}
 
-      <section className="space-y-3" data-testid="stock-portfolio-section">
+      {showStocks ? <section className="space-y-3" data-testid="stock-portfolio-section">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h2 className="text-base font-semibold text-foreground">{text.stockTitle}</h2><span className="mt-1 block text-xs text-secondary">{formatCount(text.stockCount, totalStockCount)}</span></div>
-          <button type="button" disabled={!isPrimaryUser} className="btn-secondary flex items-center gap-2 text-sm" onClick={() => navigate('/portfolio/stock-management')}>
+          <button type="button" disabled={!isPrimaryUser} className="btn-secondary flex items-center gap-2 text-sm" onClick={() => navigate('/stocks/portfolio/manage')}>
             <Settings2 className="h-4 w-4" aria-hidden="true" />{text.stockToolsTitle}
           </button>
         </div>
@@ -440,12 +457,12 @@ const PersonalPortfolioPage: React.FC = () => {
             <div><h3 className="font-semibold text-foreground">{text.stockToolsTitle}</h3><p className="mt-1 text-xs leading-5 text-secondary">{text.stockToolsDescription}</p>
               <div className="mt-3 flex flex-wrap gap-2">{[text.tradeEntry, text.cashLedger, text.corporateActions, text.brokerCsv, text.securitiesAccounts].map((item) => <span key={item} className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-secondary">{item}</span>)}</div>
             </div>
-            <button type="button" disabled={!isPrimaryUser} className="btn-secondary shrink-0 text-sm" onClick={() => navigate('/portfolio/stock-management')}>{text.openStockTools}</button>
+            <button type="button" disabled={!isPrimaryUser} className="btn-secondary shrink-0 text-sm" onClick={() => navigate('/stocks/portfolio/manage')}>{text.openStockTools}</button>
           </div>
         </Card>
-      </section>
+      </section> : null}
 
-      <section className="space-y-3">
+      {showStocks ? <section className="space-y-3">
         <h2 className="text-base font-semibold text-foreground">{text.riskTitle}</h2>
         {riskWarning ? <InlineAlert variant="warning" message={text.riskUnavailable} /> : null}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -454,9 +471,14 @@ const PersonalPortfolioPage: React.FC = () => {
           <Card padding="md"><p className="text-xs text-secondary">{text.stopLoss}</p><p className="mt-2 text-lg font-semibold text-foreground">{isPrimaryUser ? stopLossCount : '--'}</p></Card>
           <Card padding="md"><p className="text-xs text-secondary">{text.aiRisk}</p><p className="mt-2 text-lg font-semibold text-foreground">{isPrimaryUser ? risk?.decisionSignalRisk?.total ?? 0 : '--'}</p></Card>
         </div>
-      </section>
+      </section> : null}
 
-      <QuickHoldingEntryDrawer isOpen={entryOpen} initialMode={entryMode} onClose={() => setEntryOpen(false)} />
+      <QuickHoldingEntryDrawer
+        isOpen={entryOpen}
+        initialMode={entryMode}
+        fixedAssetType={domain === 'all' ? undefined : domain}
+        onClose={() => setEntryOpen(false)}
+      />
     </div>
   );
 };

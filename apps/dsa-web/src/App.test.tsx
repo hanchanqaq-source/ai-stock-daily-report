@@ -31,6 +31,10 @@ vi.mock('./pages/HomePage', () => ({
   default: () => <div data-testid="home-page">Home</div>,
 }));
 
+vi.mock('./pages/WorkspaceLandingPage', () => ({
+  default: () => <div data-testid="workspace-landing-page">Workspace landing</div>,
+}));
+
 vi.mock('./pages/ChatPage', () => ({
   default: () => {
     if (chatPageShouldThrow.value) {
@@ -40,8 +44,12 @@ vi.mock('./pages/ChatPage', () => ({
   },
 }));
 
-vi.mock('./pages/PortfolioPage', () => ({
-  default: () => <div data-testid="portfolio-page">Portfolio</div>,
+vi.mock('./pages/PersonalPortfolioPage', () => ({
+  default: ({ domain }: { domain?: string }) => <div data-testid={`${domain ?? 'all'}-portfolio-page`}>Portfolio</div>,
+}));
+
+vi.mock('./pages/FundCenterPage', () => ({
+  default: ({ section }: { section: string }) => <div data-testid={`fund-center-${section}`}>Fund center</div>,
 }));
 
 vi.mock('./pages/DecisionSignalsPage', () => ({
@@ -122,12 +130,12 @@ describe('App routing behavior', () => {
   });
 
   it('renders the current route page after auth is ready', async () => {
-    window.history.pushState({}, '', '/chat');
+    window.history.pushState({}, '', '/stocks/ask');
 
     render(<App />);
 
     expect(await screen.findByTestId('chat-page')).toBeInTheDocument();
-    expect(setCurrentRoute).toHaveBeenCalledWith('/chat');
+    expect(setCurrentRoute).toHaveBeenCalledWith('/stocks/ask');
     expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
     expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
   });
@@ -142,13 +150,13 @@ describe('App routing behavior', () => {
     expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
   });
 
-  it('routes /decision-signals to the AI signals page after auth is ready', async () => {
-    window.history.pushState({}, '', '/decision-signals');
+  it('routes stock advice to the AI signals page after auth is ready', async () => {
+    window.history.pushState({}, '', '/stocks/advice');
 
     render(<App />);
 
     expect(await screen.findByTestId('decision-signals-page')).toBeInTheDocument();
-    expect(setCurrentRoute).toHaveBeenCalledWith('/decision-signals');
+    expect(setCurrentRoute).toHaveBeenCalledWith('/stocks/advice');
     expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
   });
 
@@ -162,14 +170,14 @@ describe('App routing behavior', () => {
 
     render(<App />);
 
-    expect(await screen.findByTestId('home-page')).toBeInTheDocument();
+    expect(await screen.findByTestId('workspace-landing-page')).toBeInTheDocument();
     expect(screen.queryByTestId('login-page')).not.toBeInTheDocument();
   });
 
   it('keeps the shell mounted and resets the route boundary after page render errors', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     chatPageShouldThrow.value = true;
-    window.history.pushState({}, '', '/chat');
+    window.history.pushState({}, '', '/stocks/ask');
 
     try {
       render(<App />);
@@ -180,12 +188,31 @@ describe('App routing behavior', () => {
       expect(screen.getByRole('button', { name: '返回首页' })).toBeInTheDocument();
 
       chatPageShouldThrow.value = false;
-      fireEvent.click(screen.getByRole('link', { name: '持仓' }));
+      fireEvent.click(screen.getByRole('link', { name: '股票持仓' }));
 
-      expect(await screen.findByTestId('portfolio-page')).toBeInTheDocument();
+      expect(await screen.findByTestId('stock-portfolio-page')).toBeInTheDocument();
       expect(screen.queryByRole('heading', { name: '页面加载失败' })).not.toBeInTheDocument();
     } finally {
       consoleError.mockRestore();
     }
+  });
+
+  it('keeps legacy stock chat links working and preserves the query string', async () => {
+    window.history.pushState({}, '', '/chat?stock=600519');
+
+    render(<App />);
+
+    expect(await screen.findByTestId('chat-page')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/stocks/ask');
+    expect(window.location.search).toBe('?stock=600519');
+  });
+
+  it('routes fund questions to the isolated fund workspace skeleton', async () => {
+    window.history.pushState({}, '', '/funds/ask');
+
+    render(<App />);
+
+    expect(await screen.findByTestId('fund-center-ask')).toBeInTheDocument();
+    expect(screen.queryByTestId('chat-page')).not.toBeInTheDocument();
   });
 });

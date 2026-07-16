@@ -35,7 +35,7 @@ const StockPortfolioManagementPage: React.FC = () => {
         <button
           type="button"
           className="btn-secondary flex items-center gap-2 text-sm"
-          onClick={() => navigate('/portfolio')}
+          onClick={() => navigate('/stocks/portfolio')}
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           {text.back}

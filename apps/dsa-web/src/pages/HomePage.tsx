@@ -445,7 +445,7 @@ const HomePage: React.FC = () => {
     const code = selectedReport.meta.stockCode;
     const name = selectedReport.meta.stockName;
     const rid = selectedReport.meta.id;
-    navigate(`/chat?stock=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}&recordId=${rid}`);
+    navigate(`/stocks/ask?stock=${encodeURIComponent(code)}&name=${encodeURIComponent(name)}&recordId=${rid}`);
   }, [navigate, selectedReport]);
 
   const handleReanalyze = useCallback(() => {
