@@ -66,10 +66,10 @@ function renderPage() {
   render(
     <UiLanguageProvider>
       <PortfolioUserProvider>
-        <MemoryRouter initialEntries={['/portfolio']}>
+        <MemoryRouter initialEntries={['/stocks/portfolio']}>
           <AddFamilyUser />
           <Routes>
-            <Route path="/portfolio" element={<PersonalPortfolioPage />} />
+            <Route path="/stocks/portfolio" element={<PersonalPortfolioPage domain="stock" />} />
             <Route path="/stocks/portfolio/manage" element={<div>stock-management-destination</div>} />
             <Route path="/users" element={<UsersPage />} />
           </Routes>
@@ -104,18 +104,13 @@ describe('PersonalPortfolioPage', () => {
     getRisk.mockResolvedValue(makeRisk());
   });
 
-  it('keeps fund analysis free of stock ledger tools and places them under stocks', async () => {
+  it('keeps stock ledger tools inside the stock portfolio only', async () => {
     renderPage();
 
-    expect(await screen.findByRole('heading', { name: '我的持仓分析' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '股票持仓' })).toBeInTheDocument();
     expect(await screen.findByText('CNY 100,000.00')).toBeInTheDocument();
     expect(screen.getByLabelText('当前用户')).toHaveValue('self');
-
-    const fundSection = screen.getByTestId('fund-portfolio-section');
-    expect(within(fundSection).getByRole('heading', { name: '基金持仓分析' })).toBeInTheDocument();
-    expect(within(fundSection).queryByText('资金流水')).not.toBeInTheDocument();
-    expect(within(fundSection).queryByText('公司行为')).not.toBeInTheDocument();
-    expect(within(fundSection).queryByText('券商 CSV')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('fund-portfolio-section')).not.toBeInTheDocument();
 
     const stockSection = screen.getByTestId('stock-portfolio-section');
     expect(within(stockSection).getByText('600519')).toBeInTheDocument();
@@ -127,7 +122,7 @@ describe('PersonalPortfolioPage', () => {
 
   it('opens the dedicated stock management and user routes', async () => {
     renderPage();
-    await screen.findByRole('heading', { name: '我的持仓分析' });
+    await screen.findByRole('heading', { name: '股票持仓' });
 
     fireEvent.click(screen.getByRole('button', { name: '进入股票高级管理' }));
     expect(await screen.findByText('stock-management-destination')).toBeInTheDocument();
@@ -135,7 +130,7 @@ describe('PersonalPortfolioPage', () => {
 
   it('reloads stock snapshot and risk for a selected securities account', async () => {
     renderPage();
-    await screen.findByRole('heading', { name: '我的持仓分析' });
+    await screen.findByRole('heading', { name: '股票持仓' });
 
     fireEvent.change(screen.getByLabelText('证券账户'), { target: { value: '1' } });
 

@@ -5,11 +5,11 @@ import { UiLanguageProvider } from '../../../contexts/UiLanguageContext';
 import { QuickHoldingEntryDrawer } from '../QuickHoldingEntryDrawer';
 
 const HoldingsProbe = () => {
-  const { activeHoldings } = usePortfolioUsers();
+  const { activeFundHoldings, activeStockHoldings } = usePortfolioUsers();
   return (
     <div>
-      <span data-testid="fund-count">{activeHoldings.funds.length}</span>
-      <span data-testid="stock-count">{activeHoldings.stocks.length}</span>
+      <span data-testid="fund-count">{activeFundHoldings.length}</span>
+      <span data-testid="stock-count">{activeStockHoldings.length}</span>
     </div>
   );
 };
@@ -50,5 +50,18 @@ describe('QuickHoldingEntryDrawer', () => {
     expect(screen.getByText('当前位于股票中心，本次只录入股票持仓。')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('如 600519')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '基金' })).not.toBeInTheDocument();
+  });
+
+  it('writes a stock-center entry only to the active stock domain', () => {
+    renderDrawer('manual', 'stock');
+
+    fireEvent.change(screen.getByPlaceholderText('如 600519'), { target: { value: '600519' } });
+    fireEvent.change(screen.getByText('持有数量').parentElement!.querySelector('input')!, { target: { value: '10' } });
+    fireEvent.change(screen.getByText('平均成本').parentElement!.querySelector('input')!, { target: { value: '1500' } });
+    fireEvent.click(screen.getByRole('button', { name: '确认添加持仓' }));
+
+    expect(screen.getByTestId('stock-count')).toHaveTextContent('1');
+    expect(screen.getByTestId('fund-count')).toHaveTextContent('0');
+    expect(screen.getByText('已添加到 本人 的股票持仓。')).toBeInTheDocument();
   });
 });
