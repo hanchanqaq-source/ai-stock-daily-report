@@ -52,4 +52,26 @@ describe('fundDataApi', () => {
       allowPersistence: false,
     });
   });
+
+  it('sends the fixed read-only D3 evidence contract with no enabled capabilities', async () => {
+    apiClientMock.post.mockResolvedValue({
+      data: { status: 'unavailable', providerLabel: 'AKShare 公开基金数据', readOnly: true },
+    });
+
+    await fundDataApi.fetchAkshareFundIndustryCycle(['000001']);
+
+    expect(apiClientMock.post).toHaveBeenCalledWith('/api/v1/provider-readonly/akshare/funds/industry-cycle', {
+      mode: 'fund-industry-cycle-readonly',
+      provider: 'akshare_fund_public',
+      codes: ['000001'],
+      sections: ['funds', 'disclosed-holdings', 'industry-cycle-evidence', 'productivity-proxy-evidence'],
+      humanApproved: true,
+      readOnly: true,
+      allowAccountRead: false,
+      allowTrading: false,
+      allowNotificationSend: false,
+      allowAiCall: false,
+      allowPersistence: false,
+    });
+  });
 });

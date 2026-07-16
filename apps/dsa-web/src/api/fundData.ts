@@ -138,6 +138,81 @@ export type FundComparisonReadonlyResponse = {
   errorCode?: string;
 };
 
+export type IndustryCycleEvidence = {
+  industry_name: string;
+  board_code: string;
+  data_status: 'available' | 'partial' | 'missing';
+  phase: 'recovery' | 'expansion' | 'overheated' | 'slowdown' | 'contraction' | 'insufficient';
+  confidence: string;
+  metrics: {
+    as_of_date: string | null;
+    return_20d_pct: string | null;
+    return_60d_pct: string | null;
+    turnover_change_20d_pct: string | null;
+    breadth_rise_ratio_pct: string | null;
+    relative_strength_20d_pct: string | null;
+    median_dynamic_pe: string | null;
+    median_pb: string | null;
+    constituent_count: number;
+    breadth_sample_count: number;
+  };
+  productivity: {
+    status: 'improving' | 'stable' | 'weakening' | 'insufficient';
+    report_period: string | null;
+    effective_at: string | null;
+    revenue_yoy_median_pct: string | null;
+    profit_yoy_median_pct: string | null;
+    roe_median_pct: string | null;
+    gross_margin_median_pct: string | null;
+    operating_cashflow_positive_ratio_pct: string | null;
+    covered_constituents: number;
+    total_constituents: number;
+    confidence: string;
+    missing_dimensions: string[];
+    scope: 'operating-productivity-proxy-not-total-factor-productivity';
+  };
+  source_interfaces: string[];
+  evidence_dates: string[];
+  missing_evidence: string[];
+  warnings: string[];
+  cycle_scope: 'market-cycle-evidence-not-trading-advice';
+};
+
+export type FundIndustryCycleResult = {
+  requested_codes: string[];
+  data_status: 'available' | 'partial' | 'missing';
+  fetched_at: string;
+  provider: string;
+  benchmark_code: string;
+  financial_report_period: string | null;
+  funds: Array<{
+    code: string;
+    name: string | null;
+    holdings_report_period: string | null;
+    industry_links: Array<{
+      industry_name: string;
+      fund_weight_pct: string;
+      scope: 'provider-disclosed-industry-allocation' | 'latest-disclosed-top-holdings-provider-industry';
+    }>;
+    analyzed_weight_pct: string;
+    unclassified_holdings: string[];
+    omitted_industries: number;
+    warnings: string[];
+  }>;
+  industries: IndustryCycleEvidence[];
+  missing_evidence: string[];
+  warnings: string[];
+  method: 'deterministic-explainable-features-inspired-by-market-state-analysis';
+};
+
+export type FundIndustryCycleReadonlyResponse = {
+  status: 'completed-readonly' | 'unavailable' | 'blocked' | 'timeout';
+  providerLabel: string;
+  readOnly: true;
+  cycle?: FundIndustryCycleResult;
+  errorCode?: string;
+};
+
 export const fundDataApi = {
   async fetchAksharePublicFund(code: string): Promise<FundPublicReadonlyResponse> {
     const response = await apiClient.post<FundPublicReadonlyResponse>('/api/v1/provider-readonly/akshare/fund', {
@@ -170,6 +245,26 @@ export const fundDataApi = {
       allowAiCall: false,
       allowPersistence: false,
     });
+    return response.data;
+  },
+
+  async fetchAkshareFundIndustryCycle(codes: string[]): Promise<FundIndustryCycleReadonlyResponse> {
+    const response = await apiClient.post<FundIndustryCycleReadonlyResponse>(
+      '/api/v1/provider-readonly/akshare/funds/industry-cycle',
+      {
+        mode: 'fund-industry-cycle-readonly',
+        provider: 'akshare_fund_public',
+        codes,
+        sections: ['funds', 'disclosed-holdings', 'industry-cycle-evidence', 'productivity-proxy-evidence'],
+        humanApproved: true,
+        readOnly: true,
+        allowAccountRead: false,
+        allowTrading: false,
+        allowNotificationSend: false,
+        allowAiCall: false,
+        allowPersistence: false,
+      },
+    );
     return response.data;
   },
 };
