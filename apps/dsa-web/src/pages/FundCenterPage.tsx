@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { fundDataApi, type FundPublicReadonlyResponse } from '../api/fundData';
 import { Card, EmptyState, InlineAlert } from '../components/common';
 import FundComparisonPanel from '../components/funds/FundComparisonPanel';
+import FundIndustryCyclePanel from '../components/funds/FundIndustryCyclePanel';
 import { usePortfolioUsers } from '../contexts/PortfolioUserContext';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 
@@ -46,6 +47,7 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
   const [title, description] = SECTION_META[language][section];
   const isHome = section === 'home';
   const isD2Page = section === 'compare' || section === 'industry-exposure';
+  const isD3Page = section === 'industry-cycle';
   const [fundCode, setFundCode] = useState('');
   const [readOnlyApproved, setReadOnlyApproved] = useState(false);
   const [lookupResult, setLookupResult] = useState<FundPublicReadonlyResponse | null>(null);
@@ -84,13 +86,17 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
       <InlineAlert
         variant="info"
         title={language === 'zh'
-          ? (isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
-          : (isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
+          ? (isD3Page ? 'Build D3 已接入行业周期与经营生产力代理证据' : isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
+          : (isD3Page ? 'Build D3 industry-cycle and operating-productivity proxy evidence is connected' : isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
         message={language === 'zh'
-          ? (isD2Page
+          ? (isD3Page
+              ? '周期只使用行业行情、成交额、市场广度和相对强弱；生产力只使用公开业绩报表代理，证据不足时不生成阶段，不输出配置或买卖建议。'
+              : isD2Page
               ? '输入基金代码并逐次确认后，读取公开资料、净值、前十大持仓和基金披露行业配置；不推测未知行业，不生成周期或配置建议。'
               : 'Build D1 仅在您输入六位基金代码并逐次确认后读取公开资料、正式净值和披露持仓；不读取账户，不调用 AI，不通知、不交易、不持久化。')
-          : (isD2Page
+          : (isD3Page
+              ? 'Cycle stages use only industry prices, turnover, breadth, and relative strength. Productivity uses public financial-report proxies only. Missing evidence never becomes a stage or allocation/trading advice.'
+              : isD2Page
               ? 'After manual approval, read public profiles, NAV, top holdings, and disclosed fund industry allocation. Unknown industries are not inferred, and no cycle or allocation advice is generated.'
               : 'Build D1 reads public profile, official NAV, and disclosed holdings only after you enter a six-digit fund code and approve each request. It does not read accounts, call AI, notify, trade, or persist data.')}
       />
@@ -211,12 +217,14 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
         </>
       ) : isD2Page ? (
         <FundComparisonPanel mode={section === 'compare' ? 'compare' : 'industry-exposure'} language={language} />
+      ) : isD3Page ? (
+        <FundIndustryCyclePanel language={language} />
       ) : (
         <Card padding="lg">
           <EmptyState
             icon={<BookOpenCheck className="h-7 w-7" />}
-            title={language === 'zh' ? '基金对比与行业穿透已接入，其他能力继续分阶段建设' : 'Fund comparison and industry exposure are ready; other capabilities remain staged'}
-            description={language === 'zh' ? 'Build D2 不把对比结果误当成行业周期、生产力证据或配置建议；这些能力分别等待 Build D3/D4。' : 'Build D2 does not present comparison results as cycle, productivity, or allocation advice. Those capabilities remain in Build D3/D4.'}
+            title={language === 'zh' ? '基金事实、对比、行业穿透和周期证据已接入' : 'Fund facts, comparison, exposure, and cycle evidence are ready'}
+            description={language === 'zh' ? 'Build D3 已把短期行业周期与长期经营生产力代理分开；当前用户组合风险和配置建议仍等待 Build D4。' : 'Build D3 separates short industry cycles from longer-horizon operating-productivity proxies. Active-user portfolio risk and allocation advice remain in Build D4.'}
           />
         </Card>
       )}

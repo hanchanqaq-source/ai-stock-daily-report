@@ -9,12 +9,14 @@ import FundCenterPage from '../FundCenterPage';
 const apiMocks = vi.hoisted(() => ({
   fetchAksharePublicFund: vi.fn(),
   compareAksharePublicFunds: vi.fn(),
+  fetchAkshareFundIndustryCycle: vi.fn(),
 }));
 
 vi.mock('../../api/fundData', () => ({
   fundDataApi: {
     fetchAksharePublicFund: apiMocks.fetchAksharePublicFund,
     compareAksharePublicFunds: apiMocks.compareAksharePublicFunds,
+    fetchAkshareFundIndustryCycle: apiMocks.fetchAkshareFundIndustryCycle,
   },
 }));
 
@@ -34,6 +36,7 @@ describe('FundCenterPage', () => {
     localStorage.setItem(UI_LANGUAGE_STORAGE_KEY, 'zh');
     apiMocks.fetchAksharePublicFund.mockReset();
     apiMocks.compareAksharePublicFunds.mockReset();
+    apiMocks.fetchAkshareFundIndustryCycle.mockReset();
   });
 
   it('shows fund-only tasks and the real-data boundary on the fund home', () => {
@@ -82,7 +85,7 @@ describe('FundCenterPage', () => {
 
     expect(screen.getByRole('heading', { name: '问基金' })).toBeInTheDocument();
     expect(screen.getByText(/输入六位基金代码并逐次确认后读取公开资料/)).toBeInTheDocument();
-    expect(screen.getByText(/这些能力分别等待 Build D3\/D4/)).toBeInTheDocument();
+    expect(screen.getByText(/当前用户组合风险和配置建议仍等待 Build D4/)).toBeInTheDocument();
   });
 
   it('requires two unique codes and per-request approval on the comparison page', async () => {
@@ -122,9 +125,36 @@ describe('FundCenterPage', () => {
     expect(screen.getByText(/结果不是行业周期、生产力或买卖建议/)).toBeInTheDocument();
   });
 
-  it('describes the required evidence boundary for industry cycles', () => {
+  it('requires approval and keeps cycle and productivity evidence separate', async () => {
+    apiMocks.fetchAkshareFundIndustryCycle.mockResolvedValue({
+      status: 'completed-readonly',
+      providerLabel: 'AKShare 公开基金数据',
+      readOnly: true,
+      cycle: {
+        requested_codes: ['000001'], data_status: 'partial', fetched_at: '2026-07-16T10:00:00+00:00', provider: 'akshare_fund_public', benchmark_code: '000300', financial_report_period: '2026-Q2',
+        funds: [{ code: '000001', name: '公开基金', holdings_report_period: '2026-Q2', industry_links: [{ industry_name: '软件开发', fund_weight_pct: '35', scope: 'provider-disclosed-industry-allocation' }], analyzed_weight_pct: '35', unclassified_holdings: [], omitted_industries: 0, warnings: [] }],
+        industries: [{
+          industry_name: '软件开发', board_code: 'BK0737', data_status: 'partial', phase: 'expansion', confidence: '0.85',
+          metrics: { as_of_date: '2026-07-15', return_20d_pct: '8', return_60d_pct: '15', turnover_change_20d_pct: '20', breadth_rise_ratio_pct: '70', relative_strength_20d_pct: '5', median_dynamic_pe: '25', median_pb: '3', constituent_count: 8, breadth_sample_count: 8 },
+          productivity: { status: 'improving', report_period: '2026-Q2', effective_at: '2026-06-30', revenue_yoy_median_pct: '18', profit_yoy_median_pct: '22', roe_median_pct: '12', gross_margin_median_pct: '45', operating_cashflow_positive_ratio_pct: '100', covered_constituents: 8, total_constituents: 8, confidence: '0.8', missing_dimensions: ['capital_expenditure'], scope: 'operating-productivity-proxy-not-total-factor-productivity' },
+          source_interfaces: ['stock_board_industry_hist_em', 'stock_board_industry_cons_em', 'index_zh_a_hist', 'stock_yjbb_em'], evidence_dates: ['2026-07-15', '2026-06-30'], missing_evidence: [], warnings: [], cycle_scope: 'market-cycle-evidence-not-trading-advice',
+        }],
+        missing_evidence: [], warnings: ['短期行业周期与长期经营生产力代理分开展示。'], method: 'deterministic-explainable-features-inspired-by-market-state-analysis',
+      },
+    });
     renderPage('industry-cycle');
 
-    expect(screen.getByText(/证据、日期、周期阶段、置信度和缺失项/)).toBeInTheDocument();
+    expect(apiMocks.fetchAkshareFundIndustryCycle).not.toHaveBeenCalled();
+    expect(screen.getByText(/短期周期和长期经营证据分开计算/)).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: '读取周期证据' });
+    fireEvent.change(screen.getByLabelText('基金代码'), { target: { value: '000001' } });
+    expect(button).toBeDisabled();
+    fireEvent.click(screen.getByLabelText(/我确认本次仅读取公开基金、行业行情和业绩报表/));
+    expect(button).toBeEnabled();
+    fireEvent.click(button);
+
+    await waitFor(() => expect(apiMocks.fetchAkshareFundIndustryCycle).toHaveBeenCalledWith(['000001']));
+    expect(await screen.findByTestId('fund-industry-cycle-result')).toHaveTextContent('扩张');
+    expect(screen.getByRole('heading', { name: /经营生产力代理证据：改善/ })).toBeInTheDocument();
   });
 });
