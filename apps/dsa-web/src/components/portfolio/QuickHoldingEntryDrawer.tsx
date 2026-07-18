@@ -4,21 +4,26 @@ import { ImageUp, PlusCircle } from 'lucide-react';
 import { Drawer } from '../common/Drawer';
 import { InlineAlert } from '../common/InlineAlert';
 import { usePortfolioUsers } from '../../contexts/PortfolioUserContext';
+import type { QuickFundHolding, QuickStockHolding } from '../../contexts/PortfolioUserContext';
 
 type EntryMode = 'manual' | 'screenshot';
 type AssetType = 'fund' | 'stock';
+type EditingHolding =
+  | { assetType: 'fund'; holding: QuickFundHolding }
+  | { assetType: 'stock'; holding: QuickStockHolding };
 
 type QuickHoldingEntryDrawerProps = {
   isOpen: boolean;
   initialMode: EntryMode;
   fixedAssetType?: AssetType;
+  editingHolding?: EditingHolding | null;
   onClose: () => void;
 };
 
 const inputClass = 'input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground';
 
-const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = ({ isOpen, initialMode, fixedAssetType, onClose }) => {
-  const { activeUser, persistenceStatus, addFundHolding, addStockHolding } = usePortfolioUsers();
+const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = ({ isOpen, initialMode, fixedAssetType, editingHolding, onClose }) => {
+  const { activeUser, persistenceStatus, addFundHolding, addStockHolding, updateFundHolding, updateStockHolding } = usePortfolioUsers();
   const [mode, setMode] = useState<EntryMode>(initialMode);
   const [assetType, setAssetType] = useState<AssetType>('fund');
   const selectedAssetType = fixedAssetType ?? assetType;
@@ -35,6 +40,20 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
 
+  useEffect(() => {
+    setMode(editingHolding ? 'manual' : initialMode);
+    if (!editingHolding) { resetManualForm(); return; }
+    setCode(editingHolding.holding.code); setName(editingHolding.holding.name); setNotes(editingHolding.holding.notes ?? '');
+    if (editingHolding.assetType === 'fund') {
+      setAmount(String(editingHolding.holding.amount)); setProfit(String(editingHolding.holding.profit)); setTargetAllocation(editingHolding.holding.targetAllocation == null ? '' : String(editingHolding.holding.targetAllocation));
+    } else {
+      setQuantity(String(editingHolding.holding.quantity)); setAverageCost(String(editingHolding.holding.averageCost)); setSecuritiesAccount(editingHolding.holding.securitiesAccount);
+    }
+    setFeedback('');
+  // resetManualForm intentionally belongs to this component and does not need a stable identity.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingHolding, initialMode, isOpen]);
+
   useEffect(() => () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
   }, [previewUrl]);
@@ -50,7 +69,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
     setNotes('');
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const normalizedCode = code.trim();
     const normalizedName = name.trim();
@@ -65,15 +84,18 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
         setFeedback('请填写有效的基金持有金额。');
         return;
       }
-      addFundHolding({
+      const nextHolding = {
         code: normalizedCode,
         name: normalizedName || normalizedCode,
         amount: numericAmount,
         profit: Number(profit) || 0,
         targetAllocation: targetAllocation ? Number(targetAllocation) : undefined,
         notes: notes.trim() || undefined,
-      });
-      setFeedback(`已添加到 ${activeUser.name} 的基金持仓。`);
+      };
+      if (editingHolding?.assetType === 'fund') {
+        if (!await updateFundHolding({ ...nextHolding, id: editingHolding.holding.id })) { setFeedback('保存失败，原持仓未被修改，请稍后重试。'); return; }
+        setFeedback(`已保存 ${activeUser.name} 的基金持仓。`);
+      } else { addFundHolding(nextHolding); setFeedback(`已添加到 ${activeUser.name} 的基金持仓。`); }
     } else {
       const numericQuantity = Number(quantity);
       const numericAverageCost = Number(averageCost);
@@ -81,15 +103,18 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
         setFeedback('请填写有效的持有数量和平均成本。');
         return;
       }
-      addStockHolding({
+      const nextHolding = {
         code: normalizedCode,
         name: normalizedName || normalizedCode,
         quantity: numericQuantity,
         averageCost: numericAverageCost,
         securitiesAccount: securitiesAccount.trim() || '默认证券账户',
         notes: notes.trim() || undefined,
-      });
-      setFeedback(`已添加到 ${activeUser.name} 的股票持仓。`);
+      };
+      if (editingHolding?.assetType === 'stock') {
+        if (!await updateStockHolding({ ...nextHolding, id: editingHolding.holding.id })) { setFeedback('保存失败，原持仓未被修改，请稍后重试。'); return; }
+        setFeedback(`已保存 ${activeUser.name} 的股票持仓。`);
+      } else { addStockHolding(nextHolding); setFeedback(`已添加到 ${activeUser.name} 的股票持仓。`); }
     }
     resetManualForm();
   };
@@ -104,7 +129,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
   };
 
   return (
-    <Drawer isOpen={isOpen} onClose={onClose} title="持仓快速录入" width="max-w-xl">
+    <Drawer isOpen={isOpen} onClose={onClose} title={editingHolding ? '编辑快速持仓' : '持仓快速录入'} width="max-w-xl">
       <div className="space-y-5">
         <InlineAlert variant="info" title={`录入到：${activeUser.name}`} message="新增内容只归属于当前用户，保存前请确认用户选择正确。" />
         {persistenceStatus === 'error' ? <InlineAlert variant="warning" message="本地数据库暂时不可用；本次改动可能不会在重启后保留。" /> : null}
@@ -119,7 +144,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
         </div>
 
         {mode === 'manual' ? (
-          <form className="space-y-4" onSubmit={handleSubmit}>
+          <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
             {fixedAssetType ? (
               <InlineAlert variant="info" message={fixedAssetType === 'fund' ? '当前位于基金中心，本次只录入基金持仓。' : '当前位于股票中心，本次只录入股票持仓。'} />
             ) : (
@@ -146,7 +171,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
               </div>
             )}
             <label className="space-y-1 text-xs text-secondary"><span>备注</span><textarea className="input-surface input-focus-glow min-h-24 w-full rounded-xl border bg-transparent px-4 py-3 text-sm text-foreground" value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-            <button type="submit" className="btn-primary w-full">确认添加持仓</button>
+            <button type="submit" className="btn-primary w-full">{editingHolding ? '确认保存修改' : '确认添加持仓'}</button>
           </form>
         ) : (
           <div className="space-y-4">

@@ -262,6 +262,19 @@ def remove_stock(user_id: str, holding_id: str, request: Request, db: Session = 
     db.delete(row); db.commit()
 
 
+@router.patch('/users/{user_id}/stocks/{holding_id}', response_model=WorkspaceStockHoldingItem)
+def update_stock(user_id: str, holding_id: str, payload: WorkspaceStockHoldingCreate, request: Request, db: Session = Depends(get_db)) -> WorkspaceStockHoldingItem:
+    _require_local(request); _require_user(db, user_id)
+    row = db.get(WorkspaceStockHolding, holding_id)
+    if row is None or row.user_id != user_id:
+        raise HTTPException(status_code=404, detail='workspace_portfolio.holding_not_found')
+    values = payload.model_dump(exclude={'id'})
+    for key, value in values.items():
+        setattr(row, key, value)
+    db.commit(); db.refresh(row)
+    return WorkspaceStockHoldingItem(id=row.id, **values)
+
+
 @router.post('/users/{user_id}/funds', response_model=WorkspaceFundHoldingItem, status_code=status.HTTP_201_CREATED)
 def create_fund(user_id: str, payload: WorkspaceFundHoldingCreate, request: Request, db: Session = Depends(get_db)) -> WorkspaceFundHoldingItem:
     _require_local(request); _require_user(db, user_id)
@@ -278,3 +291,16 @@ def remove_fund(user_id: str, holding_id: str, request: Request, db: Session = D
     if row is None or row.user_id != user_id:
         raise HTTPException(status_code=404, detail='workspace_portfolio.holding_not_found')
     db.delete(row); db.commit()
+
+
+@router.patch('/users/{user_id}/funds/{holding_id}', response_model=WorkspaceFundHoldingItem)
+def update_fund(user_id: str, holding_id: str, payload: WorkspaceFundHoldingCreate, request: Request, db: Session = Depends(get_db)) -> WorkspaceFundHoldingItem:
+    _require_local(request); _require_user(db, user_id)
+    row = db.get(WorkspaceFundHolding, holding_id)
+    if row is None or row.user_id != user_id:
+        raise HTTPException(status_code=404, detail='workspace_portfolio.holding_not_found')
+    values = payload.model_dump(exclude={'id'})
+    for key, value in values.items():
+        setattr(row, key, value)
+    db.commit(); db.refresh(row)
+    return WorkspaceFundHoldingItem(id=row.id, **values)

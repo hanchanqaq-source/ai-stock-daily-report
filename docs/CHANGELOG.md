@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] Build E3 为当前用户的股票/基金快速持仓增加分区编辑，保存先经 localhost API 校验并成功写入 SQLite 后才替换页面数据；跨用户或跨持仓更新被拒绝，失败时保留旧值。
 - [新功能] Build E2 为本机用户、股票快速持仓和基金快速持仓提供版本化 JSON 导出、严格预览校验、明确确认覆盖导入及导入/恢复前自动恢复点；备份明确不含 `.env`、密钥、DPAPI 凭证、设置或日志，接口继续只允许 localhost。
 - [新功能] App-M4.2.4A 桌面 Setup Status 接入 Windows DPAPI 安全凭证 configured 状态，通过只读低敏 overlay 复用后端既有计算规则，保持明文不回显、不注入后端 Provider、失败 fail closed。
 
