@@ -39,6 +39,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
   const [feedback, setFeedback] = useState('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [fileName, setFileName] = useState('');
+  const [screenshotConfirmation, setScreenshotConfirmation] = useState(false);
 
   useEffect(() => {
     setMode(editingHolding ? 'manual' : initialMode);
@@ -67,6 +68,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
     setQuantity('');
     setAverageCost('');
     setNotes('');
+    setScreenshotConfirmation(false);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -117,6 +119,8 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
       } else { addStockHolding(nextHolding); setFeedback(`已添加到 ${activeUser.name} 的股票持仓。`); }
     }
     resetManualForm();
+    setPreviewUrl(null);
+    setFileName('');
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,7 +129,8 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(URL.createObjectURL(file));
     setFileName(file.name);
-    setFeedback('截图已载入预览。真实文字和数字识别将在 M2.2 接入，当前不会自动写入持仓。');
+    setScreenshotConfirmation(false);
+    setFeedback('截图已载入本机预览。请按截图逐项填写，确认添加后才会写入持仓。');
   };
 
   return (
@@ -139,12 +144,13 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
             <span className="inline-flex items-center gap-2"><PlusCircle className="h-4 w-4" />手动录入</span>
           </button>
           <button type="button" className={mode === 'screenshot' ? 'btn-primary' : 'btn-secondary'} onClick={() => setMode('screenshot')}>
-            <span className="inline-flex items-center gap-2"><ImageUp className="h-4 w-4" />截图识别</span>
+            <span className="inline-flex items-center gap-2"><ImageUp className="h-4 w-4" />截图确认录入</span>
           </button>
         </div>
 
         {mode === 'manual' ? (
           <form className="space-y-4" onSubmit={(event) => void handleSubmit(event)}>
+            {screenshotConfirmation ? <InlineAlert variant="info" title="截图待确认录入" message={`正在依据 ${fileName || '当前截图'} 手动填写。截图只在本机预览；请逐项核对，确认添加后才会写入 ${activeUser.name} 的${selectedAssetType === 'fund' ? '基金' : '股票'}持仓。`} /> : null}
             {fixedAssetType ? (
               <InlineAlert variant="info" message={fixedAssetType === 'fund' ? '当前位于基金中心，本次只录入基金持仓。' : '当前位于股票中心，本次只录入股票持仓。'} />
             ) : (
@@ -179,7 +185,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
               <ImageUp className="h-8 w-8 text-cyan" />
               <span className="font-medium text-foreground">选择支付宝、基金或券商持仓截图</span>
               <span className="text-xs text-secondary">支持 PNG、JPG、WEBP；当前只在本机预览，不上传。</span>
-              <input className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFileChange} />
+              <input aria-label="选择持仓截图文件" className="sr-only" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleFileChange} />
             </label>
             {previewUrl ? (
               <div className="space-y-3 rounded-2xl border border-border/70 p-3">
@@ -188,9 +194,11 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
               </div>
             ) : null}
             <div className="rounded-2xl border border-border/70 bg-background/30 p-4">
-              <h3 className="font-semibold text-foreground">识别结果确认区</h3>
-              <p className="mt-2 text-sm leading-6 text-secondary">M2.2 接入识别后，这里会列出代码、名称、金额、数量和收益。你确认或修改后，才会写入当前用户持仓。</p>
-              <button type="button" className="btn-secondary mt-4 w-full" disabled>等待识别服务接入</button>
+              <h3 className="font-semibold text-foreground">本机截图确认区</h3>
+              <p className="mt-2 text-sm leading-6 text-secondary">本阶段不自动识别截图，也不会上传、覆盖或直接写入持仓。请先核对截图，再进入手动填写；确认添加后才会保存到当前用户的{selectedAssetType === 'fund' ? '基金' : '股票'}持仓。</p>
+              <button type="button" className="btn-primary mt-4 w-full" disabled={!previewUrl} onClick={() => { setMode('manual'); setScreenshotConfirmation(true); setFeedback('请依据截图逐项填写并确认添加。'); }}>
+                按截图手动填写并确认
+              </button>
             </div>
           </div>
         )}
