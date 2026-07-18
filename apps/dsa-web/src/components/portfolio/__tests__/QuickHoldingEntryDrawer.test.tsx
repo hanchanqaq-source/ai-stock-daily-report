@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PortfolioUserProvider, usePortfolioUsers } from '../../../contexts/PortfolioUserContext';
 import { UiLanguageProvider } from '../../../contexts/UiLanguageContext';
 import { QuickHoldingEntryDrawer } from '../QuickHoldingEntryDrawer';
@@ -26,6 +26,8 @@ function renderDrawer(initialMode: 'manual' | 'screenshot' = 'manual', fixedAsse
 }
 
 describe('QuickHoldingEntryDrawer', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
   it('adds a fund holding to the current user', () => {
     renderDrawer();
 
@@ -37,11 +39,29 @@ describe('QuickHoldingEntryDrawer', () => {
     expect(screen.getByText('已添加到 本人 的基金持仓。')).toBeInTheDocument();
   });
 
-  it('shows the screenshot preview and confirmation area', () => {
+  it('requires a local screenshot preview before manual confirmation entry', () => {
     renderDrawer('screenshot');
 
-    expect(screen.getByText('识别结果确认区')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '等待识别服务接入' })).toBeDisabled();
+    expect(screen.getByText('本机截图确认区')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '按截图手动填写并确认' })).toBeDisabled();
+    expect(screen.getByText('支持 PNG、JPG、WEBP；当前只在本机预览，不上传。')).toBeInTheDocument();
+  });
+
+  it('opens the manually confirmed form only after a local screenshot is selected', () => {
+    vi.stubGlobal('URL', { createObjectURL: vi.fn(() => 'blob:holding-preview'), revokeObjectURL: vi.fn() });
+    renderDrawer('screenshot', 'fund');
+
+    const file = new File(['image'], 'fund-holdings.png', { type: 'image/png' });
+    fireEvent.change(screen.getByLabelText('选择持仓截图文件'), { target: { files: [file] } });
+
+    expect(screen.getByAltText('持仓截图预览')).toBeInTheDocument();
+    const confirmButton = screen.getByRole('button', { name: '按截图手动填写并确认' });
+    expect(confirmButton).toBeEnabled();
+    fireEvent.click(confirmButton);
+
+    expect(screen.getByText('截图待确认录入')).toBeInTheDocument();
+    expect(screen.getByText('当前位于基金中心，本次只录入基金持仓。')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('如 017811')).toBeInTheDocument();
   });
 
   it('locks quick entry to stocks inside the stock center', () => {

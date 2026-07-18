@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] Build F1 为股票/基金中心增加本机“截图确认录入”：截图只在当前窗口预览，用户必须逐项手动核对并确认后才写入当前用户对应领域的快速持仓；不上传、不自动识别、不自动覆盖。
 - [新功能] Build E4 为股票/基金快速持仓增加删除确认和按用户隔离的本机回收站，可恢复最近删除记录；不包含密钥、设置或真实账户数据。
 - [新功能] Build E3 为当前用户的股票/基金快速持仓增加分区编辑，保存先经 localhost API 校验并成功写入 SQLite 后才替换页面数据；跨用户或跨持仓更新被拒绝，失败时保留旧值。
 - [新功能] Build E2 为本机用户、股票快速持仓和基金快速持仓提供版本化 JSON 导出、严格预览校验、明确确认覆盖导入及导入/恢复前自动恢复点；备份明确不含 `.env`、密钥、DPAPI 凭证、设置或日志，接口继续只允许 localhost。
