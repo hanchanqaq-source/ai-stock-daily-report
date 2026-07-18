@@ -53,9 +53,35 @@ function restorePortableUpdateRecoveryPoint({ appDir, backupRoot, fsModule = fs 
   return manifest;
 }
 
+function replacePortableProgramFiles({ appDir, extractedAppDir, backupRoot, fsModule = fs }) {
+  if (!path.isAbsolute(appDir) || !path.isAbsolute(extractedAppDir)) {
+    throw new Error('便携更新替换路径必须是绝对路径');
+  }
+  const stagedEntries = listReplaceableProgramEntries(extractedAppDir, fsModule);
+  if (stagedEntries.length === 0) {
+    throw new Error('临时解压目录不含可替换程序文件');
+  }
+  createPortableUpdateRecoveryPoint({ appDir, backupRoot, fsModule });
+  try {
+    for (const name of listReplaceableProgramEntries(appDir, fsModule)) {
+      fsModule.rmSync(path.join(appDir, name), { recursive: true, force: true });
+    }
+    for (const name of stagedEntries) {
+      fsModule.cpSync(path.join(extractedAppDir, name), path.join(appDir, name), {
+        recursive: true, force: true, errorOnExist: false,
+      });
+    }
+    return { replacedEntries: stagedEntries };
+  } catch (error) {
+    restorePortableUpdateRecoveryPoint({ appDir, backupRoot, fsModule });
+    throw error;
+  }
+}
+
 module.exports = {
   PRESERVED_PORTABLE_DIRECTORIES,
   createPortableUpdateRecoveryPoint,
   listReplaceableProgramEntries,
+  replacePortableProgramFiles,
   restorePortableUpdateRecoveryPoint,
 };
