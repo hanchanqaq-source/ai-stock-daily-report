@@ -209,6 +209,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
+- [新功能] Portable-M2.2A 新增本机恢复点基础：只备份和恢复可替换程序文件，明确排除 data/config/logs/plugins；尚未连接解压、替换或重启入口。
+- [测试] 覆盖 Portable-M2.2A 恢复点创建、程序文件恢复、用户数据保留和恢复点路径限制。
 - [改进] Portable-M2.1.2 在 SHA-256 一致后追加 ZIP 只读结构检查：必须包含中文 EXE、打包后的 backend EXE，以及 data/logs/config/plugins 目录；仍不解压或替换文件。
 - [测试] 补充 Portable ZIP 中央目录结构完整与缺失中文 EXE、backend EXE、必要目录时拒绝的回归覆盖。
 - [新功能] Portable-M2.1 新增便携更新包 SHA-256 只读校验：仅便携版可手动选择 ZIP 与 `.sha256`，明确显示通过/拒绝；不下载、不解压、不替换、不删除、不重启，且不修改 data/config/logs/plugins 或持仓数据。
