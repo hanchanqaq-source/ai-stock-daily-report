@@ -16,7 +16,7 @@ from sqlalchemy.sql import func
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from src.config import Config
-from src.storage import Base, CURRENT_SCHEMA_VERSION, DatabaseManager, DatabaseSchemaMigration, StockDaily
+from src.storage import Base, CURRENT_SCHEMA_VERSION, WORKSPACE_ACTIVE_USER_MIGRATION_VERSION, DatabaseManager, DatabaseSchemaMigration, StockDaily
 
 class TestStorage(unittest.TestCase):
 
@@ -157,11 +157,24 @@ class TestStorage(unittest.TestCase):
 
         with db.get_session() as session:
             count = session.execute(
-                select(func.count()).select_from(DatabaseSchemaMigration)
+                select(func.count()).select_from(DatabaseSchemaMigration).where(
+                    DatabaseSchemaMigration.version == CURRENT_SCHEMA_VERSION
+                )
             ).scalar_one()
 
         self.assertEqual(count, 1)
 
+        DatabaseManager.reset_instance()
+
+    def test_workspace_active_user_migration_is_recorded(self):
+        DatabaseManager.reset_instance()
+        db = DatabaseManager(db_url="sqlite:///:memory:")
+
+        with db.get_session() as session:
+            row = session.get(DatabaseSchemaMigration, WORKSPACE_ACTIVE_USER_MIGRATION_VERSION)
+
+        self.assertIsNotNone(row)
+        self.assertIn("active-user", row.description)
         DatabaseManager.reset_instance()
 
     def test_schema_migration_record_handles_concurrent_initialization(self):

@@ -6,6 +6,7 @@ export type WorkspaceStockHoldingDto = { id: string; code: string; name: string;
 export type WorkspaceFundHoldingDto = { id: string; code: string; name: string; amount: number; profit: number; targetAllocation?: number; notes?: string };
 export type WorkspacePortfolioStateDto = {
   users: WorkspaceUserDto[];
+  activeUserId: string;
   stockHoldingsByUser: Record<string, WorkspaceStockHoldingDto[]>;
   fundHoldingsByUser: Record<string, WorkspaceFundHoldingDto[]>;
 };
@@ -55,6 +56,10 @@ export const workspacePortfolioApi = {
   },
   async removeUser(id: string): Promise<void> {
     await apiClient.delete(`/api/v1/workspace-portfolio/users/${encodeURIComponent(id)}`);
+  },
+  async setActiveUser(id: string): Promise<WorkspacePortfolioStateDto> {
+    const response = await apiClient.put<Record<string, unknown>>(`/api/v1/workspace-portfolio/active-user/${encodeURIComponent(id)}`);
+    return toCamelCase<WorkspacePortfolioStateDto>(response.data);
   },
   async createStock(userId: string, holding: WorkspaceStockHoldingDto): Promise<void> {
     await apiClient.post(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/stocks`, snakeStock(holding));

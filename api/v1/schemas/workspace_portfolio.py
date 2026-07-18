@@ -57,6 +57,7 @@ class WorkspaceFundHoldingItem(WorkspaceFundHoldingCreate):
 
 class WorkspacePortfolioState(WorkspaceBackupModel):
     users: List[WorkspaceUserItem]
+    active_user_id: str = Field(..., min_length=1, max_length=64)
     stock_holdings_by_user: dict[str, List[WorkspaceStockHoldingItem]]
     fund_holdings_by_user: dict[str, List[WorkspaceFundHoldingItem]]
 

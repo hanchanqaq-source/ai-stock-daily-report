@@ -113,7 +113,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     setUsers(nextUsers);
     setFundHoldingsByUser(state.fundHoldingsByUser);
     setStockHoldingsByUser(state.stockHoldingsByUser);
-    setActiveUserIdState((current) => nextUsers.some((user) => user.id === current) ? current : PRIMARY_USER.id);
+    setActiveUserIdState(nextUsers.some((user) => user.id === state.activeUserId) ? state.activeUserId : PRIMARY_USER.id);
     setPersistenceStatus('ready');
   }, []);
 
@@ -124,7 +124,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
       setUsers(state.users.length ? state.users : [PRIMARY_USER]);
       setFundHoldingsByUser(state.fundHoldingsByUser);
       setStockHoldingsByUser(state.stockHoldingsByUser);
-      setActiveUserIdState((current) => state.users.some((user) => user.id === current) ? current : PRIMARY_USER.id);
+      setActiveUserIdState(state.users.some((user) => user.id === state.activeUserId) ? state.activeUserId : PRIMARY_USER.id);
       setPersistenceStatus('ready');
     }).catch(() => {
       if (active) setPersistenceStatus('error');
@@ -137,8 +137,10 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
   const activeStockHoldings = stockHoldingsByUser[activeUser.id] ?? EMPTY_STOCK_HOLDINGS;
 
   const setActiveUserId = useCallback((id: string) => {
-    setActiveUserIdState((current) => (users.some((user) => user.id === id) ? id : current));
-  }, [users]);
+    if (!users.some((user) => user.id === id)) return;
+    setActiveUserIdState(id);
+    persist(workspacePortfolioApi.setActiveUser(id).then(replaceWorkspaceState));
+  }, [persist, replaceWorkspaceState, users]);
 
   const addUser = useCallback((name: string): PortfolioUserProfile | null => {
     const normalized = normalizeName(name);
@@ -154,9 +156,9 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     setFundHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_FUND_HOLDINGS }));
     setStockHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_STOCK_HOLDINGS }));
     setActiveUserIdState(nextUser.id);
-    persist(workspacePortfolioApi.createUser(nextUser));
+    persist(workspacePortfolioApi.createUser(nextUser).then(() => workspacePortfolioApi.setActiveUser(nextUser.id)).then(replaceWorkspaceState));
     return nextUser;
-  }, [persist]);
+  }, [persist, replaceWorkspaceState]);
 
   const renameUser = useCallback((id: string, name: string): boolean => {
     const normalized = normalizeName(name);

@@ -62,6 +62,7 @@ from src.utils.sniper_points import extract_sniper_points, parse_sniper_value
 logger = logging.getLogger(__name__)
 T = TypeVar("T")
 CURRENT_SCHEMA_VERSION = "2026-06-05-create-all-baseline"
+WORKSPACE_ACTIVE_USER_MIGRATION_VERSION = "2026-07-18-workspace-active-user-v1"
 INTELLIGENCE_ITEM_NULL_SCOPE_VALUE = "__dsa_null_scope__"
 
 # SQLAlchemy ORM 基类
@@ -1112,6 +1113,16 @@ class WorkspaceUser(Base):
     updated_at = Column(DateTime, default=utc_naive_now, onupdate=utc_naive_now, nullable=False)
 
 
+class WorkspacePortfolioPreference(Base):
+    """Low-sensitivity local workspace preference, separate from holdings."""
+
+    __tablename__ = 'workspace_portfolio_preferences'
+
+    key = Column(String(64), primary_key=True)
+    value = Column(String(64), nullable=False)
+    updated_at = Column(DateTime, default=utc_naive_now, onupdate=utc_naive_now, nullable=False)
+
+
 class WorkspaceStockHolding(Base):
     """A manually entered stock holding owned by one workspace profile."""
 
@@ -1265,6 +1276,7 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             self._ensure_llm_usage_telemetry_columns()
             self._ensure_intelligence_item_scope_values()
             self._ensure_schema_migration_record()
+            self._ensure_workspace_active_user_migration_record()
             self._ensure_intelligence_items_unique_index()
 
             self._initialized = True
@@ -1302,6 +1314,33 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             session.rollback()
             with self._SessionLocal() as verify_session:
                 existing = verify_session.get(DatabaseSchemaMigration, CURRENT_SCHEMA_VERSION)
+            if existing is None:
+                raise
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    def _ensure_workspace_active_user_migration_record(self) -> None:
+        """Record the additive local active-user preference migration once."""
+        session = self._SessionLocal()
+        values = {
+            "version": WORKSPACE_ACTIVE_USER_MIGRATION_VERSION,
+            "description": "Add local workspace active-user preference storage",
+        }
+        try:
+            if self._is_sqlite_engine:
+                statement = sqlite_insert(DatabaseSchemaMigration).values(**values)
+                statement = statement.on_conflict_do_nothing(index_elements=["version"])
+                session.execute(statement)
+            else:
+                session.execute(DatabaseSchemaMigration.__table__.insert().values(**values))
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            with self._SessionLocal() as verify_session:
+                existing = verify_session.get(DatabaseSchemaMigration, WORKSPACE_ACTIVE_USER_MIGRATION_VERSION)
             if existing is None:
                 raise
         except Exception:
