@@ -103,3 +103,11 @@ class WorkspaceHoldingRecycleItem(WorkspaceBackupModel):
     asset_type: Literal['stock', 'fund']
     holding: WorkspaceStockHoldingItem | WorkspaceFundHoldingItem
     created_at: str
+
+
+class WorkspaceHoldingHistoryItem(WorkspaceBackupModel):
+    id: str
+    asset_type: Literal['stock', 'fund']
+    action: Literal['created', 'updated', 'deleted', 'restored']
+    holding: WorkspaceStockHoldingItem | WorkspaceFundHoldingItem
+    created_at: str
