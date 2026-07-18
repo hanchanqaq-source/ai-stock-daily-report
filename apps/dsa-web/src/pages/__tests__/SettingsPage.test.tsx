@@ -24,6 +24,7 @@ const {
   desktopOnUpdateStateChange,
   desktopOpenReleasePage,
   desktopVerifyPortableUpdate,
+  desktopApplyPortableUpdate,
   load,
   clearToast,
   setActiveCategory,
@@ -57,6 +58,7 @@ const {
   desktopOnUpdateStateChange: vi.fn(),
   desktopOpenReleasePage: vi.fn(),
   desktopVerifyPortableUpdate: vi.fn(),
+  desktopApplyPortableUpdate: vi.fn(),
   load: vi.fn(),
   clearToast: vi.fn(),
   setActiveCategory: vi.fn(),
@@ -255,6 +257,7 @@ function createDesktopRuntime(overrides: Record<string, unknown> = {}) {
     installDownloadedUpdate: desktopInstallDownloadedUpdate,
     openReleasePage: desktopOpenReleasePage,
     verifyPortableUpdate: desktopVerifyPortableUpdate,
+    applyPortableUpdate: desktopApplyPortableUpdate,
     onUpdateStateChange: desktopOnUpdateStateChange,
     ...overrides,
   };
@@ -2783,6 +2786,17 @@ describe('SettingsPage', () => {
     render(<SettingsPage />);
 
     expect(screen.queryByRole('button', { name: '校验便携更新包' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '备份并安全更新' })).not.toBeInTheDocument();
+  });
+
+  it('starts the confirmed portable update only from the portable-only action', async () => {
+    desktopApplyPortableUpdate.mockResolvedValue({ started: true });
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime({ isPortableBuild: true });
+    render(<SettingsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: '备份并安全更新' }));
+    await waitFor(() => expect(desktopApplyPortableUpdate).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText(/已创建恢复点，应用正在退出并更新/)).toBeInTheDocument();
+    expect(desktopInstallDownloadedUpdate).not.toHaveBeenCalled();
   });
 
   it('shows a clear rejection when the portable checksum does not match', async () => {

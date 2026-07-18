@@ -44,6 +44,7 @@ type DesktopWindow = Window & {
     installDownloadedUpdate?: () => Promise<boolean>;
     openReleasePage?: (releaseUrl?: string) => Promise<boolean>;
     verifyPortableUpdate?: () => Promise<RawPortableUpdateVerification>;
+    applyPortableUpdate?: () => Promise<RawPortableUpdateApplyResult>;
     onUpdateStateChange?: (listener: (state: RawDesktopUpdateState) => void) => (() => void) | void;
   };
 };
@@ -60,6 +61,12 @@ type RawPortableUpdateVerification = {
 type PortableUpdateVerificationNotice = {
   message: string;
   variant: 'error' | 'success';
+};
+
+type RawPortableUpdateApplyResult = {
+  canceled?: unknown;
+  started?: unknown;
+  error?: unknown;
 };
 
 type DesktopUpdateState = {
@@ -937,6 +944,7 @@ const SettingsPage: React.FC = () => {
   const [desktopUpdateState, setDesktopUpdateState] = useState<DesktopUpdateState | null>(null);
   const [isCheckingDesktopUpdate, setIsCheckingDesktopUpdate] = useState(false);
   const [isVerifyingPortableUpdate, setIsVerifyingPortableUpdate] = useState(false);
+  const [isApplyingPortableUpdate, setIsApplyingPortableUpdate] = useState(false);
   const [portableUpdateVerificationNotice, setPortableUpdateVerificationNotice] = useState<PortableUpdateVerificationNotice | null>(null);
   const [schedulerStatusRefreshToken, setSchedulerStatusRefreshToken] = useState(0);
   const [schedulerRuntimeEnabled, setSchedulerRuntimeEnabled] = useState<boolean | null>(null);
@@ -957,6 +965,7 @@ const SettingsPage: React.FC = () => {
   const desktopAppVersion = getDesktopAppVersion();
   const shouldShowDesktopVersionCard = Boolean(desktopAppVersion);
   const canVerifyPortableUpdate = isPortableDesktopBuild() && Boolean(desktopRuntimeApi?.verifyPortableUpdate);
+  const canApplyPortableUpdate = isPortableDesktopBuild() && Boolean(desktopRuntimeApi?.applyPortableUpdate);
 
   // Set page title
   useEffect(() => {
@@ -1314,6 +1323,24 @@ const SettingsPage: React.FC = () => {
       });
     } finally {
       setIsVerifyingPortableUpdate(false);
+    }
+  };
+
+  const handlePortableUpdateApply = async () => {
+    if (!desktopRuntimeApi?.applyPortableUpdate) return;
+    setIsApplyingPortableUpdate(true);
+    setPortableUpdateVerificationNotice(null);
+    try {
+      const result = await desktopRuntimeApi.applyPortableUpdate();
+      if (result?.started === true) {
+        setPortableUpdateVerificationNotice({ variant: 'success', message: '已创建恢复点，应用正在退出并更新；若新版本在启动验证期内退出，将自动回退。' });
+      } else if (result?.canceled !== true) {
+        setPortableUpdateVerificationNotice({ variant: 'error', message: `更新被拒绝：${typeof result?.error === 'string' ? result.error : '未开始替换任何文件。'}` });
+      }
+    } catch (error: unknown) {
+      setPortableUpdateVerificationNotice({ variant: 'error', message: `更新被拒绝：${error instanceof Error ? error.message : '无法创建恢复点。'}` });
+    } finally {
+      setIsApplyingPortableUpdate(false);
     }
   };
 
@@ -1810,6 +1837,14 @@ const SettingsPage: React.FC = () => {
                         message={portableUpdateVerificationNotice.message}
                         variant={portableUpdateVerificationNotice.variant}
                       />
+                    ) : null}
+                    {canApplyPortableUpdate ? (
+                      <div className="border-t settings-border pt-3">
+                        <p className="mb-2 text-xs leading-6 text-muted-text">校验通过后可在此手动更新。将先显示系统确认，再创建恢复点并仅替换程序文件；不会覆盖 data、config、logs、plugins 或持仓数据。</p>
+                        <Button type="button" variant="settings-secondary" onClick={() => void handlePortableUpdateApply()} disabled={isApplyingPortableUpdate} isLoading={isApplyingPortableUpdate} loadingText="正在准备更新">
+                          备份并安全更新
+                        </Button>
+                      </div>
                     ) : null}
                   </div>
                 ) : null}
