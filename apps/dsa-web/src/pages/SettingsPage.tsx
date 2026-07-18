@@ -38,12 +38,25 @@ import type { UiLanguage, UiTextKey } from '../i18n/uiText';
 type DesktopWindow = Window & {
   dsaDesktop?: {
     version?: unknown;
+    isPortableBuild?: unknown;
     getUpdateState?: () => Promise<RawDesktopUpdateState>;
     checkForUpdates?: () => Promise<RawDesktopUpdateState>;
     installDownloadedUpdate?: () => Promise<boolean>;
     openReleasePage?: (releaseUrl?: string) => Promise<boolean>;
+    verifyPortableUpdate?: () => Promise<RawPortableUpdateVerification>;
     onUpdateStateChange?: (listener: (state: RawDesktopUpdateState) => void) => (() => void) | void;
   };
+};
+
+type RawPortableUpdateVerification = {
+  canceled?: unknown;
+  valid?: unknown;
+  error?: unknown;
+};
+
+type PortableUpdateVerificationNotice = {
+  message: string;
+  variant: 'error' | 'success';
 };
 
 type DesktopUpdateState = {
@@ -218,6 +231,30 @@ function getDesktopRuntimeApi() {
 
 function getDesktopAppVersion() {
   return trimDesktopRuntimeString(getDesktopRuntimeApi()?.version);
+}
+
+function isPortableDesktopBuild() {
+  return getDesktopRuntimeApi()?.isPortableBuild === true;
+}
+
+function getPortableUpdateVerificationNotice(
+  result: RawPortableUpdateVerification | null,
+): PortableUpdateVerificationNotice | null {
+  if (!result || result.canceled === true) {
+    return null;
+  }
+  if (result.valid === true) {
+    return {
+      variant: 'success',
+      message: '文件校验通过，尚未安装或替换任何文件。',
+    };
+  }
+  return {
+    variant: 'error',
+    message: typeof result.error === 'string' && result.error.trim()
+      ? `校验被拒绝：${result.error.trim()}`
+      : '校验被拒绝：ZIP 文件与对应 SHA-256 校验文件不匹配。',
+  };
 }
 
 function normalizeDesktopUpdateState(state: RawDesktopUpdateState | null | undefined) {
@@ -890,6 +927,8 @@ const SettingsPage: React.FC = () => {
   const [pendingSensitiveClearKey, setPendingSensitiveClearKey] = useState<string | null>(null);
   const [desktopUpdateState, setDesktopUpdateState] = useState<DesktopUpdateState | null>(null);
   const [isCheckingDesktopUpdate, setIsCheckingDesktopUpdate] = useState(false);
+  const [isVerifyingPortableUpdate, setIsVerifyingPortableUpdate] = useState(false);
+  const [portableUpdateVerificationNotice, setPortableUpdateVerificationNotice] = useState<PortableUpdateVerificationNotice | null>(null);
   const [schedulerStatusRefreshToken, setSchedulerStatusRefreshToken] = useState(0);
   const [schedulerRuntimeEnabled, setSchedulerRuntimeEnabled] = useState<boolean | null>(null);
   const [schedulerOverrideFromUi, setSchedulerOverrideFromUi] = useState<boolean | null>(null);
@@ -908,6 +947,7 @@ const SettingsPage: React.FC = () => {
   );
   const desktopAppVersion = getDesktopAppVersion();
   const shouldShowDesktopVersionCard = Boolean(desktopAppVersion);
+  const canVerifyPortableUpdate = isPortableDesktopBuild() && Boolean(desktopRuntimeApi?.verifyPortableUpdate);
 
   // Set page title
   useEffect(() => {
@@ -1245,6 +1285,26 @@ const SettingsPage: React.FC = () => {
       });
     } finally {
       setIsCheckingDesktopUpdate(false);
+    }
+  };
+
+  const handlePortableUpdateVerification = async () => {
+    if (!desktopRuntimeApi?.verifyPortableUpdate) {
+      return;
+    }
+
+    setIsVerifyingPortableUpdate(true);
+    setPortableUpdateVerificationNotice(null);
+    try {
+      const result = await desktopRuntimeApi.verifyPortableUpdate();
+      setPortableUpdateVerificationNotice(getPortableUpdateVerificationNotice(result));
+    } catch (error: unknown) {
+      setPortableUpdateVerificationNotice({
+        variant: 'error',
+        message: `校验被拒绝：${error instanceof Error ? error.message : '无法读取所选文件。'}`,
+      });
+    } finally {
+      setIsVerifyingPortableUpdate(false);
     }
   };
 
@@ -1713,6 +1773,35 @@ const SettingsPage: React.FC = () => {
                         {t('settings.desktopCurrentNoStatus')}
                       </p>
                     )}
+                  </div>
+                ) : null}
+                {canVerifyPortableUpdate ? (
+                  <div className="mt-4 space-y-3 rounded-2xl border settings-border bg-background/30 px-4 py-4" data-testid="portable-update-verification">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">校验便携更新包</p>
+                        <p className="text-xs leading-6 text-muted-text">
+                          手动选择 Portable ZIP 与对应 .sha256，只核验 SHA-256；不会下载、解压、替换、删除或重启程序，也不会修改 data、config、logs、plugins 或持仓数据。
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="settings-secondary"
+                        onClick={() => void handlePortableUpdateVerification()}
+                        disabled={isVerifyingPortableUpdate}
+                        isLoading={isVerifyingPortableUpdate}
+                        loadingText="正在校验"
+                      >
+                        校验便携更新包
+                      </Button>
+                    </div>
+                    {portableUpdateVerificationNotice ? (
+                      <SettingsAlert
+                        title={portableUpdateVerificationNotice.variant === 'success' ? '校验通过' : '校验未通过'}
+                        message={portableUpdateVerificationNotice.message}
+                        variant={portableUpdateVerificationNotice.variant}
+                      />
+                    ) : null}
                   </div>
                 ) : null}
                 {WEB_BUILD_INFO.isFallbackVersion ? (

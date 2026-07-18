@@ -32,3 +32,7 @@ test('portable build includes the compiled backend resource contract', () => {
     entry.from === '../../dist/backend/stock_analysis' && entry.to === 'backend/stock_analysis'
   )));
 });
+
+test('portable build packages the read-only update verifier with the desktop main process', () => {
+  assert.ok(packageJson.build.files.includes('portableUpdateVerifier.js'));
+});
