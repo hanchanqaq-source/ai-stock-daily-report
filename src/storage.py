@@ -1144,6 +1144,22 @@ class WorkspaceFundHolding(Base):
     created_at = Column(DateTime, default=utc_naive_now, nullable=False)
 
 
+class WorkspacePortfolioBackup(Base):
+    """A local restore point for the quick stock/fund workspace only.
+
+    The JSON snapshot deliberately excludes settings, credentials, logs and any
+    other application data.  It exists so an explicit workspace import can be
+    reversed without asking the user to re-enter holdings.
+    """
+
+    __tablename__ = 'workspace_portfolio_backups'
+
+    id = Column(String(64), primary_key=True)
+    reason = Column(String(32), nullable=False, default='before_import')
+    snapshot_json = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=utc_naive_now, nullable=False, index=True)
+
+
 class _DatabaseManagerMeta(type):
     """Serialize DatabaseManager construction across __new__ and __init__."""
 

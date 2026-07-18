@@ -9,6 +9,27 @@ export type WorkspacePortfolioStateDto = {
   stockHoldingsByUser: Record<string, WorkspaceStockHoldingDto[]>;
   fundHoldingsByUser: Record<string, WorkspaceFundHoldingDto[]>;
 };
+export type WorkspacePortfolioBackupDto = WorkspacePortfolioStateDto & {
+  format: 'dsa-workspace-portfolio-backup';
+  version: 1;
+  exportedAt: string;
+};
+export type WorkspacePortfolioBackupPreviewDto = {
+  users: number;
+  stockHoldings: number;
+  fundHoldings: number;
+  exportedAt: string;
+  willReplaceCurrentWorkspace: boolean;
+};
+export type WorkspacePortfolioRestorePointDto = {
+  id: string;
+  reason: 'before_import' | 'before_restore';
+  createdAt: string;
+};
+export type WorkspacePortfolioBackupImportResultDto = {
+  state: WorkspacePortfolioStateDto;
+  restorePointId: string;
+};
 
 const snakeStock = (item: WorkspaceStockHoldingDto) => ({
   id: item.id, code: item.code, name: item.name, quantity: item.quantity,
@@ -44,5 +65,25 @@ export const workspacePortfolioApi = {
   },
   async removeFund(userId: string, id: string): Promise<void> {
     await apiClient.delete(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/funds/${encodeURIComponent(id)}`);
+  },
+  async exportBackup(): Promise<WorkspacePortfolioBackupDto> {
+    const response = await apiClient.get<Record<string, unknown>>('/api/v1/workspace-portfolio/backup/export');
+    return toCamelCase<WorkspacePortfolioBackupDto>(response.data);
+  },
+  async previewBackup(backup: unknown): Promise<WorkspacePortfolioBackupPreviewDto> {
+    const response = await apiClient.post<Record<string, unknown>>('/api/v1/workspace-portfolio/backup/preview', backup);
+    return toCamelCase<WorkspacePortfolioBackupPreviewDto>(response.data);
+  },
+  async importBackup(backup: unknown): Promise<WorkspacePortfolioBackupImportResultDto> {
+    const response = await apiClient.post<Record<string, unknown>>('/api/v1/workspace-portfolio/backup/import', { backup, confirmed: true });
+    return toCamelCase<WorkspacePortfolioBackupImportResultDto>(response.data);
+  },
+  async listRestorePoints(): Promise<WorkspacePortfolioRestorePointDto[]> {
+    const response = await apiClient.get<Record<string, unknown>[]>('/api/v1/workspace-portfolio/backup/restore-points');
+    return toCamelCase<WorkspacePortfolioRestorePointDto[]>(response.data);
+  },
+  async restoreBackup(id: string): Promise<WorkspacePortfolioBackupImportResultDto> {
+    const response = await apiClient.post<Record<string, unknown>>(`/api/v1/workspace-portfolio/backup/restore-points/${encodeURIComponent(id)}`, { confirmed: true });
+    return toCamelCase<WorkspacePortfolioBackupImportResultDto>(response.data);
   },
 };

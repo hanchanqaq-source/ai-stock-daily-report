@@ -61,6 +61,48 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         self.assertNotIn('user-delete', {item['id'] for item in state['users']})
         self.assertNotIn('user-delete', state['stock_holdings_by_user'])
 
+    def test_backup_preview_import_and_restore_keep_only_workspace_data(self) -> None:
+        self.client.get('/api/v1/workspace-portfolio')
+        self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-backup', 'name': '备份用户'})
+        self.client.post('/api/v1/workspace-portfolio/users/user-backup/stocks', json={
+            'id': 'stock-backup', 'code': '600519', 'name': '贵州茅台', 'quantity': 2,
+            'average_cost': 1500, 'securities_account': '账户A',
+        })
+        exported = self.client.get('/api/v1/workspace-portfolio/backup/export')
+        self.assertEqual(exported.status_code, 200, exported.text)
+        backup = exported.json()
+        self.assertEqual(backup['format'], 'dsa-workspace-portfolio-backup')
+        self.assertEqual(set(backup), {'format', 'version', 'exported_at', 'users', 'stock_holdings_by_user', 'fund_holdings_by_user'})
+        preview = self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertEqual(preview.json()['stock_holdings'], 1)
+
+        self.client.post('/api/v1/workspace-portfolio/users/self/funds', json={
+            'id': 'fund-current', 'code': '000001', 'name': '当前基金', 'amount': 2000, 'profit': 30,
+        })
+        rejected = self.client.post('/api/v1/workspace-portfolio/backup/import', json={'backup': backup, 'confirmed': False})
+        self.assertEqual(rejected.status_code, 409)
+        self.assertEqual(self.client.get('/api/v1/workspace-portfolio').json()['fund_holdings_by_user']['self'][0]['id'], 'fund-current')
+
+        imported = self.client.post('/api/v1/workspace-portfolio/backup/import', json={'backup': backup, 'confirmed': True})
+        self.assertEqual(imported.status_code, 200, imported.text)
+        self.assertEqual(imported.json()['state']['stock_holdings_by_user']['user-backup'][0]['id'], 'stock-backup')
+        self.assertEqual(imported.json()['state']['fund_holdings_by_user']['self'], [])
+        restore_points = self.client.get('/api/v1/workspace-portfolio/backup/restore-points').json()
+        self.assertEqual(restore_points[0]['reason'], 'before_import')
+
+        restored = self.client.post(f"/api/v1/workspace-portfolio/backup/restore-points/{restore_points[0]['id']}", json={'confirmed': True})
+        self.assertEqual(restored.status_code, 200, restored.text)
+        self.assertEqual(restored.json()['state']['fund_holdings_by_user']['self'][0]['id'], 'fund-current')
+
+    def test_backup_rejects_unknown_users_and_unknown_fields(self) -> None:
+        backup = self.client.get('/api/v1/workspace-portfolio/backup/export').json()
+        backup['stock_holdings_by_user']['unknown-user'] = []
+        self.assertEqual(self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup).status_code, 422)
+        backup = self.client.get('/api/v1/workspace-portfolio/backup/export').json()
+        backup['secret'] = 'must-not-be-accepted'
+        self.assertEqual(self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup).status_code, 422)
+
 
 if __name__ == '__main__':
     unittest.main()
