@@ -36,3 +36,7 @@ test('portable build includes the compiled backend resource contract', () => {
 test('portable build packages the read-only update verifier with the desktop main process', () => {
   assert.ok(packageJson.build.files.includes('portableUpdateVerifier.js'));
 });
+
+test('portable build packages the M2.2 recovery module with the desktop main process', () => {
+  assert.ok(packageJson.build.files.includes('portableUpdateRecovery.js'));
+});
