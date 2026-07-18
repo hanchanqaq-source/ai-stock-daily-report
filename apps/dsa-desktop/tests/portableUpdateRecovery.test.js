@@ -5,6 +5,7 @@ const path = require('node:path');
 const test = require('node:test');
 const {
   createPortableUpdateRecoveryPoint,
+  replacePortableProgramFiles,
   restorePortableUpdateRecoveryPoint,
 } = require('../portableUpdateRecovery');
 
@@ -48,5 +49,21 @@ test('recovery rejects backup roots outside the portable program directory', () 
   const { root, appDir } = fixture();
   try {
     assert.throws(() => createPortableUpdateRecoveryPoint({ appDir, backupRoot: path.join(root, 'outside') }));
+  } finally { fs.rmSync(root, { recursive: true, force: true }); }
+});
+
+test('replacement updates only program files and preserves data, logs, config, and plugins', () => {
+  const { root, appDir, backupRoot } = fixture();
+  const staged = path.join(root, 'staged', '股票基金质量分析系统');
+  try {
+    fs.mkdirSync(staged, { recursive: true });
+    fs.writeFileSync(path.join(staged, '股票基金质量分析系统.exe'), 'new-program');
+    fs.writeFileSync(path.join(staged, 'resources.pak'), 'new-resource');
+    fs.mkdirSync(path.join(staged, 'data'), { recursive: true });
+    fs.writeFileSync(path.join(staged, 'data', 'ignored.db'), 'must-not-copy');
+    replacePortableProgramFiles({ appDir, extractedAppDir: staged, backupRoot });
+    assert.equal(fs.readFileSync(path.join(appDir, '股票基金质量分析系统.exe'), 'utf8'), 'new-program');
+    assert.equal(fs.readFileSync(path.join(appDir, 'data', 'stock_analysis.db'), 'utf8'), 'user-data');
+    assert.equal(fs.existsSync(path.join(appDir, 'data', 'ignored.db')), false);
   } finally { fs.rmSync(root, { recursive: true, force: true }); }
 });
