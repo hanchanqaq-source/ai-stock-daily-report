@@ -49,6 +49,7 @@ beforeEach(() => {
     sessionsLoading: false,
     chatError: null,
     currentRoute: '/stocks/ask',
+    conversationScope: 'workspace:self:stocks',
     completionBadge: false,
     hasInitialLoad: true,
     abortController: null,
@@ -203,6 +204,24 @@ describe('agentChatStore.startStream', () => {
       category: 'unknown',
       rawMessage: '分析出错',
     });
+  });
+});
+
+describe('agentChatStore conversation scope', () => {
+  it('keeps stock, fund, and different-user session restoration keys separate', async () => {
+    const store = useAgentChatStore.getState();
+    store.setConversationScope('workspace:self:funds');
+    const fundSessionId = useAgentChatStore.getState().sessionId;
+    expect(fundSessionId).toMatch(/^workspace:self:funds:/);
+    expect(localStorage.getItem('dsa_chat_session_id:workspace:self:funds')).toBe(fundSessionId);
+
+    useAgentChatStore.getState().setConversationScope('workspace:user-family:stocks');
+    const familyStockSessionId = useAgentChatStore.getState().sessionId;
+    expect(familyStockSessionId).toMatch(/^workspace:user-family:stocks:/);
+    expect(familyStockSessionId).not.toBe(fundSessionId);
+
+    await useAgentChatStore.getState().loadInitialSession();
+    expect(agentApi.getChatSessions).toHaveBeenCalledWith(50, 'workspace:user-family:stocks');
   });
 });
 
