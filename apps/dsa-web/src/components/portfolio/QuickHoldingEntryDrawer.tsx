@@ -18,7 +18,7 @@ type QuickHoldingEntryDrawerProps = {
 const inputClass = 'input-surface input-focus-glow h-11 w-full rounded-xl border bg-transparent px-4 text-sm text-foreground';
 
 const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = ({ isOpen, initialMode, fixedAssetType, onClose }) => {
-  const { activeUser, addFundHolding, addStockHolding } = usePortfolioUsers();
+  const { activeUser, persistenceStatus, addFundHolding, addStockHolding } = usePortfolioUsers();
   const [mode, setMode] = useState<EntryMode>(initialMode);
   const [assetType, setAssetType] = useState<AssetType>('fund');
   const selectedAssetType = fixedAssetType ?? assetType;
@@ -107,6 +107,7 @@ const QuickHoldingEntryDrawerContent: React.FC<QuickHoldingEntryDrawerProps> = (
     <Drawer isOpen={isOpen} onClose={onClose} title="持仓快速录入" width="max-w-xl">
       <div className="space-y-5">
         <InlineAlert variant="info" title={`录入到：${activeUser.name}`} message="新增内容只归属于当前用户，保存前请确认用户选择正确。" />
+        {persistenceStatus === 'error' ? <InlineAlert variant="warning" message="本地数据库暂时不可用；本次改动可能不会在重启后保留。" /> : null}
 
         <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border/70 bg-background/40 p-1">
           <button type="button" className={mode === 'manual' ? 'btn-primary' : 'btn-secondary'} onClick={() => setMode('manual')}>

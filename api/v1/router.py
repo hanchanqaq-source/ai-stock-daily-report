@@ -27,6 +27,7 @@ from api.v1.endpoints import (
     stocks,
     system_config,
     usage,
+    workspace_portfolio,
 )
 
 # 创建 v1 版本主路由。
@@ -85,6 +86,12 @@ router.include_router(
     portfolio.router,
     prefix="/portfolio",
     tags=["Portfolio"]
+)
+
+router.include_router(
+    workspace_portfolio.router,
+    prefix="/workspace-portfolio",
+    tags=["WorkspacePortfolio"]
 )
 
 router.include_router(
