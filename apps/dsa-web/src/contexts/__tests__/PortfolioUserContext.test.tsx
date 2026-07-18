@@ -4,8 +4,9 @@ import { PortfolioUserProvider, usePortfolioUsers } from '../PortfolioUserContex
 
 vi.mock('../../api/workspacePortfolio', () => ({
   workspacePortfolioApi: {
-    getState: vi.fn().mockResolvedValue({ users: [{ id: 'self', name: '本人', isPrimary: true }], stockHoldingsByUser: { self: [] }, fundHoldingsByUser: { self: [] } }),
+    getState: vi.fn().mockResolvedValue({ users: [{ id: 'self', name: '本人', isPrimary: true }], activeUserId: 'self', stockHoldingsByUser: { self: [] }, fundHoldingsByUser: { self: [] } }),
     createUser: vi.fn().mockResolvedValue(undefined), renameUser: vi.fn().mockResolvedValue(undefined), removeUser: vi.fn().mockResolvedValue(undefined),
+    setActiveUser: vi.fn().mockResolvedValue({ users: [{ id: 'self', name: '本人', isPrimary: true }], activeUserId: 'self', stockHoldingsByUser: { self: [] }, fundHoldingsByUser: { self: [] } }),
     createStock: vi.fn().mockResolvedValue(undefined), removeStock: vi.fn().mockResolvedValue(undefined),
     createFund: vi.fn().mockResolvedValue(undefined), removeFund: vi.fn().mockResolvedValue(undefined),
   },

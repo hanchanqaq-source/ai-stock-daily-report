@@ -48,6 +48,20 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         self.assertEqual(restored['stock_holdings_by_user']['self'], [])
         self.assertEqual(restored['fund_holdings_by_user']['self'], [])
 
+    def test_active_user_selection_survives_restart_and_resets_if_user_is_removed(self) -> None:
+        self.client.get('/api/v1/workspace-portfolio')
+        self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-active', 'name': '当前用户'})
+        selected = self.client.put('/api/v1/workspace-portfolio/active-user/user-active')
+        self.assertEqual(selected.status_code, 200, selected.text)
+        self.assertEqual(selected.json()['active_user_id'], 'user-active')
+
+        DatabaseManager.reset_instance()
+        Config.reset_instance()
+        self.client = TestClient(create_app(static_dir=Path(self.temp_dir.name) / 'static-after-active-restart'))
+        self.assertEqual(self.client.get('/api/v1/workspace-portfolio').json()['active_user_id'], 'user-active')
+        self.assertEqual(self.client.delete('/api/v1/workspace-portfolio/users/user-active').status_code, 204)
+        self.assertEqual(self.client.get('/api/v1/workspace-portfolio').json()['active_user_id'], 'self')
+
     def test_deleting_secondary_user_cascades_quick_holdings_and_protects_primary(self) -> None:
         self.client.get('/api/v1/workspace-portfolio')
         self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-delete', 'name': '待删除'})

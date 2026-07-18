@@ -27,13 +27,14 @@ from api.v1.schemas.workspace_portfolio import (
     WorkspaceUserItem,
     WorkspaceUserRename,
 )
-from src.storage import WorkspaceFundHolding, WorkspaceHoldingHistoryEntry, WorkspaceHoldingRecycleEntry, WorkspacePortfolioBackup, WorkspaceStockHolding, WorkspaceUser
+from src.storage import WorkspaceFundHolding, WorkspaceHoldingHistoryEntry, WorkspaceHoldingRecycleEntry, WorkspacePortfolioBackup, WorkspacePortfolioPreference, WorkspaceStockHolding, WorkspaceUser
 
 router = APIRouter()
 PRIMARY_USER_ID = 'self'
 BACKUP_FORMAT = 'dsa-workspace-portfolio-backup'
 BACKUP_VERSION = 1
 MAX_HOLDINGS_PER_DOMAIN = 1000
+ACTIVE_USER_PREFERENCE_KEY = 'active_user_id'
 
 
 def _require_local(request: Request) -> None:
@@ -66,6 +67,25 @@ def _require_user(db: Session, user_id: str) -> WorkspaceUser:
     return user
 
 
+def _active_user_id(db: Session, users: list[WorkspaceUser]) -> str:
+    """Return a valid saved active user; legacy databases safely fall back to 本人."""
+    valid_ids = {user.id for user in users}
+    preference = db.get(WorkspacePortfolioPreference, ACTIVE_USER_PREFERENCE_KEY)
+    if preference and preference.value in valid_ids:
+        return preference.value
+    return PRIMARY_USER_ID
+
+
+def _save_active_user_id(db: Session, user_id: str) -> None:
+    _require_user(db, user_id)
+    preference = db.get(WorkspacePortfolioPreference, ACTIVE_USER_PREFERENCE_KEY)
+    if preference is None:
+        db.add(WorkspacePortfolioPreference(key=ACTIVE_USER_PREFERENCE_KEY, value=user_id))
+    else:
+        preference.value = user_id
+    db.flush()
+
+
 def _user_item(row: WorkspaceUser) -> WorkspaceUserItem:
     return WorkspaceUserItem(id=row.id, name=row.name, is_primary=bool(row.is_primary))
 
@@ -86,7 +106,7 @@ def _state_from_db(db: Session) -> WorkspacePortfolioState:
             id=row.id, code=row.code, name=row.name, amount=row.amount, profit=row.profit,
             target_allocation=row.target_allocation, notes=row.notes,
         ))
-    return WorkspacePortfolioState(users=[_user_item(row) for row in users], stock_holdings_by_user=stock_map, fund_holdings_by_user=fund_map)
+    return WorkspacePortfolioState(users=[_user_item(row) for row in users], active_user_id=_active_user_id(db, users), stock_holdings_by_user=stock_map, fund_holdings_by_user=fund_map)
 
 
 def _backup_payload_from_state(state: WorkspacePortfolioState) -> WorkspacePortfolioBackupPayload:
@@ -154,6 +174,7 @@ def _replace_state(db: Session, backup: WorkspacePortfolioBackupPayload) -> Work
         for holding in holdings:
             db.add(WorkspaceFundHolding(user_id=user_id, **holding.model_dump()))
     db.flush()
+    _save_active_user_id(db, PRIMARY_USER_ID)
     return _state_from_db(db)
 
 
@@ -182,6 +203,15 @@ def _history_item(row: WorkspaceHoldingHistoryEntry) -> WorkspaceHoldingHistoryI
 def get_state(request: Request, db: Session = Depends(get_db)) -> WorkspacePortfolioState:
     _require_local(request)
     _ensure_primary(db)
+    return _state_from_db(db)
+
+
+@router.put('/active-user/{user_id}', response_model=WorkspacePortfolioState)
+def set_active_user(user_id: str, request: Request, db: Session = Depends(get_db)) -> WorkspacePortfolioState:
+    _require_local(request)
+    _ensure_primary(db)
+    _save_active_user_id(db, user_id)
+    db.commit()
     return _state_from_db(db)
 
 
@@ -262,6 +292,9 @@ def remove_user(user_id: str, request: Request, db: Session = Depends(get_db)) -
     row = _require_user(db, user_id)
     if row.is_primary:
         raise HTTPException(status_code=409, detail='workspace_portfolio.primary_user_protected')
+    preference = db.get(WorkspacePortfolioPreference, ACTIVE_USER_PREFERENCE_KEY)
+    if preference and preference.value == user_id:
+        preference.value = PRIMARY_USER_ID
     db.execute(delete(WorkspaceStockHolding).where(WorkspaceStockHolding.user_id == user_id))
     db.execute(delete(WorkspaceFundHolding).where(WorkspaceFundHolding.user_id == user_id))
     db.delete(row); db.commit()
