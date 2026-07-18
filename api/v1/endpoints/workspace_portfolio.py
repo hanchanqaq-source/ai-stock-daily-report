@@ -111,7 +111,7 @@ def remove_user(user_id: str, request: Request, db: Session = Depends(get_db)) -
 @router.post('/users/{user_id}/stocks', response_model=WorkspaceStockHoldingItem, status_code=status.HTTP_201_CREATED)
 def create_stock(user_id: str, payload: WorkspaceStockHoldingCreate, request: Request, db: Session = Depends(get_db)) -> WorkspaceStockHoldingItem:
     _require_local(request); _require_user(db, user_id)
-    values = payload.dict(exclude={'id'})
+    values = payload.model_dump(exclude={'id'})
     row = WorkspaceStockHolding(id=payload.id or f'stock-{uuid4().hex}', user_id=user_id, **values)
     db.add(row); db.commit(); db.refresh(row)
     return WorkspaceStockHoldingItem(id=row.id, **values)
@@ -129,7 +129,7 @@ def remove_stock(user_id: str, holding_id: str, request: Request, db: Session = 
 @router.post('/users/{user_id}/funds', response_model=WorkspaceFundHoldingItem, status_code=status.HTTP_201_CREATED)
 def create_fund(user_id: str, payload: WorkspaceFundHoldingCreate, request: Request, db: Session = Depends(get_db)) -> WorkspaceFundHoldingItem:
     _require_local(request); _require_user(db, user_id)
-    values = payload.dict(exclude={'id'})
+    values = payload.model_dump(exclude={'id'})
     row = WorkspaceFundHolding(id=payload.id or f'fund-{uuid4().hex}', user_id=user_id, **values)
     db.add(row); db.commit(); db.refresh(row)
     return WorkspaceFundHoldingItem(id=row.id, **values)

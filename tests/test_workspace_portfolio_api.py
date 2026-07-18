@@ -22,7 +22,6 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         self.client = TestClient(create_app(static_dir=Path(self.temp_dir.name) / 'static'))
 
     def tearDown(self) -> None:
-        self.client.close()
         DatabaseManager.reset_instance()
         Config.reset_instance()
         os.environ.pop('DATABASE_PATH', None)
@@ -40,7 +39,6 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         self.assertEqual(self.client.post('/api/v1/workspace-portfolio/users/user-family-a/stocks', json=stock).status_code, 201)
         self.assertEqual(self.client.post('/api/v1/workspace-portfolio/users/user-family-a/funds', json=fund).status_code, 201)
 
-        self.client.close()
         DatabaseManager.reset_instance()
         Config.reset_instance()
         self.client = TestClient(create_app(static_dir=Path(self.temp_dir.name) / 'static-after-restart'))
