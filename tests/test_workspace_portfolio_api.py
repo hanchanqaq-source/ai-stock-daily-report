@@ -136,10 +136,16 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         payload['amount'] = 1500
         self.assertEqual(self.client.patch('/api/v1/workspace-portfolio/users/user-history/funds/fund-history', json=payload).status_code, 200)
         self.assertEqual(self.client.delete('/api/v1/workspace-portfolio/users/user-history/funds/fund-history').status_code, 204)
+        self.assertEqual(self.client.post('/api/v1/workspace-portfolio/users/user-history/stocks', json={
+            'id': 'stock-history', 'code': '600519', 'name': '历史股票', 'quantity': 1, 'average_cost': 1500, 'securities_account': '账户A',
+        }).status_code, 201)
         history = self.client.get('/api/v1/workspace-portfolio/users/user-history/holding-history')
         self.assertEqual(history.status_code, 200, history.text)
         self.assertEqual({item['action'] for item in history.json()}, {'created', 'updated', 'deleted'})
-        self.assertEqual({item['asset_type'] for item in history.json()}, {'fund'})
+        self.assertEqual({item['asset_type'] for item in history.json()}, {'fund', 'stock'})
+        fund_history = self.client.get('/api/v1/workspace-portfolio/users/user-history/holding-history?asset_type=fund')
+        self.assertEqual({item['asset_type'] for item in fund_history.json()}, {'fund'})
+        self.assertEqual(self.client.get('/api/v1/workspace-portfolio/users/user-history/holding-history?asset_type=other').status_code, 422)
         self.assertEqual(self.client.get('/api/v1/workspace-portfolio/users/self/holding-history').json(), [])
 
 
