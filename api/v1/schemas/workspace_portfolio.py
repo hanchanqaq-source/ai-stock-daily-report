@@ -12,7 +12,7 @@ class WorkspaceUserItem(BaseModel):
 
 
 class WorkspaceUserCreate(BaseModel):
-    id: Optional[str] = Field(None, min_length=1, max_length=64, regex=r'^[A-Za-z0-9_-]+$')
+    id: Optional[str] = Field(None, min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
     name: str = Field(..., min_length=1, max_length=24)
 
 
@@ -21,7 +21,7 @@ class WorkspaceUserRename(WorkspaceUserCreate):
 
 
 class WorkspaceStockHoldingCreate(BaseModel):
-    id: Optional[str] = Field(None, min_length=1, max_length=64, regex=r'^[A-Za-z0-9_-]+$')
+    id: Optional[str] = Field(None, min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
     code: str = Field('', max_length=32)
     name: str = Field(..., min_length=1, max_length=100)
     quantity: float = Field(..., gt=0)
@@ -35,7 +35,7 @@ class WorkspaceStockHoldingItem(WorkspaceStockHoldingCreate):
 
 
 class WorkspaceFundHoldingCreate(BaseModel):
-    id: Optional[str] = Field(None, min_length=1, max_length=64, regex=r'^[A-Za-z0-9_-]+$')
+    id: Optional[str] = Field(None, min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
     code: str = Field('', max_length=32)
     name: str = Field(..., min_length=1, max_length=100)
     amount: float = Field(..., gt=0)
