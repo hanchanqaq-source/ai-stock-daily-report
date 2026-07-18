@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import Markdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ChevronDown, SlidersHorizontal } from 'lucide-react';
@@ -28,6 +28,8 @@ import { isNearBottom } from '../utils/chatScroll';
 import { getReportText } from '../utils/reportLanguage';
 import { extractStockCodesFromMessage } from '../utils/chatStockCode';
 import { findMatchingStockCode, includesStockCode, normalizeStockCode } from '../utils/stockCode';
+import { usePortfolioUsers } from '../contexts/PortfolioUserContext';
+import { centerFromPath } from '../utils/workspaceCenter';
 
 // Quick question examples shown on empty state
 const QUICK_QUESTIONS = [
@@ -150,6 +152,8 @@ const restoreActiveStockContextFromMessages = (messages: Message[]): ActiveStock
 };
 
 const ChatPage: React.FC = () => {
+  const location = useLocation();
+  const { activeUserId } = usePortfolioUsers();
   const [searchParams, setSearchParams] = useSearchParams();
   const [input, setInput] = useState('');
   const [skills, setSkills] = useState<SkillInfo[]>([]);
@@ -287,10 +291,17 @@ const ChatPage: React.FC = () => {
     chatError,
     loadSessions,
     loadInitialSession,
+    setConversationScope,
     switchSession,
     startStream,
     clearCompletionBadge,
   } = useAgentChatStore();
+
+  const conversationScope = `workspace:${activeUserId}:${centerFromPath(location.pathname) === 'funds' ? 'funds' : 'stocks'}`;
+
+  useEffect(() => {
+    setConversationScope(conversationScope);
+  }, [conversationScope, setConversationScope]);
 
   useEffect(() => {
     if (activeStockContext || messages.length === 0) {
@@ -364,7 +375,7 @@ const ChatPage: React.FC = () => {
 
   useEffect(() => {
     loadInitialSession();
-  }, [loadInitialSession]);
+  }, [conversationScope, loadInitialSession]);
 
   useEffect(() => {
     agentApi.getSkills()

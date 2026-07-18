@@ -11,6 +11,10 @@ import { generateUUID } from '../utils/uuid';
 import { isStockAskRoute } from '../utils/workspaceCenter';
 
 const STORAGE_KEY_SESSION = 'dsa_chat_session_id';
+const DEFAULT_CONVERSATION_SCOPE = 'workspace:self:stocks';
+
+const sessionStorageKey = (scope: string): string => `${STORAGE_KEY_SESSION}:${scope}`;
+const newScopedSessionId = (scope: string): string => `${scope}:${generateUUID()}`;
 
 export interface ProgressStep {
   type: string;
@@ -87,6 +91,7 @@ interface AgentChatState {
   sessionsLoading: boolean;
   chatError: ParsedApiError | null;
   currentRoute: string;
+  conversationScope: string;
   completionBadge: boolean;
   hasInitialLoad: boolean;
   abortController: AbortController | null;
@@ -94,6 +99,7 @@ interface AgentChatState {
 
 interface AgentChatActions {
   setCurrentRoute: (path: string) => void;
+  setConversationScope: (scope: string) => void;
   clearCompletionBadge: () => void;
   loadSessions: () => Promise<void>;
   loadInitialSession: () => Promise<void>;
@@ -102,10 +108,10 @@ interface AgentChatActions {
   startStream: (payload: ChatStreamRequest, meta?: StreamMeta) => Promise<void>;
 }
 
-const getInitialSessionId = (): string =>
+const getInitialSessionId = (scope = DEFAULT_CONVERSATION_SCOPE): string =>
   typeof localStorage !== 'undefined'
-    ? localStorage.getItem(STORAGE_KEY_SESSION) || generateUUID()
-    : generateUUID();
+    ? localStorage.getItem(sessionStorageKey(scope)) || newScopedSessionId(scope)
+    : newScopedSessionId(scope);
 
 export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set, get) => ({
   messages: [],
@@ -116,18 +122,27 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
   sessionsLoading: false,
   chatError: null,
   currentRoute: '',
+  conversationScope: DEFAULT_CONVERSATION_SCOPE,
   completionBadge: false,
   hasInitialLoad: false,
   abortController: null,
 
   setCurrentRoute: (path) => set({ currentRoute: path }),
 
+  setConversationScope: (scope) => {
+    if (!scope || scope === get().conversationScope) return;
+    get().abortController?.abort();
+    const sessionId = getInitialSessionId(scope);
+    set({ conversationScope: scope, sessionId, sessions: [], messages: [], loading: false, progressSteps: [], chatError: null, abortController: null, hasInitialLoad: false });
+    localStorage.setItem(sessionStorageKey(scope), sessionId);
+  },
+
   clearCompletionBadge: () => set({ completionBadge: false }),
 
   loadSessions: async () => {
     set({ sessionsLoading: true });
     try {
-      const sessions = await agentApi.getChatSessions();
+      const sessions = await agentApi.getChatSessions(50, get().conversationScope);
       set({ sessions });
     } catch {
       // Ignore load errors
@@ -142,10 +157,11 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
     set({ hasInitialLoad: true, sessionsLoading: true });
 
     try {
-      const sessionList = await agentApi.getChatSessions();
+      const scope = get().conversationScope;
+      const sessionList = await agentApi.getChatSessions(50, scope);
       set({ sessions: sessionList });
 
-      const savedId = localStorage.getItem(STORAGE_KEY_SESSION);
+      const savedId = localStorage.getItem(sessionStorageKey(scope));
       if (savedId) {
         const sessionExists = sessionList.some((s) => s.session_id === savedId);
         if (sessionExists) {
@@ -160,12 +176,12 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
             });
           }
         } else {
-          const newId = generateUUID();
+          const newId = newScopedSessionId(scope);
           set({ sessionId: newId });
-          localStorage.setItem(STORAGE_KEY_SESSION, newId);
+          localStorage.setItem(sessionStorageKey(scope), newId);
         }
       } else {
-        localStorage.setItem(STORAGE_KEY_SESSION, get().sessionId);
+        localStorage.setItem(sessionStorageKey(scope), get().sessionId);
       }
     } catch {
       // Ignore
@@ -187,7 +203,7 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
       chatError: null,
       abortController: null,
     });
-    localStorage.setItem(STORAGE_KEY_SESSION, targetSessionId);
+    localStorage.setItem(sessionStorageKey(get().conversationScope), targetSessionId);
 
     try {
       const msgs = await agentApi.getChatSessionMessages(targetSessionId);
@@ -209,7 +225,7 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
   startNewChat: () => {
     // Abort any in-flight stream so the old request does not keep running
     get().abortController?.abort();
-    const newId = generateUUID();
+    const newId = newScopedSessionId(get().conversationScope);
     set({
       sessionId: newId,
       messages: [],
@@ -218,7 +234,7 @@ export const useAgentChatStore = create<AgentChatState & AgentChatActions>((set,
       chatError: null,
       abortController: null,
     });
-    localStorage.setItem(STORAGE_KEY_SESSION, newId);
+    localStorage.setItem(sessionStorageKey(get().conversationScope), newId);
   },
 
   startStream: async (payload, meta) => {
