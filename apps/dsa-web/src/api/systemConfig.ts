@@ -15,6 +15,7 @@ import type {
   ImportSystemConfigRequest,
   SchedulerRunNowResponse,
   SchedulerStatusResponse,
+  SetupStatusOverlayRequest,
   SetupStatusResponse,
   SystemConfigConflictResponse,
   SystemConfigResponse,
@@ -97,6 +98,12 @@ function toSnakeImportPayload(payload: ImportSystemConfigRequest): Record<string
     config_version: payload.configVersion,
     content: payload.content,
     reload_now: payload.reloadNow ?? true,
+  };
+}
+
+function toSnakeSetupStatusOverlayPayload(payload: SetupStatusOverlayRequest): Record<string, unknown> {
+  return {
+    configured_secret_keys: payload.configuredSecretKeys,
   };
 }
 
@@ -209,6 +216,14 @@ export const systemConfigApi = {
 
   async getSetupStatus(): Promise<SetupStatusResponse> {
     const response = await apiClient.get<Record<string, unknown>>('/api/v1/system/config/setup/status');
+    return toCamelCase<SetupStatusResponse>(response.data);
+  },
+
+  async getSetupStatusOverlay(payload: SetupStatusOverlayRequest): Promise<SetupStatusResponse> {
+    const response = await apiClient.post<Record<string, unknown>>(
+      '/api/v1/system/config/setup/status/overlay',
+      toSnakeSetupStatusOverlayPayload(payload),
+    );
     return toCamelCase<SetupStatusResponse>(response.data);
   },
 

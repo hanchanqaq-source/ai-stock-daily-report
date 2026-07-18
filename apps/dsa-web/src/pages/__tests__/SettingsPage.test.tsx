@@ -10,6 +10,7 @@ const {
   exportEnv,
   getSchedulerStatus,
   getSetupStatus,
+  getSetupStatusOverlay,
   importEnv,
   runSchedulerNow,
   updateSystemConfig,
@@ -41,6 +42,7 @@ const {
   exportEnv: vi.fn(),
   getSchedulerStatus: vi.fn(),
   getSetupStatus: vi.fn(),
+  getSetupStatusOverlay: vi.fn(),
   importEnv: vi.fn(),
   runSchedulerNow: vi.fn(),
   updateSystemConfig: vi.fn(),
@@ -87,6 +89,7 @@ vi.mock('../../api/systemConfig', () => ({
     exportEnv: (...args: unknown[]) => exportEnv(...args),
     getSchedulerStatus: (...args: unknown[]) => getSchedulerStatus(...args),
     getSetupStatus: (...args: unknown[]) => getSetupStatus(...args),
+    getSetupStatusOverlay: (...args: unknown[]) => getSetupStatusOverlay(...args),
     importEnv: (...args: unknown[]) => importEnv(...args),
     runSchedulerNow: (...args: unknown[]) => runSchedulerNow(...args),
     update: (...args: unknown[]) => updateSystemConfig(...args),
@@ -264,6 +267,7 @@ const baseCategories = [
 
 type ConfigState = {
   categories: Array<{ category: string; title: string; description: string; displayOrder: number; fields: [] }>;
+  serverItems: Array<Record<string, unknown>>;
   itemsByCategory: Record<string, Array<Record<string, unknown>>>;
   issueByKey: Record<string, unknown[]>;
   activeCategory: string;
@@ -294,6 +298,7 @@ type ConfigOverride = Partial<ConfigState>;
 function buildSystemConfigState(overrides: ConfigOverride = {}) {
   return {
     categories: baseCategories,
+    serverItems: [],
     itemsByCategory: {
       system: [
         {
@@ -432,6 +437,27 @@ function createDeferred<T>() {
   return { promise, resolve, reject };
 }
 
+function makeMaskedSensitiveItem(key: string) {
+  return {
+    key,
+    value: '******',
+    rawValueExists: true,
+    isMasked: true,
+    schema: {
+      key,
+      category: 'ai_model',
+      dataType: 'string',
+      uiControl: 'password',
+      isSensitive: true,
+      isRequired: false,
+      isEditable: true,
+      options: [],
+      validation: {},
+      displayOrder: 1,
+    },
+  };
+}
+
 describe('SettingsPage', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -489,6 +515,23 @@ describe('SettingsPage', () => {
           required: false,
           status: 'optional',
           message: '通知可选。',
+          nextStep: null,
+        },
+      ],
+    });
+    getSetupStatusOverlay.mockResolvedValue({
+      isComplete: true,
+      readyForSmoke: true,
+      requiredMissingKeys: [],
+      nextStepKey: null,
+      checks: [
+        {
+          key: 'desktop-overlay-status',
+          title: '桌面凭证状态',
+          category: 'ai_model',
+          required: true,
+          status: 'configured',
+          message: '已叠加桌面凭证状态。',
           nextStep: null,
         },
       ],
@@ -618,6 +661,119 @@ describe('SettingsPage', () => {
     expect(setActiveCategory).toHaveBeenNthCalledWith(1, 'ai_model');
     expect(setActiveCategory).toHaveBeenNthCalledWith(2, 'base');
     expect(setActiveCategory).toHaveBeenNthCalledWith(3, 'notification');
+  });
+
+  it('uses only regular setup status GET outside desktop runtime', async () => {
+    useSystemConfigMock.mockReturnValue(buildSystemConfigState({
+      activeCategory: 'base',
+      serverItems: [makeMaskedSensitiveItem('GEMINI_API_KEY')],
+    }));
+
+    render(<SettingsPage />);
+
+    await waitFor(() => expect(getSetupStatus).toHaveBeenCalledTimes(1));
+    expect(getSetupStatusOverlay).not.toHaveBeenCalled();
+  });
+
+  it('posts desktop setup overlay after masked desktop config has loaded without querying IPC again', async () => {
+    const getCredentialStatus = vi.fn();
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime({ getCredentialStatus });
+    useSystemConfigMock.mockReturnValue(buildSystemConfigState({
+      activeCategory: 'base',
+      serverItems: [makeMaskedSensitiveItem('GEMINI_API_KEY')],
+    }));
+
+    render(<SettingsPage />);
+
+    await waitFor(() => expect(getSetupStatusOverlay).toHaveBeenCalledWith({
+      configuredSecretKeys: ['GEMINI_API_KEY'],
+    }));
+    expect(getCredentialStatus).not.toHaveBeenCalled();
+    expect(await screen.findByText('桌面凭证状态')).toBeInTheDocument();
+  });
+
+  it('keeps regular setup status when desktop setup overlay fails closed', async () => {
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+    getSetupStatusOverlay.mockRejectedValue(new Error('overlay unavailable'));
+    useSystemConfigMock.mockReturnValue(buildSystemConfigState({
+      activeCategory: 'base',
+      serverItems: [makeMaskedSensitiveItem('GEMINI_API_KEY')],
+    }));
+
+    render(<SettingsPage />);
+
+    expect(await screen.findByText('自选股')).toBeInTheDocument();
+    expect(screen.queryByText('桌面凭证状态')).not.toBeInTheDocument();
+  });
+
+  it('keeps the latest desktop overlay when serverItems refresh responses resolve out of order', async () => {
+    const staleOverlay = createDeferred<SetupStatusResponse>();
+    const latestOverlay = createDeferred<SetupStatusResponse>();
+    const staleStatus: SetupStatusResponse = {
+      isComplete: false,
+      readyForSmoke: false,
+      requiredMissingKeys: ['llm_primary'],
+      nextStepKey: 'llm_primary',
+      checks: [
+        {
+          key: 'stale-desktop-overlay',
+          title: '旧桌面凭证状态',
+          category: 'ai_model',
+          required: true,
+          status: 'needs_action',
+          message: '旧 overlay 不应覆盖新状态。',
+          nextStep: null,
+        },
+      ],
+    };
+    const latestStatus: SetupStatusResponse = {
+      isComplete: true,
+      readyForSmoke: true,
+      requiredMissingKeys: [],
+      nextStepKey: null,
+      checks: [
+        {
+          key: 'latest-desktop-overlay',
+          title: '新桌面凭证状态',
+          category: 'ai_model',
+          required: true,
+          status: 'configured',
+          message: '新 overlay 应保留。',
+          nextStep: null,
+        },
+      ],
+    };
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime();
+    getSetupStatusOverlay
+      .mockImplementationOnce(() => staleOverlay.promise)
+      .mockImplementationOnce(() => latestOverlay.promise);
+    useSystemConfigMock.mockReturnValue(buildSystemConfigState({
+      activeCategory: 'base',
+      serverItems: [makeMaskedSensitiveItem('GEMINI_API_KEY')],
+    }));
+
+    const { rerender } = render(<SettingsPage />);
+    await waitFor(() => expect(getSetupStatusOverlay).toHaveBeenCalledTimes(1));
+
+    useSystemConfigMock.mockReturnValue(buildSystemConfigState({
+      activeCategory: 'base',
+      serverItems: [makeMaskedSensitiveItem('OPENAI_API_KEY')],
+    }));
+    rerender(<SettingsPage />);
+    await waitFor(() => expect(getSetupStatusOverlay).toHaveBeenCalledTimes(2));
+
+    await act(async () => {
+      latestOverlay.resolve(latestStatus);
+      await latestOverlay.promise;
+    });
+    expect(await screen.findByText('新桌面凭证状态')).toBeInTheDocument();
+
+    await act(async () => {
+      staleOverlay.resolve(staleStatus);
+      await staleOverlay.promise;
+    });
+    expect(screen.getByText('新桌面凭证状态')).toBeInTheDocument();
+    expect(screen.queryByText('旧桌面凭证状态')).not.toBeInTheDocument();
   });
 
   it('keeps first-run setup summary neutral while setup status is loading', async () => {

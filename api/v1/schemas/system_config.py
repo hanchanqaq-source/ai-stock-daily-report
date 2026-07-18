@@ -121,6 +121,14 @@ class SetupStatusResponse(BaseModel):
     checks: List[SetupStatusCheck] = Field(default_factory=list)
 
 
+class SetupStatusOverlayRequest(BaseModel):
+    """Low-sensitivity desktop secret-presence overlay for first-run setup status."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    configured_secret_keys: List[str] = Field(default_factory=list)
+
+
 class ExportSystemConfigResponse(BaseModel):
     """Export payload for raw `.env` backups."""
 
