@@ -90,6 +90,7 @@
 | [股票基金双中心 Build E1：本地数据库持久化](stock_fund_dual_center_build_e1.md) | 用户、股票快速持仓、基金快速持仓的本机 SQLite 持久化、隔离、恢复与侧栏完整显示 |
 | [股票基金双中心 Build E2：本机数据备份与恢复](stock_fund_dual_center_build_e2.md) | 工作台用户与股票/基金快速持仓的 JSON 导出、预览校验、确认覆盖导入和本机恢复点；不含密钥或设置 |
 | [股票基金双中心 Build E3：快速持仓编辑](stock_fund_dual_center_build_e3.md) | 当前用户的股票/基金快速持仓分区编辑、先校验落库再更新页面、跨用户保护与失败保留旧值 |
+| [股票基金双中心 Build E4：快速持仓回收站](stock_fund_dual_center_build_e4.md) | 删除确认、按用户隔离的本机回收站与恢复最近删除持仓 |
 | [App-M4.2.4A 桌面 Setup Status 安全凭证状态接入](app_m4_2_4a_desktop_setup_status_credentials.md) | Electron 设置页基于 DPAPI configured 状态向后端提交低敏 overlay，由后端复用既有 Setup Status 规则计算首次设置状态；不回显明文、不注入 Provider。 |
 
 ## 多语言

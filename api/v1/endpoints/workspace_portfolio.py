@@ -18,6 +18,7 @@ from api.v1.schemas.workspace_portfolio import (
     WorkspacePortfolioBackupPreview,
     WorkspacePortfolioRestorePointItem,
     WorkspacePortfolioRestoreRequest,
+    WorkspaceHoldingRecycleItem,
     WorkspacePortfolioState,
     WorkspaceStockHoldingCreate,
     WorkspaceStockHoldingItem,
@@ -25,7 +26,7 @@ from api.v1.schemas.workspace_portfolio import (
     WorkspaceUserItem,
     WorkspaceUserRename,
 )
-from src.storage import WorkspaceFundHolding, WorkspacePortfolioBackup, WorkspaceStockHolding, WorkspaceUser
+from src.storage import WorkspaceFundHolding, WorkspaceHoldingRecycleEntry, WorkspacePortfolioBackup, WorkspaceStockHolding, WorkspaceUser
 
 router = APIRouter()
 PRIMARY_USER_ID = 'self'
@@ -155,6 +156,10 @@ def _replace_state(db: Session, backup: WorkspacePortfolioBackupPayload) -> Work
     return _state_from_db(db)
 
 
+def _recycle_holding(db: Session, user_id: str, asset_type: str, holding: WorkspaceStockHoldingItem | WorkspaceFundHoldingItem) -> None:
+    db.add(WorkspaceHoldingRecycleEntry(id=f'recycle-{uuid4().hex}', user_id=user_id, asset_type=asset_type, holding_json=holding.model_dump_json()))
+
+
 @router.get('', response_model=WorkspacePortfolioState)
 def get_state(request: Request, db: Session = Depends(get_db)) -> WorkspacePortfolioState:
     _require_local(request)
@@ -259,6 +264,7 @@ def remove_stock(user_id: str, holding_id: str, request: Request, db: Session = 
     row = db.get(WorkspaceStockHolding, holding_id)
     if row is None or row.user_id != user_id:
         raise HTTPException(status_code=404, detail='workspace_portfolio.holding_not_found')
+    _recycle_holding(db, user_id, 'stock', WorkspaceStockHoldingItem(id=row.id, code=row.code, name=row.name, quantity=row.quantity, average_cost=row.average_cost, securities_account=row.securities_account, notes=row.notes))
     db.delete(row); db.commit()
 
 
@@ -290,7 +296,32 @@ def remove_fund(user_id: str, holding_id: str, request: Request, db: Session = D
     row = db.get(WorkspaceFundHolding, holding_id)
     if row is None or row.user_id != user_id:
         raise HTTPException(status_code=404, detail='workspace_portfolio.holding_not_found')
+    _recycle_holding(db, user_id, 'fund', WorkspaceFundHoldingItem(id=row.id, code=row.code, name=row.name, amount=row.amount, profit=row.profit, target_allocation=row.target_allocation, notes=row.notes))
     db.delete(row); db.commit()
+
+
+@router.get('/users/{user_id}/recycle-bin', response_model=list[WorkspaceHoldingRecycleItem])
+def list_recycle_bin(user_id: str, request: Request, db: Session = Depends(get_db)) -> list[WorkspaceHoldingRecycleItem]:
+    _require_local(request); _require_user(db, user_id)
+    rows = db.scalars(select(WorkspaceHoldingRecycleEntry).where(WorkspaceHoldingRecycleEntry.user_id == user_id).order_by(WorkspaceHoldingRecycleEntry.created_at.desc()).limit(20)).all()
+    return [WorkspaceHoldingRecycleItem(id=row.id, asset_type=row.asset_type, holding=(WorkspaceStockHoldingItem.model_validate_json(row.holding_json) if row.asset_type == 'stock' else WorkspaceFundHoldingItem.model_validate_json(row.holding_json)), created_at=row.created_at.replace(tzinfo=timezone.utc).isoformat()) for row in rows]
+
+
+@router.post('/users/{user_id}/recycle-bin/{entry_id}/restore', response_model=WorkspaceStockHoldingItem | WorkspaceFundHoldingItem)
+def restore_recycled_holding(user_id: str, entry_id: str, request: Request, db: Session = Depends(get_db)) -> WorkspaceStockHoldingItem | WorkspaceFundHoldingItem:
+    _require_local(request); _require_user(db, user_id)
+    row = db.get(WorkspaceHoldingRecycleEntry, entry_id)
+    if row is None or row.user_id != user_id: raise HTTPException(status_code=404, detail='workspace_portfolio.recycle_entry_not_found')
+    if row.asset_type == 'stock':
+        holding = WorkspaceStockHoldingItem.model_validate_json(row.holding_json)
+        if db.get(WorkspaceStockHolding, holding.id): raise HTTPException(status_code=409, detail='workspace_portfolio.holding_id_conflict')
+        db.add(WorkspaceStockHolding(user_id=user_id, **holding.model_dump()))
+    else:
+        holding = WorkspaceFundHoldingItem.model_validate_json(row.holding_json)
+        if db.get(WorkspaceFundHolding, holding.id): raise HTTPException(status_code=409, detail='workspace_portfolio.holding_id_conflict')
+        db.add(WorkspaceFundHolding(user_id=user_id, **holding.model_dump()))
+    db.delete(row); db.commit()
+    return holding
 
 
 @router.patch('/users/{user_id}/funds/{holding_id}', response_model=WorkspaceFundHoldingItem)

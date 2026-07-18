@@ -30,6 +30,7 @@ export type WorkspacePortfolioBackupImportResultDto = {
   state: WorkspacePortfolioStateDto;
   restorePointId: string;
 };
+export type WorkspaceHoldingRecycleItemDto = { id: string; assetType: 'stock' | 'fund'; holding: WorkspaceStockHoldingDto | WorkspaceFundHoldingDto; createdAt: string };
 
 const snakeStock = (item: WorkspaceStockHoldingDto) => ({
   id: item.id, code: item.code, name: item.name, quantity: item.quantity,
@@ -91,5 +92,12 @@ export const workspacePortfolioApi = {
   async restoreBackup(id: string): Promise<WorkspacePortfolioBackupImportResultDto> {
     const response = await apiClient.post<Record<string, unknown>>(`/api/v1/workspace-portfolio/backup/restore-points/${encodeURIComponent(id)}`, { confirmed: true });
     return toCamelCase<WorkspacePortfolioBackupImportResultDto>(response.data);
+  },
+  async listRecycleBin(userId: string): Promise<WorkspaceHoldingRecycleItemDto[]> {
+    const response = await apiClient.get<Record<string, unknown>[]>(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/recycle-bin`);
+    return toCamelCase<WorkspaceHoldingRecycleItemDto[]>(response.data);
+  },
+  async restoreRecycleEntry(userId: string, id: string): Promise<void> {
+    await apiClient.post(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/recycle-bin/${encodeURIComponent(id)}/restore`);
   },
 };
