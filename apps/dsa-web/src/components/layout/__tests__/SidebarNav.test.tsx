@@ -36,6 +36,14 @@ vi.mock('../../theme/ThemeToggle', () => ({
 }));
 
 describe('SidebarNav', () => {
+  it('stacks workspace choices vertically and left-aligns sidebar navigation labels', () => {
+    render(<MemoryRouter initialEntries={['/stocks']}><SidebarNav variant="rail" /></MemoryRouter>);
+
+    expect(screen.getByRole('button', { name: '股票中心' })).toHaveClass('w-full', 'justify-start');
+    expect(screen.getByRole('button', { name: '基金中心' })).toHaveClass('w-full', 'justify-start');
+    expect(screen.getByRole('link', { name: '股票首页' })).toHaveClass('justify-start');
+  });
+
   it('keeps all center entries reachable in short windows through internal scrolling', () => {
     render(<MemoryRouter initialEntries={['/funds']}><SidebarNav /></MemoryRouter>);
     const navigation = screen.getByRole('navigation', { name: '主导航' });
