@@ -96,3 +96,10 @@ class WorkspacePortfolioRestorePointItem(WorkspaceBackupModel):
 
 class WorkspacePortfolioRestoreRequest(WorkspaceBackupModel):
     confirmed: bool = False
+
+
+class WorkspaceHoldingRecycleItem(WorkspaceBackupModel):
+    id: str
+    asset_type: Literal['stock', 'fund']
+    holding: WorkspaceStockHoldingItem | WorkspaceFundHoldingItem
+    created_at: str
