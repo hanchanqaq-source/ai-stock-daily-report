@@ -145,6 +145,9 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         self.assertEqual({item['asset_type'] for item in history.json()}, {'fund', 'stock'})
         fund_history = self.client.get('/api/v1/workspace-portfolio/users/user-history/holding-history?asset_type=fund')
         self.assertEqual({item['asset_type'] for item in fund_history.json()}, {'fund'})
+        updated = next(item for item in fund_history.json() if item['action'] == 'updated')
+        self.assertEqual(updated['previous_holding']['amount'], 1000)
+        self.assertEqual(updated['holding']['amount'], 1500)
         self.assertEqual(self.client.get('/api/v1/workspace-portfolio/users/user-history/holding-history?asset_type=other').status_code, 422)
         self.assertEqual(self.client.get('/api/v1/workspace-portfolio/users/self/holding-history').json(), [])
 
