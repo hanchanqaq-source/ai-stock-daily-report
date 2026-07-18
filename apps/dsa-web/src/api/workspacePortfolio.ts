@@ -31,7 +31,7 @@ export type WorkspacePortfolioBackupImportResultDto = {
   restorePointId: string;
 };
 export type WorkspaceHoldingRecycleItemDto = { id: string; assetType: 'stock' | 'fund'; holding: WorkspaceStockHoldingDto | WorkspaceFundHoldingDto; createdAt: string };
-export type WorkspaceHoldingHistoryItemDto = { id: string; assetType: 'stock' | 'fund'; action: 'created' | 'updated' | 'deleted' | 'restored'; holding: WorkspaceStockHoldingDto | WorkspaceFundHoldingDto; createdAt: string };
+export type WorkspaceHoldingHistoryItemDto = { id: string; assetType: 'stock' | 'fund'; action: 'created' | 'updated' | 'deleted' | 'restored'; holding: WorkspaceStockHoldingDto | WorkspaceFundHoldingDto; previousHolding?: WorkspaceStockHoldingDto | WorkspaceFundHoldingDto; createdAt: string };
 
 const snakeStock = (item: WorkspaceStockHoldingDto) => ({
   id: item.id, code: item.code, name: item.name, quantity: item.quantity,

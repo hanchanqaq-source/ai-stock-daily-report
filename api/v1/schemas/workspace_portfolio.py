@@ -110,4 +110,5 @@ class WorkspaceHoldingHistoryItem(WorkspaceBackupModel):
     asset_type: Literal['stock', 'fund']
     action: Literal['created', 'updated', 'deleted', 'restored']
     holding: WorkspaceStockHoldingItem | WorkspaceFundHoldingItem
+    previous_holding: WorkspaceStockHoldingItem | WorkspaceFundHoldingItem | None = None
     created_at: str

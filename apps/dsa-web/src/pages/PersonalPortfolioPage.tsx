@@ -6,7 +6,7 @@ import { portfolioApi } from '../api/portfolio';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
 import { ApiErrorAlert, Card, EmptyState, InlineAlert } from '../components/common';
 import { QuickHoldingEntryDrawer } from '../components/portfolio/QuickHoldingEntryDrawer';
-import { workspacePortfolioApi, type WorkspaceHoldingHistoryItemDto } from '../api/workspacePortfolio';
+import { workspacePortfolioApi, type WorkspaceFundHoldingDto, type WorkspaceHoldingHistoryItemDto, type WorkspaceStockHoldingDto } from '../api/workspacePortfolio';
 import { usePortfolioUsers } from '../contexts/PortfolioUserContext';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import type {
@@ -182,6 +182,15 @@ const TEXT = {
 
 function formatCount(template: string, count: number): string {
   return template.replace('{count}', String(count));
+}
+
+function formatHistoryValue(assetType: PortfolioDomain, holding: WorkspaceFundHoldingDto | WorkspaceStockHoldingDto): string {
+  if (assetType === 'fund') {
+    const item = holding as WorkspaceFundHoldingDto;
+    return `金额 ${formatMoney(item.amount)}，收益 ${formatMoney(item.profit)}`;
+  }
+  const item = holding as WorkspaceStockHoldingDto;
+  return `数量 ${item.quantity}，成本 ${item.averageCost.toFixed(4)}`;
 }
 
 const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain }) => {
@@ -381,7 +390,7 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
 
       {!isPrimaryUser ? <InlineAlert variant="info" title={text.userNotConnectedTitle} message={text.userNotConnectedDescription} /> : null}
       <div className="flex flex-wrap justify-end gap-2"><button type="button" className="btn-secondary text-xs" onClick={() => void restoreLatestDeleted()}>{text.restoreLatest}</button><button type="button" className="btn-secondary text-xs" onClick={() => setHistoryOpen((current) => !current)}>{text.holdingHistory}</button></div>
-      {historyOpen ? <Card padding="md"><div className="space-y-2"><h2 className="text-sm font-semibold text-foreground">{text.holdingHistory}</h2>{holdingHistory.length ? holdingHistory.map((entry) => <div key={entry.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 px-3 py-2 text-xs"><span className="text-foreground">{entry.holding.name}</span><span className="text-secondary">{({ created: '新增', updated: '编辑', deleted: '删除', restored: '恢复' } as Record<string, string>)[entry.action]} · {new Date(entry.createdAt).toLocaleString()}</span></div>) : <p className="text-sm text-secondary">{text.noHoldingHistory}</p>}</div></Card> : null}
+      {historyOpen ? <Card padding="md"><div className="space-y-2"><h2 className="text-sm font-semibold text-foreground">{text.holdingHistory}</h2>{holdingHistory.length ? holdingHistory.map((entry) => <div key={entry.id} className="rounded-xl border border-border/60 px-3 py-2 text-xs"><div className="flex flex-wrap items-center justify-between gap-2"><span className="text-foreground">{entry.holding.name}</span><span className="text-secondary">{({ created: '新增', updated: '编辑', deleted: '删除', restored: '恢复' } as Record<string, string>)[entry.action]} · {new Date(entry.createdAt).toLocaleString()}</span></div>{entry.previousHolding ? <p className="mt-1 text-secondary">{formatHistoryValue(domain, entry.previousHolding)} → {formatHistoryValue(domain, entry.holding)}</p> : null}</div>) : <p className="text-sm text-secondary">{text.noHoldingHistory}</p>}</div></Card> : null}
       {showStocks && error ? <ApiErrorAlert error={error} onDismiss={() => setError(null)} /> : null}
 
       {showStocks ? <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="stock portfolio summary">
