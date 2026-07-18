@@ -42,7 +42,7 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ compact = 
 
   return (
     <section className="mb-3 space-y-2" aria-label={text.switcher} data-testid="workspace-switcher">
-      <div className="grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-background/35 p-1">
+      <div className="flex flex-col gap-1 rounded-xl border border-border/70 bg-background/35 p-1">
         {([
           ['stocks', text.stocks, LineChart],
           ['funds', text.funds, Landmark],
@@ -51,7 +51,7 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ compact = 
             key={center}
             type="button"
             className={cn(
-              'flex min-w-0 items-center justify-center rounded-lg px-1.5 py-2 text-[11px] transition-colors',
+              'flex w-full min-w-0 items-center justify-start gap-2 rounded-lg px-3 py-2 text-xs transition-colors',
               activeCenter === center
                 ? 'bg-primary text-[hsl(var(--primary-foreground))]'
                 : 'text-secondary-text hover:bg-hover hover:text-foreground',
@@ -61,7 +61,7 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ compact = 
             onClick={() => openCenter(center)}
           >
             <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            {!compact ? <span className="ml-1 truncate">{label}</span> : null}
+            {!compact ? <span className="min-w-0 truncate text-left">{label}</span> : null}
           </button>
         ))}
       </div>
@@ -78,7 +78,7 @@ export const WorkspaceSwitcher: React.FC<WorkspaceSwitcherProps> = ({ compact = 
         </select>
       </label>
       {!compact ? (
-        <button type="button" className="w-full text-center text-[10px] text-secondary-text hover:text-foreground" onClick={() => { navigate('/users'); onNavigate?.(); }}>
+        <button type="button" className="w-full px-3 text-left text-[10px] text-secondary-text hover:text-foreground" onClick={() => { navigate('/users'); onNavigate?.(); }}>
           {text.manageUsers}
         </button>
       ) : null}
