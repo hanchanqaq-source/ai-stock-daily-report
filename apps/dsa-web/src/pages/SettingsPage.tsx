@@ -51,6 +51,9 @@ type DesktopWindow = Window & {
 type RawPortableUpdateVerification = {
   canceled?: unknown;
   valid?: unknown;
+  checksumValid?: unknown;
+  structureValid?: unknown;
+  missingEntries?: unknown;
   error?: unknown;
 };
 
@@ -247,6 +250,12 @@ function getPortableUpdateVerificationNotice(
     return {
       variant: 'success',
       message: '文件校验通过，尚未安装或替换任何文件。',
+    };
+  }
+  if (result.checksumValid === true && result.structureValid === false && Array.isArray(result.missingEntries)) {
+    return {
+      variant: 'error',
+      message: `校验被拒绝：ZIP 缺少必要内容：${result.missingEntries.filter((entry) => typeof entry === 'string').join('、') || '目录结构不完整'}。`,
     };
   }
   return {
@@ -1781,7 +1790,7 @@ const SettingsPage: React.FC = () => {
                       <div>
                         <p className="text-sm font-medium text-foreground">校验便携更新包</p>
                         <p className="text-xs leading-6 text-muted-text">
-                          手动选择 Portable ZIP 与对应 .sha256，只核验 SHA-256；不会下载、解压、替换、删除或重启程序，也不会修改 data、config、logs、plugins 或持仓数据。
+                          手动选择 Portable ZIP 与对应 .sha256，只读校验 SHA-256，并检查中文 EXE、backend EXE 和必要目录；不会下载、解压、替换、删除或重启程序，也不会修改 data、config、logs、plugins 或持仓数据。
                         </p>
                       </div>
                       <Button

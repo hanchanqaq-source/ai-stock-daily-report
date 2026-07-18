@@ -2794,4 +2794,19 @@ describe('SettingsPage', () => {
 
     expect(await screen.findByText('校验未通过:校验被拒绝：ZIP 文件与对应 SHA-256 校验文件不匹配。')).toBeInTheDocument();
   });
+
+  it('shows a clear rejection when the portable ZIP structure is incomplete', async () => {
+    desktopVerifyPortableUpdate.mockResolvedValue({
+      valid: false,
+      checksumValid: true,
+      structureValid: false,
+      missingEntries: ['股票基金质量分析系统/resources/backend/stock_analysis/stock_analysis.exe'],
+    });
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime({ isPortableBuild: true });
+
+    render(<SettingsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: '校验便携更新包' }));
+
+    expect(await screen.findByText('校验未通过:校验被拒绝：ZIP 缺少必要内容：股票基金质量分析系统/resources/backend/stock_analysis/stock_analysis.exe。')).toBeInTheDocument();
+  });
 });
