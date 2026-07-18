@@ -1,6 +1,6 @@
 import type React from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ImageUp, Plus, RefreshCw, Settings2, Trash2, UsersRound } from 'lucide-react';
+import { ImageUp, Pencil, Plus, RefreshCw, Settings2, Trash2, UsersRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { portfolioApi } from '../api/portfolio';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
@@ -88,6 +88,7 @@ const TEXT = {
     returnPct: '收益率',
     action: '操作',
     remove: '删除',
+    edit: '编辑',
     stockToolsTitle: '股票高级管理',
     stockToolsDescription: '股票专用工具：交易录入、资金流水、公司行为、券商 CSV 和证券账户管理。',
     tradeEntry: '交易录入',
@@ -154,6 +155,7 @@ const TEXT = {
     returnPct: 'Return',
     action: 'Action',
     remove: 'Remove',
+    edit: 'Edit',
     stockToolsTitle: 'Stock advanced management',
     stockToolsDescription: 'Stock-only tools: trade entry, cash ledger, corporate actions, broker CSV, and securities account management.',
     tradeEntry: 'Trade entry',
@@ -200,6 +202,11 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
   const isPrimaryUser = activeUser.isPrimary;
   const [entryMode, setEntryMode] = useState<EntryMode>('manual');
   const [entryOpen, setEntryOpen] = useState(false);
+  const [editingHolding, setEditingHolding] = useState<
+    | { assetType: 'fund'; holding: typeof activeFundHoldings[number] }
+    | { assetType: 'stock'; holding: typeof activeStockHoldings[number] }
+    | null
+  >(null);
   const [accounts, setAccounts] = useState<PortfolioAccountItem[]>([]);
   const [accountsLoaded, setAccountsLoaded] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<AccountOption>('all');
@@ -294,8 +301,14 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
   const totalStockCount = stockRows.length + activeStockHoldings.length;
 
   const openEntry = (mode: EntryMode) => {
+    setEditingHolding(null);
     setEntryMode(mode);
     setEntryOpen(true);
+  };
+
+  const openEdit = (holding: typeof activeFundHoldings[number] | typeof activeStockHoldings[number], assetType: PortfolioDomain) => {
+    setEditingHolding(assetType === 'fund' ? { assetType, holding: holding as typeof activeFundHoldings[number] } : { assetType, holding: holding as typeof activeStockHoldings[number] });
+    setEntryMode('manual'); setEntryOpen(true);
   };
 
   const handleRefresh = async () => {
@@ -372,7 +385,7 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
                 </tr></thead>
                 <tbody>{activeFundHoldings.map((item) => (
                   <tr key={item.id} className="border-b border-white/5">
-                    <td className="py-3 pr-3 font-mono text-foreground">{item.code || '--'}</td><td className="py-3 pr-3 text-foreground">{item.name}</td><td className="py-3 pr-3 text-right">{formatMoney(item.amount)}</td><td className={`py-3 pr-3 text-right ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatMoney(item.profit)}</td><td className="py-3 pr-3 text-right">{item.targetAllocation == null ? '--' : `${item.targetAllocation.toFixed(1)}%`}</td><td className="py-3 text-right"><button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => removeFundHolding(item.id)}><Trash2 className="h-3.5 w-3.5" />{text.remove}</button></td>
+                    <td className="py-3 pr-3 font-mono text-foreground">{item.code || '--'}</td><td className="py-3 pr-3 text-foreground">{item.name}</td><td className="py-3 pr-3 text-right">{formatMoney(item.amount)}</td><td className={`py-3 pr-3 text-right ${item.profit >= 0 ? 'text-success' : 'text-danger'}`}>{formatMoney(item.profit)}</td><td className="py-3 pr-3 text-right">{item.targetAllocation == null ? '--' : `${item.targetAllocation.toFixed(1)}%`}</td><td className="py-3 text-right"><span className="inline-flex gap-3"><button type="button" className="inline-flex items-center gap-1 text-xs text-cyan" onClick={() => openEdit(item, 'fund')}><Pencil className="h-3.5 w-3.5" />{text.edit}</button><button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => removeFundHolding(item.id)}><Trash2 className="h-3.5 w-3.5" />{text.remove}</button></span></td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -399,7 +412,7 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
                 </tr></thead>
                 <tbody>{activeStockHoldings.map((item) => (
                   <tr key={item.id} className="border-b border-white/5">
-                    <td className="py-3 pr-3 text-secondary">{item.securitiesAccount}</td><td className="py-3 pr-3 font-mono text-foreground">{item.code || '--'}</td><td className="py-3 pr-3 text-foreground">{item.name}</td><td className="py-3 pr-3 text-right">{item.quantity.toFixed(2)}</td><td className="py-3 pr-3 text-right">{item.averageCost.toFixed(4)}</td><td className="py-3 pr-3 text-right">{formatMoney(item.quantity * item.averageCost)}</td><td className="py-3 text-right"><button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => removeStockHolding(item.id)}><Trash2 className="h-3.5 w-3.5" />{text.remove}</button></td>
+                    <td className="py-3 pr-3 text-secondary">{item.securitiesAccount}</td><td className="py-3 pr-3 font-mono text-foreground">{item.code || '--'}</td><td className="py-3 pr-3 text-foreground">{item.name}</td><td className="py-3 pr-3 text-right">{item.quantity.toFixed(2)}</td><td className="py-3 pr-3 text-right">{item.averageCost.toFixed(4)}</td><td className="py-3 pr-3 text-right">{formatMoney(item.quantity * item.averageCost)}</td><td className="py-3 text-right"><span className="inline-flex gap-3"><button type="button" className="inline-flex items-center gap-1 text-xs text-cyan" onClick={() => openEdit(item, 'stock')}><Pencil className="h-3.5 w-3.5" />{text.edit}</button><button type="button" className="inline-flex items-center gap-1 text-xs text-danger" onClick={() => removeStockHolding(item.id)}><Trash2 className="h-3.5 w-3.5" />{text.remove}</button></span></td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -474,7 +487,8 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
         isOpen={entryOpen}
         initialMode={entryMode}
         fixedAssetType={domain}
-        onClose={() => setEntryOpen(false)}
+        editingHolding={editingHolding}
+        onClose={() => { setEntryOpen(false); setEditingHolding(null); }}
       />
     </div>
   );

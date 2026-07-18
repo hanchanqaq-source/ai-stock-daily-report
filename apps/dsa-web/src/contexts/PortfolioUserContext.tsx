@@ -47,6 +47,8 @@ type PortfolioUserContextValue = {
   addStockHolding: (input: StockHoldingInput) => QuickStockHolding;
   removeFundHolding: (holdingId: string) => void;
   removeStockHolding: (holdingId: string) => void;
+  updateFundHolding: (holding: QuickFundHolding) => Promise<boolean>;
+  updateStockHolding: (holding: QuickStockHolding) => Promise<boolean>;
   replaceWorkspaceState: (state: WorkspacePortfolioStateDto) => void;
 };
 
@@ -74,6 +76,8 @@ const fallbackContext: PortfolioUserContextValue = {
   addStockHolding: (input) => ({ ...input, id: 'fallback-stock' }),
   removeFundHolding: () => undefined,
   removeStockHolding: () => undefined,
+  updateFundHolding: async () => false,
+  updateStockHolding: async () => false,
   replaceWorkspaceState: () => undefined,
 };
 
@@ -227,6 +231,28 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     persist(workspacePortfolioApi.removeStock(activeUser.id, holdingId));
   }, [activeUser.id, persist]);
 
+  const updateFundHolding = useCallback(async (holding: QuickFundHolding): Promise<boolean> => {
+    if (!(fundHoldingsByUser[activeUser.id] ?? []).some((item) => item.id === holding.id)) return false;
+    try {
+      await workspacePortfolioApi.updateFund(activeUser.id, holding);
+      localMutationStarted.current = true;
+      setFundHoldingsByUser((current) => ({ ...current, [activeUser.id]: (current[activeUser.id] ?? EMPTY_FUND_HOLDINGS).map((item) => item.id === holding.id ? holding : item) }));
+      setPersistenceStatus('ready');
+      return true;
+    } catch { setPersistenceStatus('error'); return false; }
+  }, [activeUser.id, fundHoldingsByUser]);
+
+  const updateStockHolding = useCallback(async (holding: QuickStockHolding): Promise<boolean> => {
+    if (!(stockHoldingsByUser[activeUser.id] ?? []).some((item) => item.id === holding.id)) return false;
+    try {
+      await workspacePortfolioApi.updateStock(activeUser.id, holding);
+      localMutationStarted.current = true;
+      setStockHoldingsByUser((current) => ({ ...current, [activeUser.id]: (current[activeUser.id] ?? EMPTY_STOCK_HOLDINGS).map((item) => item.id === holding.id ? holding : item) }));
+      setPersistenceStatus('ready');
+      return true;
+    } catch { setPersistenceStatus('error'); return false; }
+  }, [activeUser.id, stockHoldingsByUser]);
+
   const value = useMemo<PortfolioUserContextValue>(() => ({
     users,
     activeUser,
@@ -242,6 +268,8 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     addStockHolding,
     removeFundHolding,
     removeStockHolding,
+    updateFundHolding,
+    updateStockHolding,
     replaceWorkspaceState,
   }), [
     activeFundHoldings,
@@ -253,6 +281,8 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     addUser,
     removeFundHolding,
     removeStockHolding,
+    updateFundHolding,
+    updateStockHolding,
     replaceWorkspaceState,
     removeUser,
     renameUser,

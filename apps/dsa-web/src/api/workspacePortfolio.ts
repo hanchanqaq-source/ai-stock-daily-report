@@ -60,11 +60,17 @@ export const workspacePortfolioApi = {
   async removeStock(userId: string, id: string): Promise<void> {
     await apiClient.delete(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/stocks/${encodeURIComponent(id)}`);
   },
+  async updateStock(userId: string, holding: WorkspaceStockHoldingDto): Promise<void> {
+    await apiClient.patch(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/stocks/${encodeURIComponent(holding.id)}`, snakeStock(holding));
+  },
   async createFund(userId: string, holding: WorkspaceFundHoldingDto): Promise<void> {
     await apiClient.post(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/funds`, snakeFund(holding));
   },
   async removeFund(userId: string, id: string): Promise<void> {
     await apiClient.delete(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/funds/${encodeURIComponent(id)}`);
+  },
+  async updateFund(userId: string, holding: WorkspaceFundHoldingDto): Promise<void> {
+    await apiClient.patch(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/funds/${encodeURIComponent(holding.id)}`, snakeFund(holding));
   },
   async exportBackup(): Promise<WorkspacePortfolioBackupDto> {
     const response = await apiClient.get<Record<string, unknown>>('/api/v1/workspace-portfolio/backup/export');

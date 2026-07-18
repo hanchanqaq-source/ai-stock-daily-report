@@ -99,6 +99,31 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         backup = self.client.get('/api/v1/workspace-portfolio/backup/export').json()
         backup['stock_holdings_by_user']['unknown-user'] = []
         self.assertEqual(self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup).status_code, 422)
+
+    def test_editing_quick_holdings_keeps_domains_and_users_isolated(self) -> None:
+        self.client.get('/api/v1/workspace-portfolio')
+        self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-edit', 'name': '编辑用户'})
+        self.client.post('/api/v1/workspace-portfolio/users/user-edit/stocks', json={
+            'id': 'stock-edit', 'code': '600519', 'name': '原股票', 'quantity': 1, 'average_cost': 100, 'securities_account': '账户A',
+        })
+        self.client.post('/api/v1/workspace-portfolio/users/user-edit/funds', json={
+            'id': 'fund-edit', 'code': '000001', 'name': '原基金', 'amount': 1000, 'profit': 10,
+        })
+        stock_update = self.client.patch('/api/v1/workspace-portfolio/users/user-edit/stocks/stock-edit', json={
+            'code': '600519', 'name': '已编辑股票', 'quantity': 3, 'average_cost': 120, 'securities_account': '账户B', 'notes': '已核对',
+        })
+        self.assertEqual(stock_update.status_code, 200, stock_update.text)
+        self.assertEqual(stock_update.json()['quantity'], 3)
+        self.assertEqual(self.client.patch('/api/v1/workspace-portfolio/users/self/stocks/stock-edit', json={
+            'code': '600519', 'name': '越权修改', 'quantity': 2, 'average_cost': 100, 'securities_account': '账户A',
+        }).status_code, 404)
+        fund_update = self.client.patch('/api/v1/workspace-portfolio/users/user-edit/funds/fund-edit', json={
+            'code': '000001', 'name': '已编辑基金', 'amount': 2000, 'profit': 50, 'target_allocation': 40,
+        })
+        self.assertEqual(fund_update.status_code, 200, fund_update.text)
+        state = self.client.get('/api/v1/workspace-portfolio').json()
+        self.assertEqual(state['stock_holdings_by_user']['user-edit'][0]['name'], '已编辑股票')
+        self.assertEqual(state['fund_holdings_by_user']['user-edit'][0]['name'], '已编辑基金')
         backup = self.client.get('/api/v1/workspace-portfolio/backup/export').json()
         backup['secret'] = 'must-not-be-accepted'
         self.assertEqual(self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup).status_code, 422)
