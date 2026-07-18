@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] App-M4.2.4A 桌面 Setup Status 接入 Windows DPAPI 安全凭证 configured 状态，通过只读低敏 overlay 复用后端既有计算规则，保持明文不回显、不注入后端 Provider、失败 fail closed。
 
 - [新功能] Build E1 将工作台用户、股票快速持仓和基金快速持仓按用户隔离写入既有本机 SQLite，刷新或重启后恢复；同时让股票/基金双中心侧栏在小窗口和高缩放下可纵向滚动完整访问，不接真实账户、交易、通知或云端数据库。
 - [新功能] Build D4 使用当前用户页面内存基金持仓计算组合权重、集中度、披露重合、行业周期逆风、经营代理走弱和用户目标偏离，并输出带证据覆盖/缺失说明的人工配置复核建议；金额仅进入本机后端且不传给 AKShare，不读取账户、不调用 AI、不通知、不交易、不持久化。

@@ -88,6 +88,7 @@
 | [股票基金双中心 Build D3：行业周期与经营生产力代理证据](stock_fund_dual_center_build_d3.md) | 1–4 只基金手动只读周期证据、固定阈值阶段、经营生产力代理、证据日期/置信度/缺失项、安全门禁与 Build D4 边界 |
 | [股票基金双中心 Build D4：组合风险与配置建议](stock_fund_dual_center_build_d4.md) | 当前用户基金组合集中度、重合、周期风险、目标偏离、证据覆盖与人工复核建议 |
 | [股票基金双中心 Build E1：本地数据库持久化](stock_fund_dual_center_build_e1.md) | 用户、股票快速持仓、基金快速持仓的本机 SQLite 持久化、隔离、恢复与侧栏完整显示 |
+| [App-M4.2.4A 桌面 Setup Status 安全凭证状态接入](app_m4_2_4a_desktop_setup_status_credentials.md) | Electron 设置页基于 DPAPI configured 状态向后端提交低敏 overlay，由后端复用既有 Setup Status 规则计算首次设置状态；不回显明文、不注入 Provider。 |
 
 ## 多语言
 

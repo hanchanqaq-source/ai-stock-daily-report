@@ -1,5 +1,6 @@
 import type {
   ConfigValidationIssue,
+  SystemConfigItem,
   SystemConfigResponse,
   SystemConfigUpdateItem,
   ValidateSystemConfigResponse,
@@ -243,4 +244,11 @@ export async function overlayDesktopCredentialStatuses(
       };
     }),
   };
+}
+
+export function collectConfiguredDesktopSecretKeys(items: SystemConfigItem[]): string[] {
+  const keys = items
+    .filter((item) => item.schema?.isSensitive && item.rawValueExists && item.isMasked)
+    .map((item) => item.key);
+  return [...new Set(keys)].sort();
 }

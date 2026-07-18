@@ -102,6 +102,10 @@ export interface SetupStatusResponse {
   checks: SetupStatusCheck[];
 }
 
+export interface SetupStatusOverlayRequest {
+  configuredSecretKeys: string[];
+}
+
 export interface ExportSystemConfigResponse {
   content: string;
   configVersion: string;

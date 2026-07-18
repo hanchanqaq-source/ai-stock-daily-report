@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   applyDesktopCredentialUpdates,
+  collectConfiguredDesktopSecretKeys,
   overlayDesktopCredentialStatuses,
   splitDesktopCredentialUpdates,
   validateDesktopCredentialUpdates,
@@ -140,5 +141,26 @@ describe('desktop credential routing helpers', () => {
     });
     expect(overlaid.items[1]).toEqual(original.items[1]);
     expect(original.items[0]).toMatchObject({ value: '', rawValueExists: false, isMasked: false });
+  });
+
+  it('collects only already-masked sensitive desktop secret keys for setup overlay', () => {
+    const config = makeConfig();
+    const items = [
+      {
+        ...config.items[0],
+        rawValueExists: true,
+        isMasked: true,
+        value: '******',
+      },
+      config.items[1],
+      {
+        ...config.items[0],
+        key: 'TELEGRAM_BOT_TOKEN',
+        rawValueExists: true,
+        isMasked: false,
+      },
+    ];
+
+    expect(collectConfiguredDesktopSecretKeys(items)).toEqual(['OPENAI_API_KEY']);
   });
 });
