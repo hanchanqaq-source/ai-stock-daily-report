@@ -318,9 +318,14 @@ def list_recycle_bin(user_id: str, request: Request, db: Session = Depends(get_d
 
 
 @router.get('/users/{user_id}/holding-history', response_model=list[WorkspaceHoldingHistoryItem])
-def list_holding_history(user_id: str, request: Request, db: Session = Depends(get_db)) -> list[WorkspaceHoldingHistoryItem]:
+def list_holding_history(user_id: str, request: Request, asset_type: str | None = None, db: Session = Depends(get_db)) -> list[WorkspaceHoldingHistoryItem]:
     _require_local(request); _require_user(db, user_id)
-    rows = db.scalars(select(WorkspaceHoldingHistoryEntry).where(WorkspaceHoldingHistoryEntry.user_id == user_id).order_by(WorkspaceHoldingHistoryEntry.created_at.desc()).limit(50)).all()
+    if asset_type not in {None, 'stock', 'fund'}:
+        raise HTTPException(status_code=422, detail='workspace_portfolio.invalid_asset_type')
+    query = select(WorkspaceHoldingHistoryEntry).where(WorkspaceHoldingHistoryEntry.user_id == user_id)
+    if asset_type:
+        query = query.where(WorkspaceHoldingHistoryEntry.asset_type == asset_type)
+    rows = db.scalars(query.order_by(WorkspaceHoldingHistoryEntry.created_at.desc()).limit(50)).all()
     return [WorkspaceHoldingHistoryItem(id=row.id, asset_type=row.asset_type, action=row.action, holding=(WorkspaceStockHoldingItem.model_validate_json(row.holding_json) if row.asset_type == 'stock' else WorkspaceFundHoldingItem.model_validate_json(row.holding_json)), created_at=row.created_at.replace(tzinfo=timezone.utc).isoformat()) for row in rows]
 
 

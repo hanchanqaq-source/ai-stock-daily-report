@@ -101,8 +101,8 @@ export const workspacePortfolioApi = {
   async restoreRecycleEntry(userId: string, id: string): Promise<void> {
     await apiClient.post(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/recycle-bin/${encodeURIComponent(id)}/restore`);
   },
-  async listHoldingHistory(userId: string): Promise<WorkspaceHoldingHistoryItemDto[]> {
-    const response = await apiClient.get<Record<string, unknown>[]>(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/holding-history`);
+  async listHoldingHistory(userId: string, assetType: 'stock' | 'fund'): Promise<WorkspaceHoldingHistoryItemDto[]> {
+    const response = await apiClient.get<Record<string, unknown>[]>(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/holding-history?asset_type=${assetType}`);
     return toCamelCase<WorkspaceHoldingHistoryItemDto[]>(response.data);
   },
 };
