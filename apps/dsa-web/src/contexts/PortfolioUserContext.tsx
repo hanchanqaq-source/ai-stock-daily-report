@@ -1,6 +1,7 @@
 import type React from 'react';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { workspacePortfolioApi } from '../api/workspacePortfolio';
+import type { WorkspacePortfolioStateDto } from '../api/workspacePortfolio';
 
 export type PortfolioUserProfile = {
   id: string;
@@ -46,6 +47,7 @@ type PortfolioUserContextValue = {
   addStockHolding: (input: StockHoldingInput) => QuickStockHolding;
   removeFundHolding: (holdingId: string) => void;
   removeStockHolding: (holdingId: string) => void;
+  replaceWorkspaceState: (state: WorkspacePortfolioStateDto) => void;
 };
 
 const PRIMARY_USER: PortfolioUserProfile = {
@@ -72,6 +74,7 @@ const fallbackContext: PortfolioUserContextValue = {
   addStockHolding: (input) => ({ ...input, id: 'fallback-stock' }),
   removeFundHolding: () => undefined,
   removeStockHolding: () => undefined,
+  replaceWorkspaceState: () => undefined,
 };
 
 const PortfolioUserContext = createContext<PortfolioUserContextValue | null>(null);
@@ -98,6 +101,16 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const persist = useCallback((operation: Promise<void>) => {
     operation.then(() => setPersistenceStatus('ready')).catch(() => setPersistenceStatus('error'));
+  }, []);
+
+  const replaceWorkspaceState = useCallback((state: WorkspacePortfolioStateDto) => {
+    localMutationStarted.current = true;
+    const nextUsers = state.users.length ? state.users : [PRIMARY_USER];
+    setUsers(nextUsers);
+    setFundHoldingsByUser(state.fundHoldingsByUser);
+    setStockHoldingsByUser(state.stockHoldingsByUser);
+    setActiveUserIdState((current) => nextUsers.some((user) => user.id === current) ? current : PRIMARY_USER.id);
+    setPersistenceStatus('ready');
   }, []);
 
   useEffect(() => {
@@ -229,6 +242,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     addStockHolding,
     removeFundHolding,
     removeStockHolding,
+    replaceWorkspaceState,
   }), [
     activeFundHoldings,
     activeStockHoldings,
@@ -239,6 +253,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     addUser,
     removeFundHolding,
     removeStockHolding,
+    replaceWorkspaceState,
     removeUser,
     renameUser,
     setActiveUserId,
