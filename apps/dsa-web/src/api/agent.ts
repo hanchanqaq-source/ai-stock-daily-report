@@ -60,8 +60,8 @@ export const agentApi = {
     const response = await apiClient.get<SkillsResponse>('/api/v1/agent/skills');
     return response.data;
   },
-  async getChatSessions(limit = 50): Promise<ChatSessionItem[]> {
-    const response = await apiClient.get<{ sessions: ChatSessionItem[] }>('/api/v1/agent/chat/sessions', { params: { limit } });
+  async getChatSessions(limit = 50, scope?: string): Promise<ChatSessionItem[]> {
+    const response = await apiClient.get<{ sessions: ChatSessionItem[] }>('/api/v1/agent/chat/sessions', { params: { limit, user_id: scope } });
     return response.data.sessions;
   },
   async getChatSessionMessages(sessionId: string): Promise<ChatSessionMessage[]> {
