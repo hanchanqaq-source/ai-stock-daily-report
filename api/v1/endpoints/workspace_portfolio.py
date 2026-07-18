@@ -19,6 +19,7 @@ from api.v1.schemas.workspace_portfolio import (
     WorkspacePortfolioRestorePointItem,
     WorkspacePortfolioRestoreRequest,
     WorkspaceHoldingRecycleItem,
+    WorkspaceHoldingHistoryItem,
     WorkspacePortfolioState,
     WorkspaceStockHoldingCreate,
     WorkspaceStockHoldingItem,
@@ -26,7 +27,7 @@ from api.v1.schemas.workspace_portfolio import (
     WorkspaceUserItem,
     WorkspaceUserRename,
 )
-from src.storage import WorkspaceFundHolding, WorkspaceHoldingRecycleEntry, WorkspacePortfolioBackup, WorkspaceStockHolding, WorkspaceUser
+from src.storage import WorkspaceFundHolding, WorkspaceHoldingHistoryEntry, WorkspaceHoldingRecycleEntry, WorkspacePortfolioBackup, WorkspaceStockHolding, WorkspaceUser
 
 router = APIRouter()
 PRIMARY_USER_ID = 'self'
@@ -160,6 +161,10 @@ def _recycle_holding(db: Session, user_id: str, asset_type: str, holding: Worksp
     db.add(WorkspaceHoldingRecycleEntry(id=f'recycle-{uuid4().hex}', user_id=user_id, asset_type=asset_type, holding_json=holding.model_dump_json()))
 
 
+def _record_holding_history(db: Session, user_id: str, asset_type: str, action: str, holding: WorkspaceStockHoldingItem | WorkspaceFundHoldingItem) -> None:
+    db.add(WorkspaceHoldingHistoryEntry(id=f'history-{uuid4().hex}', user_id=user_id, asset_type=asset_type, action=action, holding_json=holding.model_dump_json()))
+
+
 @router.get('', response_model=WorkspacePortfolioState)
 def get_state(request: Request, db: Session = Depends(get_db)) -> WorkspacePortfolioState:
     _require_local(request)
@@ -254,8 +259,9 @@ def create_stock(user_id: str, payload: WorkspaceStockHoldingCreate, request: Re
     _require_local(request); _require_user(db, user_id)
     values = payload.model_dump(exclude={'id'})
     row = WorkspaceStockHolding(id=payload.id or f'stock-{uuid4().hex}', user_id=user_id, **values)
-    db.add(row); db.commit(); db.refresh(row)
-    return WorkspaceStockHoldingItem(id=row.id, **values)
+    item = WorkspaceStockHoldingItem(id=row.id, **values)
+    db.add(row); _record_holding_history(db, user_id, 'stock', 'created', item); db.commit(); db.refresh(row)
+    return item
 
 
 @router.delete('/users/{user_id}/stocks/{holding_id}', status_code=status.HTTP_204_NO_CONTENT)
@@ -264,7 +270,8 @@ def remove_stock(user_id: str, holding_id: str, request: Request, db: Session = 
     row = db.get(WorkspaceStockHolding, holding_id)
     if row is None or row.user_id != user_id:
         raise HTTPException(status_code=404, detail='workspace_portfolio.holding_not_found')
-    _recycle_holding(db, user_id, 'stock', WorkspaceStockHoldingItem(id=row.id, code=row.code, name=row.name, quantity=row.quantity, average_cost=row.average_cost, securities_account=row.securities_account, notes=row.notes))
+    item = WorkspaceStockHoldingItem(id=row.id, code=row.code, name=row.name, quantity=row.quantity, average_cost=row.average_cost, securities_account=row.securities_account, notes=row.notes)
+    _recycle_holding(db, user_id, 'stock', item); _record_holding_history(db, user_id, 'stock', 'deleted', item)
     db.delete(row); db.commit()
 
 
@@ -277,8 +284,9 @@ def update_stock(user_id: str, holding_id: str, payload: WorkspaceStockHoldingCr
     values = payload.model_dump(exclude={'id'})
     for key, value in values.items():
         setattr(row, key, value)
-    db.commit(); db.refresh(row)
-    return WorkspaceStockHoldingItem(id=row.id, **values)
+    item = WorkspaceStockHoldingItem(id=row.id, **values)
+    _record_holding_history(db, user_id, 'stock', 'updated', item); db.commit(); db.refresh(row)
+    return item
 
 
 @router.post('/users/{user_id}/funds', response_model=WorkspaceFundHoldingItem, status_code=status.HTTP_201_CREATED)
@@ -286,8 +294,9 @@ def create_fund(user_id: str, payload: WorkspaceFundHoldingCreate, request: Requ
     _require_local(request); _require_user(db, user_id)
     values = payload.model_dump(exclude={'id'})
     row = WorkspaceFundHolding(id=payload.id or f'fund-{uuid4().hex}', user_id=user_id, **values)
-    db.add(row); db.commit(); db.refresh(row)
-    return WorkspaceFundHoldingItem(id=row.id, **values)
+    item = WorkspaceFundHoldingItem(id=row.id, **values)
+    db.add(row); _record_holding_history(db, user_id, 'fund', 'created', item); db.commit(); db.refresh(row)
+    return item
 
 
 @router.delete('/users/{user_id}/funds/{holding_id}', status_code=status.HTTP_204_NO_CONTENT)
@@ -296,7 +305,8 @@ def remove_fund(user_id: str, holding_id: str, request: Request, db: Session = D
     row = db.get(WorkspaceFundHolding, holding_id)
     if row is None or row.user_id != user_id:
         raise HTTPException(status_code=404, detail='workspace_portfolio.holding_not_found')
-    _recycle_holding(db, user_id, 'fund', WorkspaceFundHoldingItem(id=row.id, code=row.code, name=row.name, amount=row.amount, profit=row.profit, target_allocation=row.target_allocation, notes=row.notes))
+    item = WorkspaceFundHoldingItem(id=row.id, code=row.code, name=row.name, amount=row.amount, profit=row.profit, target_allocation=row.target_allocation, notes=row.notes)
+    _recycle_holding(db, user_id, 'fund', item); _record_holding_history(db, user_id, 'fund', 'deleted', item)
     db.delete(row); db.commit()
 
 
@@ -307,12 +317,20 @@ def list_recycle_bin(user_id: str, request: Request, db: Session = Depends(get_d
     return [WorkspaceHoldingRecycleItem(id=row.id, asset_type=row.asset_type, holding=(WorkspaceStockHoldingItem.model_validate_json(row.holding_json) if row.asset_type == 'stock' else WorkspaceFundHoldingItem.model_validate_json(row.holding_json)), created_at=row.created_at.replace(tzinfo=timezone.utc).isoformat()) for row in rows]
 
 
+@router.get('/users/{user_id}/holding-history', response_model=list[WorkspaceHoldingHistoryItem])
+def list_holding_history(user_id: str, request: Request, db: Session = Depends(get_db)) -> list[WorkspaceHoldingHistoryItem]:
+    _require_local(request); _require_user(db, user_id)
+    rows = db.scalars(select(WorkspaceHoldingHistoryEntry).where(WorkspaceHoldingHistoryEntry.user_id == user_id).order_by(WorkspaceHoldingHistoryEntry.created_at.desc()).limit(50)).all()
+    return [WorkspaceHoldingHistoryItem(id=row.id, asset_type=row.asset_type, action=row.action, holding=(WorkspaceStockHoldingItem.model_validate_json(row.holding_json) if row.asset_type == 'stock' else WorkspaceFundHoldingItem.model_validate_json(row.holding_json)), created_at=row.created_at.replace(tzinfo=timezone.utc).isoformat()) for row in rows]
+
+
 @router.post('/users/{user_id}/recycle-bin/{entry_id}/restore', response_model=WorkspaceStockHoldingItem | WorkspaceFundHoldingItem)
 def restore_recycled_holding(user_id: str, entry_id: str, request: Request, db: Session = Depends(get_db)) -> WorkspaceStockHoldingItem | WorkspaceFundHoldingItem:
     _require_local(request); _require_user(db, user_id)
     row = db.get(WorkspaceHoldingRecycleEntry, entry_id)
     if row is None or row.user_id != user_id: raise HTTPException(status_code=404, detail='workspace_portfolio.recycle_entry_not_found')
-    if row.asset_type == 'stock':
+    asset_type = row.asset_type
+    if asset_type == 'stock':
         holding = WorkspaceStockHoldingItem.model_validate_json(row.holding_json)
         if db.get(WorkspaceStockHolding, holding.id): raise HTTPException(status_code=409, detail='workspace_portfolio.holding_id_conflict')
         db.add(WorkspaceStockHolding(user_id=user_id, **holding.model_dump()))
@@ -320,7 +338,7 @@ def restore_recycled_holding(user_id: str, entry_id: str, request: Request, db: 
         holding = WorkspaceFundHoldingItem.model_validate_json(row.holding_json)
         if db.get(WorkspaceFundHolding, holding.id): raise HTTPException(status_code=409, detail='workspace_portfolio.holding_id_conflict')
         db.add(WorkspaceFundHolding(user_id=user_id, **holding.model_dump()))
-    db.delete(row); db.commit()
+    db.delete(row); _record_holding_history(db, user_id, asset_type, 'restored', holding); db.commit()
     return holding
 
 
@@ -333,5 +351,6 @@ def update_fund(user_id: str, holding_id: str, payload: WorkspaceFundHoldingCrea
     values = payload.model_dump(exclude={'id'})
     for key, value in values.items():
         setattr(row, key, value)
-    db.commit(); db.refresh(row)
-    return WorkspaceFundHoldingItem(id=row.id, **values)
+    item = WorkspaceFundHoldingItem(id=row.id, **values)
+    _record_holding_history(db, user_id, 'fund', 'updated', item); db.commit(); db.refresh(row)
+    return item

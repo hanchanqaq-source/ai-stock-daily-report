@@ -1170,6 +1170,18 @@ class WorkspaceHoldingRecycleEntry(Base):
     created_at = Column(DateTime, default=utc_naive_now, nullable=False, index=True)
 
 
+class WorkspaceHoldingHistoryEntry(Base):
+    """Low-sensitivity local audit trail for one quick-holding mutation."""
+
+    __tablename__ = 'workspace_holding_history_entries'
+    id = Column(String(64), primary_key=True)
+    user_id = Column(String(64), ForeignKey('workspace_users.id', ondelete='CASCADE'), nullable=False, index=True)
+    asset_type = Column(String(8), nullable=False, index=True)
+    action = Column(String(16), nullable=False, index=True)
+    holding_json = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=utc_naive_now, nullable=False, index=True)
+
+
 class _DatabaseManagerMeta(type):
     """Serialize DatabaseManager construction across __new__ and __init__."""
 

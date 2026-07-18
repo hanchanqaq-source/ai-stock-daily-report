@@ -6,7 +6,7 @@ import { portfolioApi } from '../api/portfolio';
 import { getParsedApiError, type ParsedApiError } from '../api/error';
 import { ApiErrorAlert, Card, EmptyState, InlineAlert } from '../components/common';
 import { QuickHoldingEntryDrawer } from '../components/portfolio/QuickHoldingEntryDrawer';
-import { workspacePortfolioApi } from '../api/workspacePortfolio';
+import { workspacePortfolioApi, type WorkspaceHoldingHistoryItemDto } from '../api/workspacePortfolio';
 import { usePortfolioUsers } from '../contexts/PortfolioUserContext';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 import type {
@@ -91,6 +91,8 @@ const TEXT = {
     remove: '删除',
     edit: '编辑',
     restoreLatest: '恢复最近删除',
+    holdingHistory: '持仓变更历史',
+    noHoldingHistory: '当前用户还没有持仓变更记录。',
     stockToolsTitle: '股票高级管理',
     stockToolsDescription: '股票专用工具：交易录入、资金流水、公司行为、券商 CSV 和证券账户管理。',
     tradeEntry: '交易录入',
@@ -159,6 +161,8 @@ const TEXT = {
     remove: 'Remove',
     edit: 'Edit',
     restoreLatest: 'Restore latest deleted',
+    holdingHistory: 'Holding change history',
+    noHoldingHistory: 'This user has no holding change records yet.',
     stockToolsTitle: 'Stock advanced management',
     stockToolsDescription: 'Stock-only tools: trade entry, cash ledger, corporate actions, broker CSV, and securities account management.',
     tradeEntry: 'Trade entry',
@@ -220,6 +224,8 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
   const [error, setError] = useState<ParsedApiError | null>(null);
   const [riskWarning, setRiskWarning] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [holdingHistory, setHoldingHistory] = useState<WorkspaceHoldingHistoryItemDto[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   useEffect(() => { document.title = `${pageTitle} - DSA`; }, [pageTitle]);
 
@@ -281,6 +287,12 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
 
   useEffect(() => { void loadOverview(); }, [loadOverview]);
 
+  const loadHoldingHistory = useCallback(async () => {
+    setHoldingHistory(await workspacePortfolioApi.listHoldingHistory(activeUser.id));
+  }, [activeUser.id]);
+
+  useEffect(() => { if (historyOpen) void loadHoldingHistory().catch(() => setHoldingHistory([])); }, [historyOpen, loadHoldingHistory]);
+
   const stockRows = useMemo<StockPositionRow[]>(() => (
     (snapshot?.accounts || []).flatMap((account) => (
       (account.positions || []).map((position) => ({
@@ -324,6 +336,7 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
     if (!entries[0]) return;
     await workspacePortfolioApi.restoreRecycleEntry(activeUser.id, entries[0].id);
     replaceWorkspaceState(await workspacePortfolioApi.getState());
+    if (historyOpen) await loadHoldingHistory();
   };
 
   const handleRefresh = async () => {
@@ -367,7 +380,8 @@ const PersonalPortfolioPage: React.FC<PersonalPortfolioPageProps> = ({ domain })
       </section>
 
       {!isPrimaryUser ? <InlineAlert variant="info" title={text.userNotConnectedTitle} message={text.userNotConnectedDescription} /> : null}
-      <div className="flex justify-end"><button type="button" className="btn-secondary text-xs" onClick={() => void restoreLatestDeleted()}>{text.restoreLatest}</button></div>
+      <div className="flex flex-wrap justify-end gap-2"><button type="button" className="btn-secondary text-xs" onClick={() => void restoreLatestDeleted()}>{text.restoreLatest}</button><button type="button" className="btn-secondary text-xs" onClick={() => setHistoryOpen((current) => !current)}>{text.holdingHistory}</button></div>
+      {historyOpen ? <Card padding="md"><div className="space-y-2"><h2 className="text-sm font-semibold text-foreground">{text.holdingHistory}</h2>{holdingHistory.length ? holdingHistory.map((entry) => <div key={entry.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 px-3 py-2 text-xs"><span className="text-foreground">{entry.assetType === 'fund' ? '基金' : '股票'} · {entry.holding.name}</span><span className="text-secondary">{({ created: '新增', updated: '编辑', deleted: '删除', restored: '恢复' } as Record<string, string>)[entry.action]} · {new Date(entry.createdAt).toLocaleString()}</span></div>) : <p className="text-sm text-secondary">{text.noHoldingHistory}</p>}</div></Card> : null}
       {showStocks && error ? <ApiErrorAlert error={error} onDismiss={() => setError(null)} /> : null}
 
       {showStocks ? <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="stock portfolio summary">

@@ -128,6 +128,20 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         backup['secret'] = 'must-not-be-accepted'
         self.assertEqual(self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup).status_code, 422)
 
+    def test_holding_history_is_user_scoped_and_records_mutations(self) -> None:
+        self.client.get('/api/v1/workspace-portfolio')
+        self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-history', 'name': '历史用户'})
+        payload = {'id': 'fund-history', 'code': '000001', 'name': '历史基金', 'amount': 1000, 'profit': 10}
+        self.assertEqual(self.client.post('/api/v1/workspace-portfolio/users/user-history/funds', json=payload).status_code, 201)
+        payload['amount'] = 1500
+        self.assertEqual(self.client.patch('/api/v1/workspace-portfolio/users/user-history/funds/fund-history', json=payload).status_code, 200)
+        self.assertEqual(self.client.delete('/api/v1/workspace-portfolio/users/user-history/funds/fund-history').status_code, 204)
+        history = self.client.get('/api/v1/workspace-portfolio/users/user-history/holding-history')
+        self.assertEqual(history.status_code, 200, history.text)
+        self.assertEqual({item['action'] for item in history.json()}, {'created', 'updated', 'deleted'})
+        self.assertEqual({item['asset_type'] for item in history.json()}, {'fund'})
+        self.assertEqual(self.client.get('/api/v1/workspace-portfolio/users/self/holding-history').json(), [])
+
 
 if __name__ == '__main__':
     unittest.main()
