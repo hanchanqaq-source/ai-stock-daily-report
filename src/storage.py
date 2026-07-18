@@ -1100,6 +1100,50 @@ class DecisionSignalFeedbackRecord(Base):
     updated_at = Column(DateTime, default=utc_naive_now, onupdate=utc_naive_now, index=True)
 
 
+class WorkspaceUser(Base):
+    """Local stock/fund workspace profile; not an authentication account."""
+
+    __tablename__ = 'workspace_users'
+
+    id = Column(String(64), primary_key=True)
+    name = Column(String(24), nullable=False)
+    is_primary = Column(Boolean, nullable=False, default=False, index=True)
+    created_at = Column(DateTime, default=utc_naive_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_naive_now, onupdate=utc_naive_now, nullable=False)
+
+
+class WorkspaceStockHolding(Base):
+    """A manually entered stock holding owned by one workspace profile."""
+
+    __tablename__ = 'workspace_stock_holdings'
+
+    id = Column(String(64), primary_key=True)
+    user_id = Column(String(64), ForeignKey('workspace_users.id', ondelete='CASCADE'), nullable=False, index=True)
+    code = Column(String(32), nullable=False, default='')
+    name = Column(String(100), nullable=False)
+    quantity = Column(Float, nullable=False)
+    average_cost = Column(Float, nullable=False)
+    securities_account = Column(String(100), nullable=False, default='默认证券账户')
+    notes = Column(Text)
+    created_at = Column(DateTime, default=utc_naive_now, nullable=False)
+
+
+class WorkspaceFundHolding(Base):
+    """A manually entered fund holding owned by one workspace profile."""
+
+    __tablename__ = 'workspace_fund_holdings'
+
+    id = Column(String(64), primary_key=True)
+    user_id = Column(String(64), ForeignKey('workspace_users.id', ondelete='CASCADE'), nullable=False, index=True)
+    code = Column(String(32), nullable=False, default='')
+    name = Column(String(100), nullable=False)
+    amount = Column(Float, nullable=False)
+    profit = Column(Float, nullable=False, default=0)
+    target_allocation = Column(Float)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=utc_naive_now, nullable=False)
+
+
 class _DatabaseManagerMeta(type):
     """Serialize DatabaseManager construction across __new__ and __init__."""
 

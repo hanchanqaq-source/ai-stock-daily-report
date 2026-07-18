@@ -1,5 +1,6 @@
 import type React from 'react';
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { workspacePortfolioApi } from '../api/workspacePortfolio';
 
 export type PortfolioUserProfile = {
   id: string;
@@ -36,6 +37,7 @@ type PortfolioUserContextValue = {
   activeUserId: string;
   activeFundHoldings: readonly QuickFundHolding[];
   activeStockHoldings: readonly QuickStockHolding[];
+  persistenceStatus: 'loading' | 'ready' | 'error';
   addUser: (name: string) => PortfolioUserProfile | null;
   renameUser: (id: string, name: string) => boolean;
   removeUser: (id: string) => boolean;
@@ -61,6 +63,7 @@ const fallbackContext: PortfolioUserContextValue = {
   activeUserId: PRIMARY_USER.id,
   activeFundHoldings: EMPTY_FUND_HOLDINGS,
   activeStockHoldings: EMPTY_STOCK_HOLDINGS,
+  persistenceStatus: 'ready',
   addUser: () => null,
   renameUser: () => false,
   removeUser: () => false,
@@ -90,6 +93,27 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [stockHoldingsByUser, setStockHoldingsByUser] = useState<Record<string, readonly QuickStockHolding[]>>({
     [PRIMARY_USER.id]: EMPTY_STOCK_HOLDINGS,
   });
+  const [persistenceStatus, setPersistenceStatus] = useState<'loading' | 'ready' | 'error'>('loading');
+  const localMutationStarted = useRef(false);
+
+  const persist = useCallback((operation: Promise<void>) => {
+    operation.then(() => setPersistenceStatus('ready')).catch(() => setPersistenceStatus('error'));
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    workspacePortfolioApi.getState().then((state) => {
+      if (!active || localMutationStarted.current) return;
+      setUsers(state.users.length ? state.users : [PRIMARY_USER]);
+      setFundHoldingsByUser(state.fundHoldingsByUser);
+      setStockHoldingsByUser(state.stockHoldingsByUser);
+      setActiveUserIdState((current) => state.users.some((user) => user.id === current) ? current : PRIMARY_USER.id);
+      setPersistenceStatus('ready');
+    }).catch(() => {
+      if (active) setPersistenceStatus('error');
+    });
+    return () => { active = false; };
+  }, []);
 
   const activeUser = users.find((user) => user.id === activeUserId) ?? users[0] ?? PRIMARY_USER;
   const activeFundHoldings = fundHoldingsByUser[activeUser.id] ?? EMPTY_FUND_HOLDINGS;
@@ -108,27 +132,32 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
       name: normalized,
       isPrimary: false,
     };
+    localMutationStarted.current = true;
     setUsers((current) => [...current, nextUser]);
     setFundHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_FUND_HOLDINGS }));
     setStockHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_STOCK_HOLDINGS }));
     setActiveUserIdState(nextUser.id);
+    persist(workspacePortfolioApi.createUser(nextUser));
     return nextUser;
-  }, []);
+  }, [persist]);
 
   const renameUser = useCallback((id: string, name: string): boolean => {
     const normalized = normalizeName(name);
     if (!normalized || !users.some((user) => user.id === id)) return false;
 
+    localMutationStarted.current = true;
     setUsers((current) => current.map((user) => (
       user.id === id ? { ...user, name: normalized } : user
     )));
+    persist(workspacePortfolioApi.renameUser(id, normalized));
     return true;
-  }, [users]);
+  }, [persist, users]);
 
   const removeUser = useCallback((id: string): boolean => {
     const target = users.find((user) => user.id === id);
     if (!target || target.isPrimary) return false;
 
+    localMutationStarted.current = true;
     setUsers((current) => current.filter((user) => user.id !== id));
     setFundHoldingsByUser((current) => {
       const next = { ...current };
@@ -141,40 +170,49 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
       return next;
     });
     setActiveUserIdState((current) => (current === id ? PRIMARY_USER.id : current));
+    persist(workspacePortfolioApi.removeUser(id));
     return true;
-  }, [users]);
+  }, [persist, users]);
 
   const addFundHolding = useCallback((input: FundHoldingInput): QuickFundHolding => {
     const holding = { ...input, id: createHoldingId('fund') };
+    localMutationStarted.current = true;
     setFundHoldingsByUser((current) => ({
       ...current,
       [activeUser.id]: [...(current[activeUser.id] ?? EMPTY_FUND_HOLDINGS), holding],
     }));
+    persist(workspacePortfolioApi.createFund(activeUser.id, holding));
     return holding;
-  }, [activeUser.id]);
+  }, [activeUser.id, persist]);
 
   const addStockHolding = useCallback((input: StockHoldingInput): QuickStockHolding => {
     const holding = { ...input, id: createHoldingId('stock') };
+    localMutationStarted.current = true;
     setStockHoldingsByUser((current) => ({
       ...current,
       [activeUser.id]: [...(current[activeUser.id] ?? EMPTY_STOCK_HOLDINGS), holding],
     }));
+    persist(workspacePortfolioApi.createStock(activeUser.id, holding));
     return holding;
-  }, [activeUser.id]);
+  }, [activeUser.id, persist]);
 
   const removeFundHolding = useCallback((holdingId: string) => {
+    localMutationStarted.current = true;
     setFundHoldingsByUser((current) => ({
       ...current,
       [activeUser.id]: (current[activeUser.id] ?? EMPTY_FUND_HOLDINGS).filter((item) => item.id !== holdingId),
     }));
-  }, [activeUser.id]);
+    persist(workspacePortfolioApi.removeFund(activeUser.id, holdingId));
+  }, [activeUser.id, persist]);
 
   const removeStockHolding = useCallback((holdingId: string) => {
+    localMutationStarted.current = true;
     setStockHoldingsByUser((current) => ({
       ...current,
       [activeUser.id]: (current[activeUser.id] ?? EMPTY_STOCK_HOLDINGS).filter((item) => item.id !== holdingId),
     }));
-  }, [activeUser.id]);
+    persist(workspacePortfolioApi.removeStock(activeUser.id, holdingId));
+  }, [activeUser.id, persist]);
 
   const value = useMemo<PortfolioUserContextValue>(() => ({
     users,
@@ -182,6 +220,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     activeUserId: activeUser.id,
     activeFundHoldings,
     activeStockHoldings,
+    persistenceStatus,
     addUser,
     renameUser,
     removeUser,
@@ -193,6 +232,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
   }), [
     activeFundHoldings,
     activeStockHoldings,
+    persistenceStatus,
     activeUser,
     addFundHolding,
     addStockHolding,

@@ -1,6 +1,15 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { PortfolioUserProvider, usePortfolioUsers } from '../PortfolioUserContext';
+
+vi.mock('../../api/workspacePortfolio', () => ({
+  workspacePortfolioApi: {
+    getState: vi.fn().mockResolvedValue({ users: [{ id: 'self', name: '本人', isPrimary: true }], stockHoldingsByUser: { self: [] }, fundHoldingsByUser: { self: [] } }),
+    createUser: vi.fn().mockResolvedValue(undefined), renameUser: vi.fn().mockResolvedValue(undefined), removeUser: vi.fn().mockResolvedValue(undefined),
+    createStock: vi.fn().mockResolvedValue(undefined), removeStock: vi.fn().mockResolvedValue(undefined),
+    createFund: vi.fn().mockResolvedValue(undefined), removeFund: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 
 const PortfolioStateProbe = () => {
   const {

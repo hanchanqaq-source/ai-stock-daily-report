@@ -12,7 +12,8 @@ const TEXT = {
     addTitle: '新增用户', placeholder: '输入用户名称，例如：家人A', add: '添加用户',
     listTitle: '用户档案', current: '当前用户', primary: '默认用户', switchTo: '切换到此用户',
     rename: '重命名', save: '保存', remove: '删除用户', emptyName: '请输入用户名称。',
-    noticeTitle: 'Build B 数据边界', notice: '股票持仓和基金持仓已按当前用户分开保存于本次运行内存；切换用户不会串用。刷新页面仍会恢复，正式持久化属于 Build E。',
+    storageError: '本地数据库暂时不可用；当前页面改动可能不会在重启后保留，请稍后重试。',
+    noticeTitle: '本地持久化', notice: '用户、股票持仓和基金持仓按当前用户分开保存到本机数据库；刷新页面或重启程序后仍会保留。',
   },
   en: {
     documentTitle: 'User Profiles - DSA', title: 'User profiles',
@@ -20,14 +21,15 @@ const TEXT = {
     addTitle: 'Add user', placeholder: 'Enter a user name, for example: Family A', add: 'Add user',
     listTitle: 'Profiles', current: 'Current user', primary: 'Default user', switchTo: 'Switch to this user',
     rename: 'Rename', save: 'Save', remove: 'Delete user', emptyName: 'Enter a user name.',
-    noticeTitle: 'Build B data boundary', notice: 'Stock and fund holdings are separated by active user in runtime memory. Switching users does not mix data. Refresh still resets data; durable persistence belongs to Build E.',
+    storageError: 'The local database is temporarily unavailable. Current changes may not survive a restart.',
+    noticeTitle: 'Local persistence', notice: 'Users, stock holdings, and fund holdings are stored separately per user in the local database and survive refreshes and restarts.',
   },
 } as const;
 
 const UsersPage: React.FC = () => {
   const { language } = useUiLanguage();
   const text = TEXT[language];
-  const { users, activeUser, activeUserId, addUser, renameUser, removeUser, setActiveUserId } = usePortfolioUsers();
+  const { users, activeUser, activeUserId, persistenceStatus, addUser, renameUser, removeUser, setActiveUserId } = usePortfolioUsers();
   const [newName, setNewName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
@@ -58,6 +60,7 @@ const UsersPage: React.FC = () => {
       </section>
 
       <InlineAlert variant="info" title={text.noticeTitle} message={text.notice} />
+      {persistenceStatus === 'error' ? <InlineAlert variant="warning" message={text.storageError} /> : null}
 
       <Card padding="md">
         <h2 className="font-semibold text-foreground">{text.addTitle}</h2>

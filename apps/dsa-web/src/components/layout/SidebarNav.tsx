@@ -113,7 +113,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
   const itemLabelClass = cn('truncate', isRail ? 'text-center' : '');
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <div
         className={cn(
           'flex items-center',
@@ -136,7 +136,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({ collapsed = false, onNav
 
       <WorkspaceSwitcher compact={collapsed} onNavigate={onNavigate} />
 
-      <nav className={cn('flex flex-col gap-1.5', isRail ? '' : 'flex-1')} aria-label={t('layout.mainNav')}>
+      <nav className={cn('min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]', 'flex flex-col gap-1.5')} aria-label={t('layout.mainNav')}>
         {navItems.map(({ key, labelKey, label: literalLabel, to, icon: Icon, exact, badge }) => {
           const label = labelKey ? t(labelKey) : literalLabel?.[language] ?? key;
           return (

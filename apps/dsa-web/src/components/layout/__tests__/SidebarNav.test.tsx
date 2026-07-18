@@ -36,6 +36,14 @@ vi.mock('../../theme/ThemeToggle', () => ({
 }));
 
 describe('SidebarNav', () => {
+  it('keeps all center entries reachable in short windows through internal scrolling', () => {
+    render(<MemoryRouter initialEntries={['/funds']}><SidebarNav /></MemoryRouter>);
+    const navigation = screen.getByRole('navigation', { name: '主导航' });
+    expect(navigation.className).toContain('overflow-y-auto');
+    expect(screen.getByRole('link', { name: '基金首页' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '基金建议' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '用户管理' })).toBeInTheDocument();
+  });
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
