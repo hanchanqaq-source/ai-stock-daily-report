@@ -23,6 +23,7 @@ const {
   desktopInstallDownloadedUpdate,
   desktopOnUpdateStateChange,
   desktopOpenReleasePage,
+  desktopVerifyPortableUpdate,
   load,
   clearToast,
   setActiveCategory,
@@ -55,6 +56,7 @@ const {
   desktopInstallDownloadedUpdate: vi.fn(),
   desktopOnUpdateStateChange: vi.fn(),
   desktopOpenReleasePage: vi.fn(),
+  desktopVerifyPortableUpdate: vi.fn(),
   load: vi.fn(),
   clearToast: vi.fn(),
   setActiveCategory: vi.fn(),
@@ -252,6 +254,7 @@ function createDesktopRuntime(overrides: Record<string, unknown> = {}) {
     checkForUpdates: desktopCheckForUpdates,
     installDownloadedUpdate: desktopInstallDownloadedUpdate,
     openReleasePage: desktopOpenReleasePage,
+    verifyPortableUpdate: desktopVerifyPortableUpdate,
     onUpdateStateChange: desktopOnUpdateStateChange,
     ...overrides,
   };
@@ -580,6 +583,7 @@ describe('SettingsPage', () => {
     });
     desktopInstallDownloadedUpdate.mockResolvedValue(true);
     desktopOpenReleasePage.mockResolvedValue(true);
+    desktopVerifyPortableUpdate.mockResolvedValue({ canceled: true });
     desktopOnUpdateStateChange.mockImplementation(() => () => undefined);
     useAuthMock.mockReturnValue({
       authEnabled: true,
@@ -2758,5 +2762,36 @@ describe('SettingsPage', () => {
     fireEvent.click(screen.getByRole('button', { name: '重启安装' }));
 
     await waitFor(() => expect(desktopInstallDownloadedUpdate).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows the portable verifier only for the portable build and never installs files', async () => {
+    desktopVerifyPortableUpdate.mockResolvedValue({ valid: true });
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime({ isPortableBuild: true });
+
+    render(<SettingsPage />);
+
+    fireEvent.click(await screen.findByRole('button', { name: '校验便携更新包' }));
+
+    await waitFor(() => expect(desktopVerifyPortableUpdate).toHaveBeenCalledTimes(1));
+    expect(await screen.findByText('校验通过:文件校验通过，尚未安装或替换任何文件。')).toBeInTheDocument();
+    expect(desktopInstallDownloadedUpdate).not.toHaveBeenCalled();
+  });
+
+  it('does not render the portable verifier for installed desktop builds', async () => {
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime({ isPortableBuild: false });
+
+    render(<SettingsPage />);
+
+    expect(screen.queryByRole('button', { name: '校验便携更新包' })).not.toBeInTheDocument();
+  });
+
+  it('shows a clear rejection when the portable checksum does not match', async () => {
+    desktopVerifyPortableUpdate.mockResolvedValue({ valid: false });
+    (window as { dsaDesktop?: unknown }).dsaDesktop = createDesktopRuntime({ isPortableBuild: true });
+
+    render(<SettingsPage />);
+    fireEvent.click(await screen.findByRole('button', { name: '校验便携更新包' }));
+
+    expect(await screen.findByText('校验未通过:校验被拒绝：ZIP 文件与对应 SHA-256 校验文件不匹配。')).toBeInTheDocument();
   });
 });

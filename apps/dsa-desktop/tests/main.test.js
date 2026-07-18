@@ -136,6 +136,42 @@ test('buildMainPageUrl includes desktop version and cache buster', (t) => {
   );
 });
 
+test('portable update verification IPC only opens files and returns the checksum result', async (t) => {
+  const zipPath = '/tmp/股票基金质量分析系统-Portable.zip';
+  const sha256Path = '/tmp/股票基金质量分析系统-Portable.zip.sha256';
+  const dialogCalls = [];
+  const mainModule = loadMainModule(t, {
+    dialog: {
+      showOpenDialog: async (_window, options) => {
+        dialogCalls.push(options);
+        return dialogCalls.length === 1
+          ? { canceled: false, filePaths: [zipPath] }
+          : { canceled: false, filePaths: [sha256Path] };
+      },
+    },
+  });
+  const handler = mainModule.__getIpcMainHandler('desktop:verify-portable-update');
+
+  const result = await handler();
+
+  assert.equal(typeof handler, 'function');
+  assert.equal(dialogCalls.length, 2);
+  assert.deepEqual(dialogCalls[0].filters, [{ name: 'Portable ZIP', extensions: ['zip'] }]);
+  assert.deepEqual(dialogCalls[1].filters, [{ name: 'SHA-256', extensions: ['sha256'] }]);
+  assert.equal(result.valid, false);
+  assert.match(result.error, /ENOENT/);
+});
+
+test('portable update verification IPC treats file selection cancellation as a no-op', async (t) => {
+  const mainModule = loadMainModule(t, {
+    dialog: {
+      showOpenDialog: async () => ({ canceled: true, filePaths: [] }),
+    },
+  });
+
+  assert.deepEqual(await mainModule.__getIpcMainHandler('desktop:verify-portable-update')(), { canceled: true });
+});
+
 test('buildBackendEnvironment extends macOS GUI PATH with Homebrew CLI directories', (t) => {
   const mainModule = loadMainModule(t, { platform: 'darwin' });
 

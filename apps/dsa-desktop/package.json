@@ -29,6 +29,7 @@
       "credentialIpc.js",
       "main.js",
       "preload.js",
+      "portableUpdateVerifier.js",
       "renderer/**/*",
       "secureCredentialStore.js"
     ],

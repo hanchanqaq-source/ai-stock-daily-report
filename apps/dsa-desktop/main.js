@@ -6,6 +6,7 @@ const net = require('net');
 const http = require('http');
 const https = require('https');
 const { TextDecoder } = require('util');
+const { verifyPortableArchive } = require('./portableUpdateVerifier');
 
 let mainWindow = null;
 let backendProcess = null;
@@ -1562,6 +1563,26 @@ ipcMain.handle('desktop:open-release-page', async (_event, releaseUrl) => {
   await shell.openExternal(sanitizeReleaseUrl(releaseUrl));
   return true;
 });
+ipcMain.handle('desktop:verify-portable-update', async () => {
+  const zipResult = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: 'Portable ZIP', extensions: ['zip'] }],
+  });
+  if (zipResult.canceled || !zipResult.filePaths[0]) return { canceled: true };
+  const checksumResult = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [{ name: 'SHA-256', extensions: ['sha256'] }],
+  });
+  if (checksumResult.canceled || !checksumResult.filePaths[0]) return { canceled: true };
+  try {
+    return verifyPortableArchive(zipResult.filePaths[0], checksumResult.filePaths[0]);
+  } catch (error) {
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : '便携更新包校验失败',
+    };
+  }
+});
 
 async function createWindow() {
   const restoreResult = isWindowsNsisInstalledApp() ? restorePackagedRuntimeStateFromBackup() : null;
@@ -1606,7 +1627,10 @@ async function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
-      additionalArguments: [`--dsa-desktop-version=${app.getVersion()}`],
+      additionalArguments: [
+        `--dsa-desktop-version=${app.getVersion()}`,
+        `--dsa-desktop-portable=${typeof app.getName === 'function' && app.getName() === '股票基金质量分析系统'}`,
+      ],
     },
   });
   logStartup('BrowserWindow created');
