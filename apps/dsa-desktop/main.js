@@ -9,6 +9,7 @@ const { TextDecoder } = require('util');
 const { verifyPortableArchive } = require('./portableUpdateVerifier');
 const { createPortableUpdateRecoveryPoint } = require('./portableUpdateRecovery');
 const { writeWindowsPortableUpdateHelper } = require('./portableUpdateHandoff');
+const { createPortableUpdateHealthMarker, markPortableUpdateHealthy } = require('./portableUpdateHealthMarker');
 
 let mainWindow = null;
 let backendProcess = null;
@@ -100,10 +101,11 @@ function preparePortableUpdateHandoff({ zipPath, expectedHash }) {
   const helperPath = path.join(stageRoot, 'apply-portable-update.ps1');
   const exePath = app.getPath('exe');
   createPortableUpdateRecoveryPoint({ appDir, backupRoot });
+  const markerPath = createPortableUpdateHealthMarker({ appDir, backupRoot });
   writeWindowsPortableUpdateHelper({
-    helperPath, appDir, zipPath, expectedHash, stageRoot, backupRoot, exePath, parentPid: process.pid,
+    helperPath, appDir, zipPath, expectedHash, stageRoot, backupRoot, markerPath, exePath, parentPid: process.pid,
   });
-  return { helperPath };
+  return { helperPath, markerPath };
 }
 
 function normalizeVersionString(version) {
@@ -1829,6 +1831,9 @@ async function createWindow() {
       onHealthProgress
     );
     logStartup(`Backend ready in ${healthInfo.elapsedMs}ms (${healthInfo.attempts} probes)`);
+    if (markPortableUpdateHealthy({ appDir })) {
+      logStartup('Portable update backend health marker written');
+    }
     const mainPageStartedAt = Date.now();
     const mainPageUrl = buildMainPageUrl(port);
     await mainWindow.loadURL(mainPageUrl);

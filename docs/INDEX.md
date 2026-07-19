@@ -59,7 +59,7 @@
 | [云端 WebUI 部署](deploy-webui-cloud.md) | 云服务器访问 WebUI 的部署说明 |
 | [Zeabur 部署](docker/zeabur-deployment.md) | Zeabur 平台部署说明 |
 | [桌面端打包说明](desktop-package.md) | Electron 桌面端和 Web 构建产物打包说明 |
-| [Windows Portable-M2 更新规划](windows_portable_m2_update_plan.md) | 便携版更新的 SHA-256/结构复验、系统确认、程序文件恢复点、受控交接与失败回退边界 |
+| [Windows Portable-M2 更新规划](windows_portable_m2_update_plan.md) | 便携版更新的 SHA-256/结构复验、系统确认、程序恢复点、后端健康回执与失败回退边界 |
 
 ## 参考与开发
 

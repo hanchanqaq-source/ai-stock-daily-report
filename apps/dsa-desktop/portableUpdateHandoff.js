@@ -8,10 +8,10 @@ function assertAbsolutePath(value, label) {
   return value;
 }
 
-function buildWindowsPortableUpdateHelper({ appDir, zipPath, expectedHash, stageRoot, backupRoot, exePath, parentPid }) {
+function buildWindowsPortableUpdateHelper({ appDir, zipPath, expectedHash, stageRoot, backupRoot, markerPath, exePath, parentPid }) {
   [
     [appDir, '程序目录'], [zipPath, '更新包路径'], [stageRoot, '临时解压目录'],
-    [backupRoot, '恢复点目录'], [exePath, '启动文件'],
+    [backupRoot, '恢复点目录'], [markerPath, '健康标记路径'], [exePath, '启动文件'],
   ].forEach(([value, label]) => assertAbsolutePath(value, label));
   if (typeof expectedHash !== 'string' || !/^[a-f0-9]{64}$/i.test(expectedHash)) throw new Error('更新包 SHA-256 无效');
   if (!Number.isInteger(parentPid) || parentPid <= 0) throw new Error('父进程 PID 无效');
@@ -23,6 +23,7 @@ $zipPath = ${quote(zipPath)}
 $expectedHash = ${quote(expectedHash.toLowerCase())}
 $stageRoot = ${quote(stageRoot)}
 $backupRoot = ${quote(backupRoot)}
+$markerPath = ${quote(markerPath)}
 $exePath = ${quote(exePath)}
 $preserved = @('data','config','logs','plugins','.portable-update-backups')
 while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 300 }
@@ -34,10 +35,17 @@ try {
   if ($requiredPaths | Where-Object { -not (Test-Path -LiteralPath (Join-Path $stagedAppDir $_)) }) { throw 'archive layout is invalid after extraction' }
   Get-ChildItem -LiteralPath $appDir -Force | Where-Object { $preserved -notcontains $_.Name } | Remove-Item -Recurse -Force
   Get-ChildItem -LiteralPath $stagedAppDir -Force | Where-Object { $preserved -notcontains $_.Name } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $appDir -Recurse -Force }
-  $process = Start-Process -FilePath $exePath -WorkingDirectory $appDir -PassThru
-  Start-Sleep -Seconds 8
-  if ($process.HasExited) { throw 'updated process exited during startup validation' }
+  $process = Start-Process -FilePath $exePath -ArgumentList "--dsa-portable-update-marker=$markerPath" -WorkingDirectory $appDir -PassThru
+  $deadline = (Get-Date).AddSeconds(75)
+  $healthy = $false
+  while ((Get-Date) -lt $deadline) {
+    if ($process.HasExited) { throw 'updated process exited during health validation' }
+    if ((Test-Path -LiteralPath $markerPath) -and ((Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json).status -eq 'healthy')) { $healthy = $true; break }
+    Start-Sleep -Milliseconds 500
+  }
+  if (-not $healthy) { throw 'updated process did not report backend health' }
 } catch {
+  if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
   Get-ChildItem -LiteralPath $appDir -Force | Where-Object { $preserved -notcontains $_.Name } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
   Get-ChildItem -LiteralPath $backupRoot -Force | Where-Object { $_.Name -ne 'portable-update-recovery.json' } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $appDir -Recurse -Force }
   Start-Process -FilePath $exePath -WorkingDirectory $appDir
