@@ -46,6 +46,7 @@ type DesktopWindow = Window & {
     verifyPortableUpdate?: () => Promise<RawPortableUpdateVerification>;
     applyPortableUpdate?: () => Promise<RawPortableUpdateApplyResult>;
     downloadPortableUpdate?: () => Promise<RawPortableUpdateDownloadResult>;
+    applyDownloadedPortableUpdate?: () => Promise<RawPortableUpdateApplyResult>;
     onUpdateStateChange?: (listener: (state: RawDesktopUpdateState) => void) => (() => void) | void;
   };
 };
@@ -948,6 +949,7 @@ const SettingsPage: React.FC = () => {
   const [isVerifyingPortableUpdate, setIsVerifyingPortableUpdate] = useState(false);
   const [isApplyingPortableUpdate, setIsApplyingPortableUpdate] = useState(false);
   const [isDownloadingPortableUpdate, setIsDownloadingPortableUpdate] = useState(false);
+  const [hasDownloadedPortableUpdate, setHasDownloadedPortableUpdate] = useState(false);
   const [portableUpdateVerificationNotice, setPortableUpdateVerificationNotice] = useState<PortableUpdateVerificationNotice | null>(null);
   const [schedulerStatusRefreshToken, setSchedulerStatusRefreshToken] = useState(0);
   const [schedulerRuntimeEnabled, setSchedulerRuntimeEnabled] = useState<boolean | null>(null);
@@ -970,6 +972,7 @@ const SettingsPage: React.FC = () => {
   const canVerifyPortableUpdate = isPortableDesktopBuild() && Boolean(desktopRuntimeApi?.verifyPortableUpdate);
   const canApplyPortableUpdate = isPortableDesktopBuild() && Boolean(desktopRuntimeApi?.applyPortableUpdate);
   const canDownloadPortableUpdate = isPortableDesktopBuild() && Boolean(desktopRuntimeApi?.downloadPortableUpdate);
+  const canApplyDownloadedPortableUpdate = isPortableDesktopBuild() && Boolean(desktopRuntimeApi?.applyDownloadedPortableUpdate);
 
   // Set page title
   useEffect(() => {
@@ -1352,10 +1355,18 @@ const SettingsPage: React.FC = () => {
     setIsDownloadingPortableUpdate(true); setPortableUpdateVerificationNotice(null);
     try {
       const result = await desktopRuntimeApi.downloadPortableUpdate();
-      if (result?.downloaded === true) setPortableUpdateVerificationNotice({ variant: 'success', message: `GitHub 更新包已下载并校验通过：${typeof result.releaseName === 'string' ? result.releaseName : 'Portable ZIP'}。尚未安装或替换任何文件。` });
+      if (result?.downloaded === true) { setHasDownloadedPortableUpdate(true); setPortableUpdateVerificationNotice({ variant: 'success', message: `GitHub 更新包已下载并校验通过：${typeof result.releaseName === 'string' ? result.releaseName : 'Portable ZIP'}。尚未安装或替换任何文件。` }); }
       else if (result?.canceled !== true) setPortableUpdateVerificationNotice({ variant: 'error', message: `下载被拒绝：${typeof result?.error === 'string' ? result.error : '未下载任何文件。'}` });
     } catch (error: unknown) { setPortableUpdateVerificationNotice({ variant: 'error', message: `下载被拒绝：${error instanceof Error ? error.message : '无法连接 GitHub Release。'}` }); }
     finally { setIsDownloadingPortableUpdate(false); }
+  };
+  const handleDownloadedPortableUpdateApply = async () => {
+    if (!desktopRuntimeApi?.applyDownloadedPortableUpdate) return;
+    setIsApplyingPortableUpdate(true);
+    try {
+      const result = await desktopRuntimeApi.applyDownloadedPortableUpdate();
+      if (result?.started !== true && result?.canceled !== true) setPortableUpdateVerificationNotice({ variant: 'error', message: `更新被拒绝：${typeof result?.error === 'string' ? result.error : '未开始替换任何文件。'}` });
+    } finally { setIsApplyingPortableUpdate(false); }
   };
 
   const updateAlphaSiftEnabled = async (nextEnabled: boolean) => {
@@ -1855,6 +1866,7 @@ const SettingsPage: React.FC = () => {
                     {canApplyPortableUpdate ? (
                       <div className="border-t settings-border pt-3">
                         {canDownloadPortableUpdate ? <Button type="button" variant="settings-secondary" onClick={() => void handlePortableUpdateDownload()} disabled={isDownloadingPortableUpdate} isLoading={isDownloadingPortableUpdate} loadingText="正在下载">从 GitHub 下载并校验</Button> : null}
+                        {hasDownloadedPortableUpdate && canApplyDownloadedPortableUpdate ? <Button type="button" variant="settings-secondary" onClick={() => void handleDownloadedPortableUpdateApply()} disabled={isApplyingPortableUpdate}>安装已下载更新包</Button> : null}
                         <p className="mb-2 text-xs leading-6 text-muted-text">校验通过后可在此手动更新。将先显示系统确认，再创建恢复点并仅替换程序文件；不会覆盖 data、config、logs、plugins 或持仓数据。</p>
                         <Button type="button" variant="settings-secondary" onClick={() => void handlePortableUpdateApply()} disabled={isApplyingPortableUpdate} isLoading={isApplyingPortableUpdate} loadingText="正在准备更新">
                           备份并安全更新

@@ -22,6 +22,7 @@ let lastPromptedInstallVersion = '';
 let electronAutoUpdater = undefined;
 let electronAutoUpdaterConfigured = false;
 let electronUpdateCheckInFlight = false;
+let verifiedPortableDownload = null;
 
 function resolveWindowBackgroundColor() {
   return nativeTheme.shouldUseDarkColors ? '#08080c' : '#f4f7fb';
@@ -138,6 +139,22 @@ function preparePortableUpdateHandoff({ zipPath, expectedHash }) {
     helperPath, appDir, zipPath, expectedHash, stageRoot, backupRoot, markerPath, exePath, parentPid: process.pid,
   });
   return { helperPath, markerPath };
+}
+
+async function startPortableUpdateFromVerifiedArchive({ zipPath, sha256Path }) {
+  const verification = verifyPortableArchive(zipPath, sha256Path);
+  if (!verification.valid) return { started: false, verification, error: '更新包校验未通过，已拒绝更新。' };
+  const confirmation = await dialog.showMessageBox(mainWindow, {
+    type: 'warning', buttons: ['取消', '备份并重启更新'], defaultId: 0, cancelId: 0,
+    title: '确认更新便携版', message: '将创建恢复点并仅替换程序文件。',
+    detail: 'data、config、logs、plugins 和持仓数据不会被替换；新版本通过本机后端健康检查后才算更新成功。',
+  });
+  if (confirmation.response !== 1) return { canceled: true };
+  const { helperPath } = preparePortableUpdateHandoff({ zipPath, expectedHash: verification.expected });
+  const helper = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', helperPath], { detached: true, stdio: 'ignore', windowsHide: true });
+  helper.unref();
+  app.quit();
+  return { started: true };
 }
 
 function normalizeVersionString(version) {
@@ -1648,38 +1665,17 @@ ipcMain.handle('desktop:apply-portable-update', async () => {
   }
   const selected = await selectPortableUpdateArchive();
   if (selected.canceled) return selected;
-  let verification;
   try {
-    verification = verifyPortableArchive(selected.zipPath, selected.sha256Path);
+    return await startPortableUpdateFromVerifiedArchive(selected);
   } catch (error) {
     return { started: false, error: error instanceof Error ? error.message : '便携更新包校验失败' };
   }
-  if (!verification.valid) {
-    return { started: false, verification, error: '更新包校验未通过，已拒绝更新。' };
-  }
-  const confirmation = await dialog.showMessageBox(mainWindow, {
-    type: 'warning',
-    buttons: ['取消', '备份并重启更新'],
-    defaultId: 0,
-    cancelId: 0,
-    title: '确认更新便携版',
-    message: '将创建恢复点并仅替换程序文件。',
-    detail: 'data、config、logs、plugins 和持仓数据不会被替换；新版本启动后 8 秒内退出将自动回退。',
-  });
-  if (confirmation.response !== 1) return { canceled: true };
-  try {
-    const { helperPath } = preparePortableUpdateHandoff({ zipPath: selected.zipPath, expectedHash: verification.expected });
-    const helper = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', helperPath], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-    helper.unref();
-    app.quit();
-    return { started: true };
-  } catch (error) {
-    return { started: false, error: error instanceof Error ? error.message : '无法创建便携更新恢复点。' };
-  }
+});
+ipcMain.handle('desktop:apply-downloaded-portable-update', async () => {
+  if (!isWindowsPortableRuntime()) return { started: false, error: '仅 Windows 便携版支持安全更新。' };
+  if (!verifiedPortableDownload) return { started: false, error: '本次启动未保留已校验的 GitHub 更新包，请重新下载并校验。' };
+  try { return await startPortableUpdateFromVerifiedArchive(verifiedPortableDownload); }
+  catch (error) { return { started: false, error: error instanceof Error ? error.message : '无法创建便携更新恢复点。' }; }
 });
 ipcMain.handle('desktop:download-portable-update', async () => {
   if (!isWindowsPortableRuntime()) return { started: false, error: '仅 Windows 便携版支持从 GitHub 下载更新。' };
@@ -1689,7 +1685,9 @@ ipcMain.handle('desktop:download-portable-update', async () => {
     if (confirmation.response !== 1) return { canceled: true };
     const downloaded = await downloadPortableReleaseAssets(release);
     const verification = verifyPortableArchive(downloaded.zipPath, downloaded.sha256Path);
-    return verification.valid ? { downloaded: true, releaseName: downloaded.releaseName } : { downloaded: false, verification, error: '下载文件校验未通过，已拒绝更新。' };
+    if (!verification.valid) return { downloaded: false, verification, error: '下载文件校验未通过，已拒绝更新。' };
+    verifiedPortableDownload = downloaded;
+    return { downloaded: true, releaseName: downloaded.releaseName };
   } catch (error) {
     return { downloaded: false, error: error instanceof Error ? error.message : '无法从 GitHub 下载便携更新。' };
   }
