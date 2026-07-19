@@ -8,6 +8,7 @@ const DESKTOP_INSTALL_DOWNLOADED_UPDATE_CHANNEL = 'desktop:install-downloaded-up
 const DESKTOP_OPEN_RELEASE_PAGE_CHANNEL = 'desktop:open-release-page';
 const DESKTOP_VERIFY_PORTABLE_UPDATE_CHANNEL = 'desktop:verify-portable-update';
 const DESKTOP_APPLY_PORTABLE_UPDATE_CHANNEL = 'desktop:apply-portable-update';
+const DESKTOP_DOWNLOAD_PORTABLE_UPDATE_CHANNEL = 'desktop:download-portable-update';
 const DESKTOP_UPDATE_STATE_EVENT = 'desktop:update-state';
 const DESKTOP_CREDENTIAL_STATUS_CHANNEL = 'desktop:credential-status';
 const DESKTOP_SET_CREDENTIAL_CHANNEL = 'desktop:set-credential';
@@ -49,6 +50,7 @@ function createDesktopBridge({
     applyPortableUpdate() {
       return renderer.invoke(DESKTOP_APPLY_PORTABLE_UPDATE_CHANNEL);
     },
+    downloadPortableUpdate() { return renderer.invoke(DESKTOP_DOWNLOAD_PORTABLE_UPDATE_CHANNEL); },
     getCredentialStatus(key) {
       return renderer.invoke(DESKTOP_CREDENTIAL_STATUS_CHANNEL, { key });
     },
@@ -89,6 +91,7 @@ module.exports = {
   DESKTOP_UPDATE_STATE_EVENT,
   DESKTOP_VERSION_ARG_PREFIX,
   DESKTOP_APPLY_PORTABLE_UPDATE_CHANNEL,
+  DESKTOP_DOWNLOAD_PORTABLE_UPDATE_CHANNEL,
   createDesktopBridge,
   readPortableBuildFlag,
   readDesktopVersion,

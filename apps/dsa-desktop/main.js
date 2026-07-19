@@ -10,6 +10,7 @@ const { verifyPortableArchive } = require('./portableUpdateVerifier');
 const { createPortableUpdateRecoveryPoint } = require('./portableUpdateRecovery');
 const { writeWindowsPortableUpdateHelper } = require('./portableUpdateHandoff');
 const { createPortableUpdateHealthMarker, markPortableUpdateHealthy, readPortableUpdateOutcome } = require('./portableUpdateHealthMarker');
+const { buildPortableDownloadPaths, selectPortableReleaseAssets } = require('./portableReleaseDownload');
 
 let mainWindow = null;
 let backendProcess = null;
@@ -29,8 +30,8 @@ function resolveWindowBackgroundColor() {
 const isWindows = process.platform === 'win32';
 const isMac = process.platform === 'darwin';
 const appRootDev = path.resolve(__dirname, '..', '..');
-const GITHUB_OWNER = 'ZhuLinsen';
-const GITHUB_REPO = 'daily_stock_analysis';
+const GITHUB_OWNER = 'hanchanqaq-source';
+const GITHUB_REPO = 'ai-stock-daily-report';
 const RELEASES_PAGE_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`;
 const LATEST_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
@@ -78,6 +79,37 @@ const UPDATE_MODE = Object.freeze({
 
 function isWindowsPortableRuntime() {
   return process.platform === 'win32' && Boolean(process.env.PORTABLE_EXECUTABLE_DIR);
+}
+
+function downloadHttpsFile(url, targetPath, { request = https.request, redirectsLeft = 3 } = {}) {
+  if (new URL(url).protocol !== 'https:') return Promise.reject(new Error('更新下载地址必须使用 HTTPS'));
+  return new Promise((resolve, reject) => {
+    const destination = fs.createWriteStream(targetPath);
+    const req = request(url, { headers: { 'User-Agent': 'stock-fund-quality-desktop' } }, (response) => {
+      if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location && redirectsLeft > 0) {
+        destination.destroy();
+        fs.rmSync(targetPath, { force: true });
+        downloadHttpsFile(new URL(response.headers.location, url).toString(), targetPath, { request, redirectsLeft: redirectsLeft - 1 }).then(resolve, reject);
+        return;
+      }
+      if (response.statusCode !== 200) { destination.destroy(); reject(new Error(`下载更新包失败：HTTP ${response.statusCode || 'unknown'}`)); return; }
+      response.pipe(destination);
+      destination.on('finish', () => destination.close(resolve));
+    });
+    req.on('error', (error) => { destination.destroy(); reject(error); });
+    destination.on('error', reject);
+    req.end();
+  });
+}
+
+async function downloadPortableReleaseAssets(release) {
+  const assets = selectPortableReleaseAssets(release);
+  const tempDir = path.join(app.getPath('temp'), `dsa-portable-download-${Date.now()}`);
+  fs.mkdirSync(tempDir, { recursive: true });
+  const targets = buildPortableDownloadPaths(tempDir, assets);
+  await downloadHttpsFile(assets.zipUrl, targets.zipPath);
+  await downloadHttpsFile(assets.sha256Url, targets.sha256Path);
+  return { ...targets, releaseName: assets.zipName };
 }
 
 async function selectPortableUpdateArchive() {
@@ -1649,6 +1681,19 @@ ipcMain.handle('desktop:apply-portable-update', async () => {
     return { started: false, error: error instanceof Error ? error.message : '无法创建便携更新恢复点。' };
   }
 });
+ipcMain.handle('desktop:download-portable-update', async () => {
+  if (!isWindowsPortableRuntime()) return { started: false, error: '仅 Windows 便携版支持从 GitHub 下载更新。' };
+  try {
+    const release = await fetchLatestReleaseJson();
+    const confirmation = await dialog.showMessageBox(mainWindow, { type: 'info', buttons: ['取消', '下载并校验'], defaultId: 0, cancelId: 0, title: '从 GitHub 下载便携更新', message: '将下载 Portable ZIP 与对应 SHA-256 到临时目录。', detail: '下载后只校验，不会自动替换任何文件。' });
+    if (confirmation.response !== 1) return { canceled: true };
+    const downloaded = await downloadPortableReleaseAssets(release);
+    const verification = verifyPortableArchive(downloaded.zipPath, downloaded.sha256Path);
+    return verification.valid ? { downloaded: true, releaseName: downloaded.releaseName } : { downloaded: false, verification, error: '下载文件校验未通过，已拒绝更新。' };
+  } catch (error) {
+    return { downloaded: false, error: error instanceof Error ? error.message : '无法从 GitHub 下载便携更新。' };
+  }
+});
 
 async function createWindow() {
   const restoreResult = isWindowsNsisInstalledApp() ? restorePackagedRuntimeStateFromBackup() : null;
@@ -1916,4 +1961,5 @@ module.exports = {
     mainWindow = mainWindowRef;
   },
   waitForBackendExit,
+  selectPortableReleaseAssets,
 };

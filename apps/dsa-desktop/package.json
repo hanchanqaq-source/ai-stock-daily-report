@@ -33,6 +33,7 @@
       "portableUpdateRecovery.js",
       "portableUpdateHandoff.js",
       "portableUpdateHealthMarker.js",
+      "portableReleaseDownload.js",
       "renderer/**/*",
       "secureCredentialStore.js"
     ],
