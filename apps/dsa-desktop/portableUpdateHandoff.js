@@ -48,7 +48,11 @@ try {
   if ($process -and -not $process.HasExited) { Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue }
   Get-ChildItem -LiteralPath $appDir -Force | Where-Object { $preserved -notcontains $_.Name } | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
   Get-ChildItem -LiteralPath $backupRoot -Force | Where-Object { $_.Name -ne 'portable-update-recovery.json' } | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $appDir -Recurse -Force }
-  Start-Process -FilePath $exePath -WorkingDirectory $appDir
+  $marker = Get-Content -LiteralPath $markerPath -Raw | ConvertFrom-Json
+  $marker.status = 'rolled_back'
+  $marker.rolledBackAt = (Get-Date).ToUniversalTime().ToString('o')
+  $marker | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $markerPath -Encoding utf8
+  Start-Process -FilePath $exePath -ArgumentList "--dsa-portable-update-outcome=$markerPath" -WorkingDirectory $appDir
   exit 1
 }
 `;

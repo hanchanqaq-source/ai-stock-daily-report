@@ -11,6 +11,8 @@ test('Windows portable helper waits, extracts, preserves user directories, valid
   assert.match(script, /'data','config','logs','plugins'/);
   assert.match(script, /updated process did not report backend health/);
   assert.match(script, /Stop-Process/);
+  assert.match(script, /rolled_back/);
+  assert.match(script, /--dsa-portable-update-outcome=/);
   assert.match(script, /catch/);
 });
 
