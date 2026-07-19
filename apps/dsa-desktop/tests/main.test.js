@@ -178,6 +178,14 @@ test('portable update apply IPC refuses non-portable runtimes before selecting f
   assert.deepEqual(result, { started: false, error: '仅 Windows 便携版支持安全更新。' });
 });
 
+test('portable download accepts only HTTPS GitHub asset hosts', (t) => {
+  const mainModule = loadMainModule(t);
+  assert.equal(mainModule.assertTrustedPortableDownloadUrl('https://github.com/hanchanqaq-source/ai-stock-daily-report/releases/download/v1/a.zip'), 'https://github.com/hanchanqaq-source/ai-stock-daily-report/releases/download/v1/a.zip');
+  assert.equal(mainModule.assertTrustedPortableDownloadUrl('https://release-assets.githubusercontent.com/a.zip'), 'https://release-assets.githubusercontent.com/a.zip');
+  assert.throws(() => mainModule.assertTrustedPortableDownloadUrl('https://example.com/a.zip'));
+  assert.throws(() => mainModule.assertTrustedPortableDownloadUrl('http://github.com/a.zip'));
+});
+
 test('buildBackendEnvironment extends macOS GUI PATH with Homebrew CLI directories', (t) => {
   const mainModule = loadMainModule(t, { platform: 'darwin' });
 
