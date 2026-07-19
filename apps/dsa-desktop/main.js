@@ -9,7 +9,7 @@ const { TextDecoder } = require('util');
 const { verifyPortableArchive } = require('./portableUpdateVerifier');
 const { createPortableUpdateRecoveryPoint } = require('./portableUpdateRecovery');
 const { writeWindowsPortableUpdateHelper } = require('./portableUpdateHandoff');
-const { createPortableUpdateHealthMarker, markPortableUpdateHealthy } = require('./portableUpdateHealthMarker');
+const { createPortableUpdateHealthMarker, markPortableUpdateHealthy, readPortableUpdateOutcome } = require('./portableUpdateHealthMarker');
 
 let mainWindow = null;
 let backendProcess = null;
@@ -1838,6 +1838,18 @@ async function createWindow() {
     const mainPageUrl = buildMainPageUrl(port);
     await mainWindow.loadURL(mainPageUrl);
     logStartup(`Main page loadURL resolved in ${Date.now() - mainPageStartedAt}ms url=${mainPageUrl}`);
+    const portableUpdateOutcome = readPortableUpdateOutcome({ appDir });
+    if (portableUpdateOutcome === 'healthy') {
+      await dialog.showMessageBox(mainWindow, {
+        type: 'info', title: '便携更新完成', message: '新版本已通过本机后端健康检查。',
+        detail: '仅程序文件已更新；data、config、logs、plugins 与持仓数据未被替换。',
+      });
+    } else if (portableUpdateOutcome === 'rolled_back') {
+      await dialog.showMessageBox(mainWindow, {
+        type: 'warning', title: '便携更新已回退', message: '新版本未通过启动健康检查，已自动恢复旧程序。',
+        detail: 'data、config、logs、plugins 与持仓数据未被替换。',
+      });
+    }
     logStartup(`Main UI loaded in ${Date.now() - startupStartedAt}ms`);
     if (!restoreFailed) {
       void performDesktopUpdateCheck({ notify: true });

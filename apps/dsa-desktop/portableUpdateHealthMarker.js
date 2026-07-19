@@ -3,6 +3,7 @@ const path = require('path');
 
 const PORTABLE_UPDATE_MARKER_FILE = 'portable-update-handoff.json';
 const PORTABLE_UPDATE_MARKER_ARG_PREFIX = '--dsa-portable-update-marker=';
+const PORTABLE_UPDATE_OUTCOME_ARG_PREFIX = '--dsa-portable-update-outcome=';
 
 function assertMarkerPath(appDir, markerPath) {
   if (!path.isAbsolute(appDir) || !path.isAbsolute(markerPath)) throw new Error('便携更新标记路径必须是绝对路径');
@@ -25,6 +26,21 @@ function readPortableUpdateMarkerArg(argv = process.argv) {
   return value ? value.slice(PORTABLE_UPDATE_MARKER_ARG_PREFIX.length) : '';
 }
 
+function readPortableUpdateOutcomeArg(argv = process.argv) {
+  const value = argv.find((arg) => typeof arg === 'string' && arg.startsWith(PORTABLE_UPDATE_OUTCOME_ARG_PREFIX));
+  return value ? value.slice(PORTABLE_UPDATE_OUTCOME_ARG_PREFIX.length) : '';
+}
+
+function readPortableUpdateOutcome({ appDir, markerPath = readPortableUpdateOutcomeArg() || readPortableUpdateMarkerArg(), fsModule = fs }) {
+  if (!markerPath) return null;
+  const safeMarkerPath = assertMarkerPath(appDir, markerPath);
+  const marker = JSON.parse(fsModule.readFileSync(safeMarkerPath, 'utf8'));
+  if (!marker || marker.version !== 1 || !['healthy', 'rolled_back'].includes(marker.status)) {
+    throw new Error('便携更新结果状态无效');
+  }
+  return marker.status;
+}
+
 function markPortableUpdateHealthy({ appDir, markerPath = readPortableUpdateMarkerArg(), fsModule = fs }) {
   if (!markerPath) return false;
   const safeMarkerPath = assertMarkerPath(appDir, markerPath);
@@ -36,8 +52,11 @@ function markPortableUpdateHealthy({ appDir, markerPath = readPortableUpdateMark
 
 module.exports = {
   PORTABLE_UPDATE_MARKER_ARG_PREFIX,
+  PORTABLE_UPDATE_OUTCOME_ARG_PREFIX,
   PORTABLE_UPDATE_MARKER_FILE,
   createPortableUpdateHealthMarker,
   markPortableUpdateHealthy,
   readPortableUpdateMarkerArg,
+  readPortableUpdateOutcome,
+  readPortableUpdateOutcomeArg,
 };
