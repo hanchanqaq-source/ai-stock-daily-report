@@ -172,6 +172,12 @@ test('portable update verification IPC treats file selection cancellation as a n
   assert.deepEqual(await mainModule.__getIpcMainHandler('desktop:verify-portable-update')(), { canceled: true });
 });
 
+test('portable update apply IPC refuses non-portable runtimes before selecting files', async (t) => {
+  const mainModule = loadMainModule(t, { platform: 'linux' });
+  const result = await mainModule.__getIpcMainHandler('desktop:apply-portable-update')();
+  assert.deepEqual(result, { started: false, error: '仅 Windows 便携版支持安全更新。' });
+});
+
 test('buildBackendEnvironment extends macOS GUI PATH with Homebrew CLI directories', (t) => {
   const mainModule = loadMainModule(t, { platform: 'darwin' });
 

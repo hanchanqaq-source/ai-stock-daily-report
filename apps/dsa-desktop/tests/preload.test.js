@@ -47,6 +47,7 @@ test('preload exposes desktop version from BrowserWindow additionalArguments', (
   assert.equal(typeof exposeInMainWorldCalls[0][1].installDownloadedUpdate, 'function');
   assert.equal(typeof exposeInMainWorldCalls[0][1].openReleasePage, 'function');
   assert.equal(typeof exposeInMainWorldCalls[0][1].verifyPortableUpdate, 'function');
+  assert.equal(typeof exposeInMainWorldCalls[0][1].applyPortableUpdate, 'function');
   assert.equal(typeof exposeInMainWorldCalls[0][1].onUpdateStateChange, 'function');
   assert.equal(typeof exposeInMainWorldCalls[0][1].getCredentialStatus, 'function');
   assert.equal(typeof exposeInMainWorldCalls[0][1].setCredential, 'function');
@@ -163,6 +164,10 @@ test('createDesktopBridge delegates update actions to ipcRenderer', async (t) =>
   });
   assert.deepEqual(await desktopBridge.verifyPortableUpdate(), {
     channel: preloadModule.DESKTOP_VERIFY_PORTABLE_UPDATE_CHANNEL,
+    payload: undefined,
+  });
+  assert.deepEqual(await desktopBridge.applyPortableUpdate(), {
+    channel: preloadModule.DESKTOP_APPLY_PORTABLE_UPDATE_CHANNEL,
     payload: undefined,
   });
   assert.deepEqual(await desktopBridge.getCredentialStatus('OPENAI_API_KEY'), {

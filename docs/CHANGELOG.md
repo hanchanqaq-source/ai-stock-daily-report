@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] Portable-M2.2C 为 Windows 便携版增加经系统确认的安全更新交接：再次核验 SHA-256 和解压后结构，先建立程序文件恢复点，退出后仅替换程序文件；新版本在 8 秒启动验证期内退出时自动回退并重启旧程序。`data/config/logs/plugins` 与持仓数据始终不参与替换或回退；安装版更新入口未接入此流程。
 - [新功能] Build E8 将问答会话按当前用户及股票/基金中心分区保存和筛选，切换中心或用户不再自动带入另一领域的历史上下文。
 - [新功能] Build E7 将当前用户选择写入本机 SQLite；重启后保持用户上下文，若该用户被删除则安全回退到“本人”。
 - [修复] 便携版左侧导航改为靠左的纵向排列；“股票中心 / 基金中心”不再在窄侧栏中截断，中文持仓导航也保留完整可见空间。

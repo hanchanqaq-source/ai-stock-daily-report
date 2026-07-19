@@ -31,6 +31,7 @@
       "preload.js",
       "portableUpdateVerifier.js",
       "portableUpdateRecovery.js",
+      "portableUpdateHandoff.js",
       "renderer/**/*",
       "secureCredentialStore.js"
     ],
