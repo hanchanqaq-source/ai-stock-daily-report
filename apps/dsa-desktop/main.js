@@ -37,6 +37,7 @@ const RELEASES_PAGE_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/rel
 const LATEST_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
 const TRUSTED_PORTABLE_DOWNLOAD_HOSTS = new Set(['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com']);
+const MAX_PORTABLE_DOWNLOAD_BYTES = 1536 * 1024 * 1024;
 const DESKTOP_UPDATE_BACKUP_DIR = '.dsa-desktop-update-backup';
 const DESKTOP_UPDATE_BACKUP_MANIFEST_FILE = 'runtime-state.json';
 const MAC_DESKTOP_CLI_PATH_ENTRIES = Object.freeze([
@@ -91,10 +92,27 @@ function assertTrustedPortableDownloadUrl(url) {
   return parsed.toString();
 }
 
+function assertPortableDownloadContentLength(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const bytes = Number(value);
+  if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > MAX_PORTABLE_DOWNLOAD_BYTES) {
+    throw new Error('便携更新包大小超出安全限制');
+  }
+  return bytes;
+}
+
 function downloadHttpsFile(url, targetPath, { request = https.request, redirectsLeft = 3 } = {}) {
   let trustedUrl;
   try { trustedUrl = assertTrustedPortableDownloadUrl(url); } catch (error) { return Promise.reject(error); }
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const fail = (error) => {
+      if (settled) return;
+      settled = true;
+      destination.destroy();
+      fs.rmSync(targetPath, { force: true });
+      reject(error);
+    };
     const destination = fs.createWriteStream(targetPath);
     const req = request(trustedUrl, { headers: { 'User-Agent': 'stock-fund-quality-desktop' } }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location && redirectsLeft > 0) {
@@ -103,12 +121,21 @@ function downloadHttpsFile(url, targetPath, { request = https.request, redirects
         downloadHttpsFile(new URL(response.headers.location, trustedUrl).toString(), targetPath, { request, redirectsLeft: redirectsLeft - 1 }).then(resolve, reject);
         return;
       }
-      if (response.statusCode !== 200) { destination.destroy(); reject(new Error(`下载更新包失败：HTTP ${response.statusCode || 'unknown'}`)); return; }
+      if (response.statusCode !== 200) { fail(new Error(`下载更新包失败：HTTP ${response.statusCode || 'unknown'}`)); return; }
+      try { assertPortableDownloadContentLength(response.headers['content-length']); } catch (error) { fail(error); return; }
+      let receivedBytes = 0;
+      response.on('data', (chunk) => {
+        receivedBytes += chunk.length;
+        if (receivedBytes > MAX_PORTABLE_DOWNLOAD_BYTES) {
+          response.destroy();
+          fail(new Error('便携更新包大小超出安全限制'));
+        }
+      });
       response.pipe(destination);
-      destination.on('finish', () => destination.close(resolve));
+      destination.on('finish', () => destination.close(() => { if (!settled) { settled = true; resolve(); } }));
     });
-    req.on('error', (error) => { destination.destroy(); reject(error); });
-    destination.on('error', reject);
+    req.on('error', fail);
+    destination.on('error', fail);
     req.end();
   });
 }
@@ -1961,6 +1988,7 @@ module.exports = {
   isWindowsPortableRuntime,
   preparePortableUpdateHandoff,
   assertTrustedPortableDownloadUrl,
+  assertPortableDownloadContentLength,
   stopBackend,
   __getBackendProcessForTest() {
     return backendProcess;

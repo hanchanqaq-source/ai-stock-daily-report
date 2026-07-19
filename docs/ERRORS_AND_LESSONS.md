@@ -1,5 +1,9 @@
 # Errors and Lessons
 
+## Portable-M3.3：校验文件也必须有下载上限
+
+- 固定规则：对 ZIP 与 `.sha256` 均检查 Content-Length 和实际流量，单文件超过 1.5 GiB 或长度非法即拒绝并清理应用创建的临时目标文件。
+
 ## Portable-M3.2：HTTPS 不等于可信更新来源
 
 - 固定规则：下载和每一次重定向均只接受 `github.com`、`objects.githubusercontent.com` 或 `release-assets.githubusercontent.com`；其他 HTTPS 地址也拒绝。

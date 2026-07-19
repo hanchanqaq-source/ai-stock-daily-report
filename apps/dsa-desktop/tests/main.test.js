@@ -186,6 +186,14 @@ test('portable download accepts only HTTPS GitHub asset hosts', (t) => {
   assert.throws(() => mainModule.assertTrustedPortableDownloadUrl('http://github.com/a.zip'));
 });
 
+test('portable download rejects invalid or oversized content lengths', (t) => {
+  const mainModule = loadMainModule(t);
+  assert.equal(mainModule.assertPortableDownloadContentLength('1024'), 1024);
+  assert.equal(mainModule.assertPortableDownloadContentLength(undefined), null);
+  assert.throws(() => mainModule.assertPortableDownloadContentLength('-1'));
+  assert.throws(() => mainModule.assertPortableDownloadContentLength(String(2 * 1024 * 1024 * 1024)));
+});
+
 test('buildBackendEnvironment extends macOS GUI PATH with Homebrew CLI directories', (t) => {
   const mainModule = loadMainModule(t, { platform: 'darwin' });
 
