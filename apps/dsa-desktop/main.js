@@ -36,6 +36,7 @@ const GITHUB_REPO = 'ai-stock-daily-report';
 const RELEASES_PAGE_URL = `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases`;
 const LATEST_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`;
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
+const TRUSTED_PORTABLE_DOWNLOAD_HOSTS = new Set(['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com']);
 const DESKTOP_UPDATE_BACKUP_DIR = '.dsa-desktop-update-backup';
 const DESKTOP_UPDATE_BACKUP_MANIFEST_FILE = 'runtime-state.json';
 const MAC_DESKTOP_CLI_PATH_ENTRIES = Object.freeze([
@@ -82,15 +83,24 @@ function isWindowsPortableRuntime() {
   return process.platform === 'win32' && Boolean(process.env.PORTABLE_EXECUTABLE_DIR);
 }
 
+function assertTrustedPortableDownloadUrl(url) {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:' || !TRUSTED_PORTABLE_DOWNLOAD_HOSTS.has(parsed.hostname)) {
+    throw new Error('更新下载地址不属于受信任的 GitHub 资产域名');
+  }
+  return parsed.toString();
+}
+
 function downloadHttpsFile(url, targetPath, { request = https.request, redirectsLeft = 3 } = {}) {
-  if (new URL(url).protocol !== 'https:') return Promise.reject(new Error('更新下载地址必须使用 HTTPS'));
+  let trustedUrl;
+  try { trustedUrl = assertTrustedPortableDownloadUrl(url); } catch (error) { return Promise.reject(error); }
   return new Promise((resolve, reject) => {
     const destination = fs.createWriteStream(targetPath);
-    const req = request(url, { headers: { 'User-Agent': 'stock-fund-quality-desktop' } }, (response) => {
+    const req = request(trustedUrl, { headers: { 'User-Agent': 'stock-fund-quality-desktop' } }, (response) => {
       if (response.statusCode >= 300 && response.statusCode < 400 && response.headers.location && redirectsLeft > 0) {
         destination.destroy();
         fs.rmSync(targetPath, { force: true });
-        downloadHttpsFile(new URL(response.headers.location, url).toString(), targetPath, { request, redirectsLeft: redirectsLeft - 1 }).then(resolve, reject);
+        downloadHttpsFile(new URL(response.headers.location, trustedUrl).toString(), targetPath, { request, redirectsLeft: redirectsLeft - 1 }).then(resolve, reject);
         return;
       }
       if (response.statusCode !== 200) { destination.destroy(); reject(new Error(`下载更新包失败：HTTP ${response.statusCode || 'unknown'}`)); return; }
@@ -1950,6 +1960,7 @@ module.exports = {
   sanitizeReleaseUrl,
   isWindowsPortableRuntime,
   preparePortableUpdateHandoff,
+  assertTrustedPortableDownloadUrl,
   stopBackend,
   __getBackendProcessForTest() {
     return backendProcess;

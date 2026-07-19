@@ -1,5 +1,9 @@
 # Errors and Lessons
 
+## Portable-M3.2：HTTPS 不等于可信更新来源
+
+- 固定规则：下载和每一次重定向均只接受 `github.com`、`objects.githubusercontent.com` 或 `release-assets.githubusercontent.com`；其他 HTTPS 地址也拒绝。
+
 ## Portable-M3.1：已下载不等于已授权替换
 
 - 固定规则：下载成功只保留在本次运行的临时目录；“安装已下载更新包”仍须重新校验并显示独立系统确认。应用重启后不恢复下载包引用。
