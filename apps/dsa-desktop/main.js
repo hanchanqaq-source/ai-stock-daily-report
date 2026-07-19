@@ -38,6 +38,7 @@ const LATEST_RELEASE_API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${G
 const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
 const TRUSTED_PORTABLE_DOWNLOAD_HOSTS = new Set(['github.com', 'objects.githubusercontent.com', 'release-assets.githubusercontent.com']);
 const MAX_PORTABLE_DOWNLOAD_BYTES = 1536 * 1024 * 1024;
+const PORTABLE_DOWNLOAD_TIMEOUT_MS = 30000;
 const DESKTOP_UPDATE_BACKUP_DIR = '.dsa-desktop-update-backup';
 const DESKTOP_UPDATE_BACKUP_MANIFEST_FILE = 'runtime-state.json';
 const MAC_DESKTOP_CLI_PATH_ENTRIES = Object.freeze([
@@ -135,6 +136,10 @@ function downloadHttpsFile(url, targetPath, { request = https.request, redirects
       destination.on('finish', () => destination.close(() => { if (!settled) { settled = true; resolve(); } }));
     });
     req.on('error', fail);
+    req.setTimeout(PORTABLE_DOWNLOAD_TIMEOUT_MS, () => {
+      req.destroy();
+      fail(new Error('下载便携更新包超时'));
+    });
     destination.on('error', fail);
     req.end();
   });
@@ -145,9 +150,14 @@ async function downloadPortableReleaseAssets(release) {
   const tempDir = path.join(app.getPath('temp'), `dsa-portable-download-${Date.now()}`);
   fs.mkdirSync(tempDir, { recursive: true });
   const targets = buildPortableDownloadPaths(tempDir, assets);
-  await downloadHttpsFile(assets.zipUrl, targets.zipPath);
-  await downloadHttpsFile(assets.sha256Url, targets.sha256Path);
-  return { ...targets, releaseName: assets.zipName };
+  try {
+    await downloadHttpsFile(assets.zipUrl, targets.zipPath);
+    await downloadHttpsFile(assets.sha256Url, targets.sha256Path);
+    return { ...targets, releaseName: assets.zipName };
+  } catch (error) {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw error;
+  }
 }
 
 async function selectPortableUpdateArchive() {
@@ -1989,6 +1999,7 @@ module.exports = {
   preparePortableUpdateHandoff,
   assertTrustedPortableDownloadUrl,
   assertPortableDownloadContentLength,
+  PORTABLE_DOWNLOAD_TIMEOUT_MS,
   stopBackend,
   __getBackendProcessForTest() {
     return backendProcess;

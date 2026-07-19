@@ -194,6 +194,11 @@ test('portable download rejects invalid or oversized content lengths', (t) => {
   assert.throws(() => mainModule.assertPortableDownloadContentLength(String(2 * 1024 * 1024 * 1024)));
 });
 
+test('portable download timeout is bounded', (t) => {
+  const mainModule = loadMainModule(t);
+  assert.equal(mainModule.PORTABLE_DOWNLOAD_TIMEOUT_MS, 30000);
+});
+
 test('buildBackendEnvironment extends macOS GUI PATH with Homebrew CLI directories', (t) => {
   const mainModule = loadMainModule(t, { platform: 'darwin' });
 
