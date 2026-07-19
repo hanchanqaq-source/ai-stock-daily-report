@@ -27,38 +27,19 @@ if (-not (Test-Path $backendEntry)) {
   throw "Packaged backend entrypoint not found: $backendEntry"
 }
 
-$originalMain = [System.IO.File]::ReadAllText($mainPath)
-$portableMain = $originalMain.Replace(
-  "const GITHUB_OWNER = 'ZhuLinsen';",
-  "const GITHUB_OWNER = 'hanchanqaq-source';"
-).Replace(
-  "const GITHUB_REPO = 'daily_stock_analysis';",
-  "const GITHUB_REPO = 'ai-stock-daily-report';"
-)
-
-if ($portableMain -eq $originalMain) {
-  throw 'Portable release repository patch did not change main.js; inspect the desktop update constants.'
+& (Join-Path $PSScriptRoot 'build-desktop.ps1') -Target portable
+if ($LASTEXITCODE -ne 0) {
+  throw "Portable desktop build failed with exit code $LASTEXITCODE."
 }
 
+Push-Location $desktopRoot
 try {
-  [System.IO.File]::WriteAllText($mainPath, $portableMain, $utf8NoBom)
-
-  & (Join-Path $PSScriptRoot 'build-desktop.ps1') -Target portable
+  npm test
   if ($LASTEXITCODE -ne 0) {
-    throw "Portable desktop build failed with exit code $LASTEXITCODE."
-  }
-
-  Push-Location $desktopRoot
-  try {
-    npm test
-    if ($LASTEXITCODE -ne 0) {
-      throw "Desktop tests failed with exit code $LASTEXITCODE."
-    }
-  } finally {
-    Pop-Location
+    throw "Desktop tests failed with exit code $LASTEXITCODE."
   }
 } finally {
-  [System.IO.File]::WriteAllText($mainPath, $originalMain, $utf8NoBom)
+  Pop-Location
 }
 
 $winUnpacked = Join-Path $desktopRoot 'dist\win-unpacked'

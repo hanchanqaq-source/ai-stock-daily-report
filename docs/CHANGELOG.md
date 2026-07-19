@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] Portable-M3 允许 Windows 便携版经用户确认从本项目 GitHub Release 下载成对的 Portable ZIP 与 `.sha256` 到临时目录，并立即校验；下载不自动替换任何文件，现有备份、健康检查与回退仍需用户在独立更新动作中确认。
 - [改进] Portable-M2.2E 在便携更新重启后显示明确结果：新版本健康通过提示更新完成，健康检查失败并自动回退时提示已恢复旧程序；两种结果均说明用户数据目录未替换。
 - [安全改进] Portable-M2.2D 将便携更新的成功条件由“进程存活”收紧为新版本本机 backend 健康检查成功回执；75 秒内未收到回执或进程退出即停止新进程、回退程序文件并启动旧版本，不触碰 `data/config/logs/plugins` 或持仓数据。
 - [新功能] Portable-M2.2C 为 Windows 便携版增加经系统确认的安全更新交接：再次核验 SHA-256 和解压后结构，先建立程序文件恢复点，退出后仅替换程序文件；新版本在 8 秒启动验证期内退出时自动回退并重启旧程序。`data/config/logs/plugins` 与持仓数据始终不参与替换或回退；安装版更新入口未接入此流程。

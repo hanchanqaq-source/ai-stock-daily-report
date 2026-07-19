@@ -117,6 +117,13 @@ jobs:
           }
           Get-ChildItem -Path 'dist/release-assets' -File | Sort-Object Name | Format-Table Name, Length
 
+      - name: Build Portable ZIP and checksum (Windows)
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts/build-portable.ps1 -SkipBackendBuild
+          Copy-Item -Path 'dist/portable-assets/*.zip' -Destination 'dist/release-assets' -Force
+          Copy-Item -Path 'dist/portable-assets/*.sha256' -Destination 'dist/release-assets' -Force
+
       - uses: actions/upload-artifact@v6
         with:
           name: desktop-windows-${{ env.RELEASE_TAG }}
