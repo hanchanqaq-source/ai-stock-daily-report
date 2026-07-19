@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [安全改进] Portable-M3.4 为 GitHub 资产下载加入 30 秒请求超时；任一文件失败时只清理应用创建的本次临时下载目录。
 - [安全改进] Portable-M3.3 为 ZIP 与校验文件下载加入 1.5 GiB 响应长度和实际流量上限，超限立即拒绝并清理临时目标文件。
 - [安全改进] Portable-M3.2 限制便携更新下载及重定向只能使用 HTTPS GitHub 官方资产域名，拒绝任意第三方下载地址。
 - [改进] Portable-M3.1 允许用户在同一次应用运行中把已从 GitHub 下载并校验通过的临时更新包交给独立的安全更新确认；启动替换前仍会再次校验，重启后必须重新下载或手动选择。
