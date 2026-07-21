@@ -89,7 +89,8 @@
 | [股票基金双中心 Build D3：行业周期与经营生产力代理证据](stock_fund_dual_center_build_d3.md) | 1–4 只基金手动只读周期证据、固定阈值阶段、经营生产力代理、证据日期/置信度/缺失项、安全门禁与 Build D4 边界 |
 | [股票基金双中心 Build D4：组合风险与配置建议](stock_fund_dual_center_build_d4.md) | 当前用户基金组合集中度、重合、周期风险、目标偏离、证据覆盖与人工复核建议 |
 | [股票基金双中心 Build E1：本地数据库持久化](stock_fund_dual_center_build_e1.md) | 用户、股票快速持仓、基金快速持仓的本机 SQLite 持久化、隔离、恢复与侧栏完整显示 |
-| [股票基金双中心 Build E2：本机数据备份与恢复](stock_fund_dual_center_build_e2.md) | 工作台用户与股票/基金快速持仓的 JSON 导出、预览校验、确认覆盖导入和本机恢复点；不含密钥或设置 |
+| [股票基金双中心 Build E2：本机数据备份与恢复](stock_fund_dual_center_build_e2.md) | 工作台用户、股票/基金快速持仓及基金自选的 JSON 导出、预览校验、确认覆盖导入和本机恢复点；不含密钥或设置 |
+| [持久化阶段 E3：基金自选](stock_fund_persistence_e3_fund_watchlist.md) | 按当前用户隔离的基金自选新增、编辑、确认移出、重启持久化与备份兼容；与基金持仓独立 |
 | [股票基金双中心 Build E3：快速持仓编辑](stock_fund_dual_center_build_e3.md) | 当前用户的股票/基金快速持仓分区编辑、先校验落库再更新页面、跨用户保护与失败保留旧值 |
 | [股票基金双中心 Build E4：快速持仓回收站](stock_fund_dual_center_build_e4.md) | 删除确认、按用户隔离的本机回收站与恢复最近删除持仓 |
 | [股票基金双中心 Build E5：持仓变更历史](stock_fund_dual_center_build_e5.md) | 按用户、股票/基金分离记录快速持仓的新增、编辑、删除和恢复 |

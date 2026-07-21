@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Activity, BarChart3, Bell, BriefcaseBusiness, Gauge, GitCompareArrows, Home, Layers3, LogOut, MessageSquareQuote, Search, Settings2, ShieldAlert, TrendingUp, UsersRound } from 'lucide-react';
+import { Activity, BarChart3, Bell, BriefcaseBusiness, Gauge, GitCompareArrows, Home, Layers3, LogOut, MessageSquareQuote, Search, Settings2, ShieldAlert, Star, TrendingUp, UsersRound } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { ALPHASIFT_CONFIG_CHANGED_EVENT, SYSTEM_CONFIG_CHANGED_EVENT, alphasiftApi } from '../../api/alphasift';
 import { useAuth } from '../../contexts/AuthContext';
@@ -43,6 +43,7 @@ const STOCK_NAV_ITEMS: NavItem[] = [
 const FUND_NAV_ITEMS: NavItem[] = [
   { key: 'fund-home', label: { zh: '基金首页', en: 'Fund home' }, to: '/funds', icon: Home, exact: true },
   { key: 'fund-chat', label: { zh: '问基金', en: 'Ask funds' }, to: '/funds/ask', icon: MessageSquareQuote },
+  { key: 'fund-watchlist', label: { zh: '基金自选', en: 'Fund watchlist' }, to: '/funds/watchlist', icon: Star },
   { key: 'fund-portfolio', label: { zh: '基金持仓', en: 'Fund holdings' }, to: '/funds/portfolio', icon: BriefcaseBusiness },
   { key: 'fund-compare', label: { zh: '基金对比', en: 'Fund compare' }, to: '/funds/compare', icon: GitCompareArrows },
   { key: 'fund-exposure', label: { zh: '行业穿透', en: 'Industry exposure' }, to: '/funds/industry-exposure', icon: Layers3 },

@@ -1,4 +1,4 @@
-"""Integration tests for Build E1 local workspace persistence."""
+"""Integration tests for the local workspace persistence stages."""
 
 import os
 import sqlite3
@@ -46,6 +46,7 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
             'workspace_portfolio_preferences',
             'workspace_stock_holdings',
             'workspace_fund_holdings',
+            'workspace_fund_watchlist_items',
             'workspace_portfolio_backups',
             'workspace_holding_recycle_entries',
             'workspace_holding_history_entries',
@@ -54,6 +55,57 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
             'users', 'stock_holdings', 'fund_holdings', 'schema_version', 'data_migrations',
         }.isdisjoint(tables))
         self.assertFalse((self.db_path.parent / 'stock_fund_quality.db').exists())
+
+    def test_fund_watchlist_crud_restart_user_isolation_and_holding_separation(self) -> None:
+        self.client.get('/api/v1/workspace-portfolio')
+        self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-watch-a', 'name': '自选用户A'})
+        self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-watch-b', 'name': '自选用户B'})
+        watch_item = {'id': 'fund-watch-a', 'code': '000001', 'name': '测试自选基金', 'notes': '等待观察'}
+        created = self.client.post('/api/v1/workspace-portfolio/users/user-watch-a/fund-watchlist', json=watch_item)
+        self.assertEqual(created.status_code, 201, created.text)
+        self.assertEqual(self.client.post(
+            '/api/v1/workspace-portfolio/users/user-watch-a/fund-watchlist',
+            json={'id': 'fund-watch-duplicate', 'code': '000001', 'name': '重复基金'},
+        ).status_code, 409)
+        self.assertEqual(self.client.post(
+            '/api/v1/workspace-portfolio/users/user-watch-b/fund-watchlist',
+            json={'id': 'fund-watch-b', 'code': '000001', 'name': '另一个用户可以关注'},
+        ).status_code, 201)
+        self.assertEqual(self.client.post(
+            '/api/v1/workspace-portfolio/users/user-watch-a/funds',
+            json={'id': 'fund-holding-a', 'code': '000001', 'name': '同代码持仓', 'amount': 1000, 'profit': 10},
+        ).status_code, 201)
+        self.assertEqual(self.client.post(
+            '/api/v1/workspace-portfolio/users/user-watch-a/fund-watchlist',
+            json={'id': 'invalid-code', 'code': 'ABC', 'name': '非法代码'},
+        ).status_code, 422)
+
+        self.restart_backend('fund-watchlist-restart')
+        state = self.client.get('/api/v1/workspace-portfolio').json()
+        self.assertEqual(state['fund_watchlist_by_user']['user-watch-a'][0]['notes'], '等待观察')
+        self.assertEqual(state['fund_watchlist_by_user']['user-watch-b'][0]['code'], '000001')
+        self.assertEqual(state['fund_holdings_by_user']['user-watch-a'][0]['id'], 'fund-holding-a')
+        self.assertEqual(state['fund_watchlist_by_user']['self'], [])
+
+        updated = self.client.patch(
+            '/api/v1/workspace-portfolio/users/user-watch-a/fund-watchlist/fund-watch-a',
+            json={'code': '000002', 'name': '已更新自选基金', 'notes': '继续观察'},
+        )
+        self.assertEqual(updated.status_code, 200, updated.text)
+        self.assertEqual(updated.json()['name'], '已更新自选基金')
+        self.assertEqual(self.client.patch(
+            '/api/v1/workspace-portfolio/users/user-watch-b/fund-watchlist/fund-watch-a',
+            json={'code': '000002', 'name': '越权修改'},
+        ).status_code, 404)
+        self.assertEqual(self.client.delete(
+            '/api/v1/workspace-portfolio/users/user-watch-b/fund-watchlist/fund-watch-a',
+        ).status_code, 404)
+        self.assertEqual(self.client.delete(
+            '/api/v1/workspace-portfolio/users/user-watch-a/fund-watchlist/fund-watch-a',
+        ).status_code, 204)
+        state = self.client.get('/api/v1/workspace-portfolio').json()
+        self.assertEqual(state['fund_watchlist_by_user']['user-watch-a'], [])
+        self.assertEqual(state['fund_holdings_by_user']['user-watch-a'][0]['id'], 'fund-holding-a')
 
     def test_state_survives_backend_restart_and_keeps_domains_separate(self) -> None:
         initial = self.client.get('/api/v1/workspace-portfolio')
@@ -167,11 +219,15 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
             'id': 'stock-delete', 'code': 'AAPL', 'name': 'Apple', 'quantity': 1,
             'average_cost': 100, 'securities_account': '账户B',
         })
+        self.client.post('/api/v1/workspace-portfolio/users/user-delete/fund-watchlist', json={
+            'id': 'fund-watch-delete', 'code': '000001', 'name': '待删除自选基金',
+        })
         self.assertEqual(self.client.delete('/api/v1/workspace-portfolio/users/self').status_code, 409)
         self.assertEqual(self.client.delete('/api/v1/workspace-portfolio/users/user-delete').status_code, 204)
         state = self.client.get('/api/v1/workspace-portfolio').json()
         self.assertNotIn('user-delete', {item['id'] for item in state['users']})
         self.assertNotIn('user-delete', state['stock_holdings_by_user'])
+        self.assertNotIn('user-delete', state['fund_watchlist_by_user'])
 
     def test_backup_preview_import_and_restore_keep_only_workspace_data(self) -> None:
         self.client.get('/api/v1/workspace-portfolio')
@@ -180,17 +236,24 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
             'id': 'stock-backup', 'code': '600519', 'name': '贵州茅台', 'quantity': 2,
             'average_cost': 1500, 'securities_account': '账户A',
         })
+        self.client.post('/api/v1/workspace-portfolio/users/user-backup/fund-watchlist', json={
+            'id': 'fund-watch-backup', 'code': '000001', 'name': '备份自选基金', 'notes': '备份备注',
+        })
         exported = self.client.get('/api/v1/workspace-portfolio/backup/export')
         self.assertEqual(exported.status_code, 200, exported.text)
         backup = exported.json()
         self.assertEqual(backup['format'], 'dsa-workspace-portfolio-backup')
-        self.assertEqual(set(backup), {'format', 'version', 'exported_at', 'users', 'stock_holdings_by_user', 'fund_holdings_by_user'})
+        self.assertEqual(set(backup), {'format', 'version', 'exported_at', 'users', 'stock_holdings_by_user', 'fund_holdings_by_user', 'fund_watchlist_by_user'})
         preview = self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup)
         self.assertEqual(preview.status_code, 200, preview.text)
         self.assertEqual(preview.json()['stock_holdings'], 1)
+        self.assertEqual(preview.json()['fund_watchlist_items'], 1)
 
         self.client.post('/api/v1/workspace-portfolio/users/self/funds', json={
             'id': 'fund-current', 'code': '000001', 'name': '当前基金', 'amount': 2000, 'profit': 30,
+        })
+        self.client.post('/api/v1/workspace-portfolio/users/self/fund-watchlist', json={
+            'id': 'fund-watch-current', 'code': '110022', 'name': '当前自选基金',
         })
         rejected = self.client.post('/api/v1/workspace-portfolio/backup/import', json={'backup': backup, 'confirmed': False})
         self.assertEqual(rejected.status_code, 409)
@@ -200,17 +263,27 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         self.assertEqual(imported.status_code, 200, imported.text)
         self.assertEqual(imported.json()['state']['stock_holdings_by_user']['user-backup'][0]['id'], 'stock-backup')
         self.assertEqual(imported.json()['state']['fund_holdings_by_user']['self'], [])
+        self.assertEqual(imported.json()['state']['fund_watchlist_by_user']['user-backup'][0]['id'], 'fund-watch-backup')
+        self.assertEqual(imported.json()['state']['fund_watchlist_by_user']['self'], [])
         restore_points = self.client.get('/api/v1/workspace-portfolio/backup/restore-points').json()
         self.assertEqual(restore_points[0]['reason'], 'before_import')
 
         restored = self.client.post(f"/api/v1/workspace-portfolio/backup/restore-points/{restore_points[0]['id']}", json={'confirmed': True})
         self.assertEqual(restored.status_code, 200, restored.text)
         self.assertEqual(restored.json()['state']['fund_holdings_by_user']['self'][0]['id'], 'fund-current')
+        self.assertEqual(restored.json()['state']['fund_watchlist_by_user']['self'][0]['id'], 'fund-watch-current')
 
     def test_backup_rejects_unknown_users_and_unknown_fields(self) -> None:
         backup = self.client.get('/api/v1/workspace-portfolio/backup/export').json()
         backup['stock_holdings_by_user']['unknown-user'] = []
         self.assertEqual(self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup).status_code, 422)
+
+    def test_legacy_backup_without_fund_watchlist_remains_importable(self) -> None:
+        backup = self.client.get('/api/v1/workspace-portfolio/backup/export').json()
+        backup.pop('fund_watchlist_by_user')
+        preview = self.client.post('/api/v1/workspace-portfolio/backup/preview', json=backup)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        self.assertEqual(preview.json()['fund_watchlist_items'], 0)
 
     def test_editing_quick_holdings_keeps_domains_and_users_isolated(self) -> None:
         self.client.get('/api/v1/workspace-portfolio')

@@ -6,6 +6,7 @@
 - 正式调用链：`PortfolioUserContext → workspacePortfolioApi → /api/v1/workspace-portfolio → FastAPI get_db → SQLAlchemy Session → src.storage → SQLite`。
 - 数据库配置：后端只读取 `DATABASE_PATH` / `Config.database_path`；默认值为 `./data/stock_analysis.db`，`Config.get_db_url()` 会创建其父目录。
 - 桌面运行时：Electron 只向后端传入一个 `DATABASE_PATH`。便携更新保留 `data/stock_analysis.db`、`data/stock_analysis.db-wal` 和 `data/stock_analysis.db-shm`。
+- 基金自选：使用同一数据库中的 `workspace_fund_watchlist_items`，按 `user_id` 隔离；它不是基金持仓，同一基金可分别存在于自选和持仓中。
 - 禁止平行实现：不得再创建 `stock_fund_quality.db`、第二套 `users` / `stock_holdings` / `fund_holdings` 表或独立 schema 版本体系。
 
 ## 迁移与测试
@@ -19,5 +20,6 @@
 ## 故障处理
 
 - 本机 API 写入失败时，前端会重新读取完整服务端状态并显示错误；不要让乐观更新长期停留在界面中。
+- 基金自选同一用户内按六位基金代码去重；重复添加返回冲突，不得静默覆盖名称或备注。
 - 若重新读取也失败，保留明确错误状态，让用户核对后重试；不得静默假定保存成功。
 - 更新或迁移前不得覆盖数据库文件。后续迁移必须先建立备份，并验证主文件及 WAL/SHM 的处理方式。

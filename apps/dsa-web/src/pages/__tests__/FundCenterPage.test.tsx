@@ -22,7 +22,7 @@ vi.mock('../../api/fundData', () => ({
   },
 }));
 
-function renderPage(section: 'home' | 'ask' | 'compare' | 'industry-exposure' | 'industry-cycle' | 'advice') {
+function renderPage(section: 'home' | 'ask' | 'watchlist' | 'compare' | 'industry-exposure' | 'industry-cycle' | 'advice') {
   render(
     <UiLanguageProvider>
       <PortfolioUserProvider>
@@ -47,12 +47,24 @@ describe('FundCenterPage', () => {
 
     expect(screen.getByRole('heading', { name: '基金首页' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /进入基金持仓/ })).toBeInTheDocument();
+    expect(screen.getByText('基金自选')).toBeInTheDocument();
     expect(screen.getByText('AKShare 基金公开数据支持本机手动只读查询')).toBeInTheDocument();
     expect(screen.getByText('Build C 基金数据契约')).toBeInTheDocument();
     expect(screen.getByText('披露持仓')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '手动读取' })).toBeDisabled();
     expect(apiMocks.fetchAksharePublicFund).not.toHaveBeenCalled();
     expect(screen.queryByText('股票回测')).not.toBeInTheDocument();
+  });
+
+  it('shows the local per-user fund watchlist separately from holdings and public lookup', () => {
+    renderPage('watchlist');
+
+    expect(screen.getByRole('heading', { name: '基金自选' })).toBeInTheDocument();
+    expect(screen.getByTestId('fund-watchlist-panel')).toBeInTheDocument();
+    expect(screen.getByText(/不自动加入持仓/)).toBeInTheDocument();
+    expect(screen.getByText(/不自动查询/)).toBeInTheDocument();
+    expect(screen.queryByText('Build C 基金数据契约')).not.toBeInTheDocument();
+    expect(apiMocks.fetchAksharePublicFund).not.toHaveBeenCalled();
   });
 
   it('requires a six-digit code and per-request read-only approval before calling AKShare', async () => {

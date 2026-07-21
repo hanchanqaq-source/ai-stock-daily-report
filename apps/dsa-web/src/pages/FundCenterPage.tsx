@@ -1,5 +1,5 @@
 import type React from 'react';
-import { ArrowRight, BookOpenCheck, GitCompareArrows, Landmark, Layers3, LoaderCircle, MessageCircleQuestion, ShieldAlert, TrendingUp } from 'lucide-react';
+import { ArrowRight, BookOpenCheck, GitCompareArrows, Landmark, Layers3, LoaderCircle, MessageCircleQuestion, ShieldAlert, Star, TrendingUp } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fundDataApi, type FundPublicReadonlyResponse } from '../api/fundData';
@@ -7,10 +7,11 @@ import { Card, EmptyState, InlineAlert } from '../components/common';
 import FundComparisonPanel from '../components/funds/FundComparisonPanel';
 import FundIndustryCyclePanel from '../components/funds/FundIndustryCyclePanel';
 import FundPortfolioAdvicePanel from '../components/funds/FundPortfolioAdvicePanel';
+import FundWatchlistPanel from '../components/funds/FundWatchlistPanel';
 import { usePortfolioUsers } from '../contexts/PortfolioUserContext';
 import { useUiLanguage } from '../contexts/UiLanguageContext';
 
-export type FundCenterSection = 'home' | 'ask' | 'compare' | 'industry-exposure' | 'industry-cycle' | 'advice';
+export type FundCenterSection = 'home' | 'ask' | 'watchlist' | 'compare' | 'industry-exposure' | 'industry-cycle' | 'advice';
 
 type FundCenterPageProps = { section: FundCenterSection };
 
@@ -18,6 +19,7 @@ const SECTION_META = {
   zh: {
     home: ['基金首页', '查看当前用户的基金任务、持仓入口、行业分析入口和数据状态。'],
     ask: ['问基金', '只处理基金代码、基金名称、持仓、行业暴露、周期和配置问题。'],
+    watchlist: ['基金自选', '按当前用户管理基金关注列表，与基金持仓分开保存。'],
     compare: ['基金筛选与对比', '对比基金类型、行业集中度、持仓重复度、风险和数据日期。'],
     'industry-exposure': ['行业持仓穿透', '按披露报告期查看基金持仓和行业映射，未知行业保持未知。'],
     'industry-cycle': ['行业周期与景气度', '按证据、日期、周期阶段、置信度和缺失项展示行业判断。'],
@@ -26,6 +28,7 @@ const SECTION_META = {
   en: {
     home: ['Fund home', 'Review fund tasks, holdings, industry analysis entries, and data status for the active user.'],
     ask: ['Ask about funds', 'Handles fund identifiers, holdings, industry exposure, cycles, and allocation questions only.'],
+    watchlist: ['Fund watchlist', 'Manage a per-user fund watchlist stored separately from fund holdings.'],
     compare: ['Fund screening and comparison', 'Compare type, industry concentration, overlap, risk, and data dates.'],
     'industry-exposure': ['Industry exposure', 'Review disclosed holdings and industry mapping by report period while preserving unknown classifications.'],
     'industry-cycle': ['Industry cycles', 'Show evidence, date, cycle stage, confidence, and missing inputs.'],
@@ -35,6 +38,7 @@ const SECTION_META = {
 
 const HOME_LINKS = [
   { section: 'ask', icon: MessageCircleQuestion, path: '/funds/ask' },
+  { section: 'watchlist', icon: Star, path: '/funds/watchlist' },
   { section: 'compare', icon: GitCompareArrows, path: '/funds/compare' },
   { section: 'industry-exposure', icon: Layers3, path: '/funds/industry-exposure' },
   { section: 'industry-cycle', icon: TrendingUp, path: '/funds/industry-cycle' },
@@ -47,6 +51,7 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
   const { activeUser, activeFundHoldings } = usePortfolioUsers();
   const [title, description] = SECTION_META[language][section];
   const isHome = section === 'home';
+  const isWatchlistPage = section === 'watchlist';
   const isD2Page = section === 'compare' || section === 'industry-exposure';
   const isD3Page = section === 'industry-cycle';
   const isD4Page = section === 'advice';
@@ -88,17 +93,21 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
       <InlineAlert
         variant="info"
         title={language === 'zh'
-          ? (isD4Page ? 'Build D4 已接入当前用户基金组合风险与配置复核建议' : isD3Page ? 'Build D3 已接入行业周期与经营生产力代理证据' : isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
-          : (isD4Page ? 'Build D4 active-user fund portfolio risk and allocation review is connected' : isD3Page ? 'Build D3 industry-cycle and operating-productivity proxy evidence is connected' : isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
+          ? (isWatchlistPage ? '持久化阶段 E3 已接入基金自选' : isD4Page ? 'Build D4 已接入当前用户基金组合风险与配置复核建议' : isD3Page ? 'Build D3 已接入行业周期与经营生产力代理证据' : isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
+          : (isWatchlistPage ? 'Persistence E3 fund watchlists are connected' : isD4Page ? 'Build D4 active-user fund portfolio risk and allocation review is connected' : isD3Page ? 'Build D3 industry-cycle and operating-productivity proxy evidence is connected' : isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
         message={language === 'zh'
-          ? (isD4Page
+          ? (isWatchlistPage
+              ? '仅保存手动输入的基金代码、名称和备注到当前用户的本机数据库；不读取账户、不自动查询、不自动加入持仓、不交易。'
+              : isD4Page
               ? '使用当前页面内存基金持仓计算集中度、目标偏离和公开证据覆盖；建议只供人工复核，不读取真实账户、不自动执行。'
               : isD3Page
               ? '周期只使用行业行情、成交额、市场广度和相对强弱；生产力只使用公开业绩报表代理，证据不足时不生成阶段，不输出配置或买卖建议。'
               : isD2Page
               ? '输入基金代码并逐次确认后，读取公开资料、净值、前十大持仓和基金披露行业配置；不推测未知行业，不生成周期或配置建议。'
               : 'Build D1 仅在您输入六位基金代码并逐次确认后读取公开资料、正式净值和披露持仓；不读取账户，不调用 AI，不通知、不交易、不持久化。')
-          : (isD4Page
+          : (isWatchlistPage
+              ? 'Only manually entered fund codes, names, and notes are saved to the active user local database. No account access, automatic lookup, holdings changes, or trading.'
+              : isD4Page
               ? 'Uses current in-memory fund holdings for concentration, target drift, and public-evidence coverage. Guidance is review-only, with no account access or automatic execution.'
               : isD3Page
               ? 'Cycle stages use only industry prices, turnover, breadth, and relative strength. Productivity uses public financial-report proxies only. Missing evidence never becomes a stage or allocation/trading advice.'
@@ -107,7 +116,7 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
               : 'Build D1 reads public profile, official NAV, and disclosed holdings only after you enter a six-digit fund code and approve each request. It does not read accounts, call AI, notify, trade, or persist data.')}
       />
 
-      <Card padding="md">
+      {!isWatchlistPage && <Card padding="md">
         <h2 className="font-semibold text-foreground">{language === 'zh' ? 'Build C 基金数据契约' : 'Build C fund data contract'}</h2>
         <p className="mt-2 text-sm leading-6 text-secondary-text">
           {language === 'zh'
@@ -120,7 +129,7 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
             : ['Fund profile', 'NAV snapshot', 'Disclosed holdings', 'Industry mapping']
           ).map((item) => <span key={item} className="rounded-full border border-border px-3 py-1">{item}</span>)}
         </div>
-      </Card>
+      </Card>}
 
       {isHome ? (
         <>
@@ -221,6 +230,8 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
             })}
           </section>
         </>
+      ) : isWatchlistPage ? (
+        <FundWatchlistPanel key={activeUser.id} language={language} />
       ) : isD2Page ? (
         <FundComparisonPanel mode={section === 'compare' ? 'compare' : 'industry-exposure'} language={language} />
       ) : isD3Page ? (
