@@ -5,14 +5,25 @@
 ===================================
 
 职责：
-1. 导出所有 Repository 类
+1. 声明可导出的 Repository 类（延迟导入，避免导入轻量子模块时拉入 pandas/SQLAlchemy 等重依赖）
 """
 
-from src.repositories.analysis_repo import AnalysisRepository
-from src.repositories.backtest_repo import BacktestRepository
-from src.repositories.decision_signal_repo import DecisionSignalRepository
-from src.repositories.decision_signal_outcome_repo import DecisionSignalOutcomeRepository
-from src.repositories.stock_repo import StockRepository
+
+def __getattr__(name: str):
+    """Lazy-load repository classes only when accessed from this package."""
+    _lazy_map = {
+        "AnalysisRepository": "src.repositories.analysis_repo",
+        "BacktestRepository": "src.repositories.backtest_repo",
+        "DecisionSignalRepository": "src.repositories.decision_signal_repo",
+        "DecisionSignalOutcomeRepository": "src.repositories.decision_signal_outcome_repo",
+        "StockRepository": "src.repositories.stock_repo",
+    }
+    if name in _lazy_map:
+        import importlib
+        module = importlib.import_module(_lazy_map[name])
+        return getattr(module, name)
+    raise AttributeError(f"module 'src.repositories' has no attribute {name!r}")
+
 
 __all__ = [
     "AnalysisRepository",

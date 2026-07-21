@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] Build E0/E1 增补股票基金质量分析系统 SQLite 持久化地基：明确程序/用户数据/缓存/日志/备份/测试目录，新增标准库 sqlite3 首版迁移、schema_version、Repository/Service 边界与临时数据库回归测试；不接 E2 页面，不读取真实持仓或密钥。
 - [安全改进] Portable-M3.4 为 GitHub 资产下载加入 30 秒请求超时；任一文件失败时只清理应用创建的本次临时下载目录。
 - [安全改进] Portable-M3.3 为 ZIP 与校验文件下载加入 1.5 GiB 响应长度和实际流量上限，超限立即拒绝并清理临时目标文件。
 - [安全改进] Portable-M3.2 限制便携更新下载及重定向只能使用 HTTPS GitHub 官方资产域名，拒绝任意第三方下载地址。
