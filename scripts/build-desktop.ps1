@@ -122,7 +122,6 @@ try {
 
   Write-Host 'Stopping running app (if any)...'
   Get-Process -Name 'Daily Stock Analysis' -ErrorAction SilentlyContinue | Stop-Process -Force
-  Get-Process -Name '股票基金质量分析系统' -ErrorAction SilentlyContinue | Stop-Process -Force
   Get-Process -Name 'stock_analysis' -ErrorAction SilentlyContinue | Stop-Process -Force
 
   if (Test-Path 'dist\win-unpacked') {

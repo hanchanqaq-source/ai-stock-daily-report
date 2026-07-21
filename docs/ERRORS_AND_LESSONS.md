@@ -1,5 +1,10 @@
 # Errors and Lessons
 
+## Windows Release：CI 脚本中不要用非 ASCII 进程名作 `Get-Process -Name` 参数
+
+- 现象：Windows GitHub runner 读取打包 PowerShell 脚本时，将中文进程名错误解析为多个参数，导致 Electron 打包尚未开始即失败，后续安装包、Portable ZIP 与 `.sha256` 全部跳过。
+- 固定规则：CI 打包前的清理步骤只保留稳定的 ASCII 进程名；中文产品展示名不作为 PowerShell 进程名参数。该清理仅为开发机便利，不能阻断无旧进程的干净 CI runner。
+
 ## Portable-M3.4：成对下载失败不能留半成品
 
 - 固定规则：ZIP 与 `.sha256` 任一下载失败或超时，清理仅由本次下载创建的临时目录；不触及用户选择的文件、程序目录或用户数据目录。
