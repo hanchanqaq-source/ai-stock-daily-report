@@ -14,11 +14,11 @@ const TEXT = {
     listTitle: '用户档案', current: '当前用户', primary: '默认用户', switchTo: '切换到此用户',
     rename: '重命名', save: '保存', remove: '删除用户', emptyName: '请输入用户名称。',
     storageError: '本地保存失败；页面已尝试重新读取数据库状态，请核对后重试。',
-    noticeTitle: '本地持久化', notice: '用户、股票持仓和基金持仓按当前用户分开保存到本机数据库；刷新页面或重启程序后仍会保留。',
-    backupTitle: '本机数据备份与恢复', backupDescription: '仅导出用户、股票快速持仓和基金快速持仓；不包含设置、密钥、DPAPI 凭证或日志。',
+    noticeTitle: '本地持久化', notice: '用户、股票持仓、基金持仓和基金自选按当前用户分开保存到本机数据库；刷新页面或重启程序后仍会保留。',
+    backupTitle: '本机数据备份与恢复', backupDescription: '仅导出用户、股票快速持仓、基金快速持仓和基金自选；不包含设置、密钥、DPAPI 凭证或日志。',
     export: '导出备份文件', choose: '选择备份文件', noFile: '尚未选择备份文件', preview: '预览导入内容',
     replaceNotice: '导入会覆盖当前本机工作台数据；确认前会自动创建一个本机恢复点。', confirmImport: '确认覆盖导入',
-    previewSummary: '将导入 {users} 个用户、{stocks} 条股票持仓、{funds} 条基金持仓。', imported: '导入完成，已创建恢复点。',
+    previewSummary: '将导入 {users} 个用户、{stocks} 条股票持仓、{funds} 条基金持仓和 {watchlist} 条基金自选。', imported: '导入完成，已创建恢复点。',
     restoreLatest: '恢复最近一个恢复点', restored: '恢复完成，已创建新的恢复点。', backupError: '备份文件无效或本机数据库暂时不可用，请检查文件后重试。',
   },
   en: {
@@ -28,11 +28,11 @@ const TEXT = {
     listTitle: 'Profiles', current: 'Current user', primary: 'Default user', switchTo: 'Switch to this user',
     rename: 'Rename', save: 'Save', remove: 'Delete user', emptyName: 'Enter a user name.',
     storageError: 'Local saving failed. The page reloaded the database state; verify it and try again.',
-    noticeTitle: 'Local persistence', notice: 'Users, stock holdings, and fund holdings are stored separately per user in the local database and survive refreshes and restarts.',
-    backupTitle: 'Local data backup and restore', backupDescription: 'Only users and quick stock/fund holdings are exported. Settings, secrets, DPAPI credentials, and logs are excluded.',
+    noticeTitle: 'Local persistence', notice: 'Users, stock holdings, fund holdings, and fund watchlists are stored separately per user in the local database and survive refreshes and restarts.',
+    backupTitle: 'Local data backup and restore', backupDescription: 'Only users, quick stock/fund holdings, and fund watchlists are exported. Settings, secrets, DPAPI credentials, and logs are excluded.',
     export: 'Export backup file', choose: 'Choose backup file', noFile: 'No backup file selected', preview: 'Preview import',
     replaceNotice: 'Import replaces this device’s workspace data. A local restore point is created before confirmation.', confirmImport: 'Confirm replace and import',
-    previewSummary: 'Will import {users} users, {stocks} stock holdings, and {funds} fund holdings.', imported: 'Import completed and a restore point was created.',
+    previewSummary: 'Will import {users} users, {stocks} stock holdings, {funds} fund holdings, and {watchlist} fund watchlist items.', imported: 'Import completed and a restore point was created.',
     restoreLatest: 'Restore latest restore point', restored: 'Restore completed and a new restore point was created.', backupError: 'The backup file is invalid or local storage is unavailable. Check the file and try again.',
   },
 } as const;
@@ -132,7 +132,7 @@ const UsersPage: React.FC = () => {
         </div>
         <p className="mt-3 text-xs text-secondary">{backupFile ? backupFile.name : text.noFile}</p>
         {backupData && !preview ? <button type="button" className="btn-secondary mt-3 text-sm" disabled={backupBusy} onClick={() => void previewImport()}>{text.preview}</button> : null}
-        {preview ? <div className="mt-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3 text-sm"><p className="text-foreground">{text.previewSummary.replace('{users}', String(preview.users)).replace('{stocks}', String(preview.stockHoldings)).replace('{funds}', String(preview.fundHoldings))}</p><p className="mt-1 text-xs text-secondary">{text.replaceNotice}</p><button type="button" className="btn-primary mt-3 text-sm" disabled={backupBusy} onClick={() => void confirmImport()}>{text.confirmImport}</button></div> : null}
+        {preview ? <div className="mt-3 rounded-xl border border-amber-400/25 bg-amber-400/5 p-3 text-sm"><p className="text-foreground">{text.previewSummary.replace('{users}', String(preview.users)).replace('{stocks}', String(preview.stockHoldings)).replace('{funds}', String(preview.fundHoldings)).replace('{watchlist}', String(preview.fundWatchlistItems))}</p><p className="mt-1 text-xs text-secondary">{text.replaceNotice}</p><button type="button" className="btn-primary mt-3 text-sm" disabled={backupBusy} onClick={() => void confirmImport()}>{text.confirmImport}</button></div> : null}
       </Card>
 
       <Card padding="md">

@@ -55,11 +55,23 @@ class WorkspaceFundHoldingItem(WorkspaceFundHoldingCreate):
     id: str = Field(..., min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
 
 
+class WorkspaceFundWatchlistCreate(WorkspaceBackupModel):
+    id: Optional[str] = Field(None, min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
+    code: str = Field(..., pattern=r'^\d{6}$')
+    name: str = Field(..., min_length=1, max_length=100)
+    notes: Optional[str] = Field(None, max_length=1000)
+
+
+class WorkspaceFundWatchlistItem(WorkspaceFundWatchlistCreate):
+    id: str = Field(..., min_length=1, max_length=64, pattern=r'^[A-Za-z0-9_-]+$')
+
+
 class WorkspacePortfolioState(WorkspaceBackupModel):
     users: List[WorkspaceUserItem]
     active_user_id: str = Field(..., min_length=1, max_length=64)
     stock_holdings_by_user: dict[str, List[WorkspaceStockHoldingItem]]
     fund_holdings_by_user: dict[str, List[WorkspaceFundHoldingItem]]
+    fund_watchlist_by_user: dict[str, List[WorkspaceFundWatchlistItem]] = Field(default_factory=dict)
 
 
 class WorkspacePortfolioBackupPayload(WorkspaceBackupModel):
@@ -69,12 +81,14 @@ class WorkspacePortfolioBackupPayload(WorkspaceBackupModel):
     users: List[WorkspaceUserItem] = Field(..., max_length=50)
     stock_holdings_by_user: dict[str, List[WorkspaceStockHoldingItem]]
     fund_holdings_by_user: dict[str, List[WorkspaceFundHoldingItem]]
+    fund_watchlist_by_user: dict[str, List[WorkspaceFundWatchlistItem]] = Field(default_factory=dict)
 
 
 class WorkspacePortfolioBackupPreview(WorkspaceBackupModel):
     users: int
     stock_holdings: int
     fund_holdings: int
+    fund_watchlist_items: int = 0
     exported_at: datetime
     will_replace_current_workspace: bool = True
 

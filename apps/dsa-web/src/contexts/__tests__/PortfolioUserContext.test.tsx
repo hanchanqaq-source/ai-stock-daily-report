@@ -17,6 +17,9 @@ vi.mock('../../api/workspacePortfolio', () => ({
     createFund: vi.fn(),
     updateFund: vi.fn(),
     removeFund: vi.fn(),
+    createFundWatchlistItem: vi.fn(),
+    updateFundWatchlistItem: vi.fn(),
+    removeFundWatchlistItem: vi.fn(),
   },
 }));
 
@@ -34,6 +37,7 @@ function createServerState(): WorkspacePortfolioStateDto {
     activeUserId: 'self',
     stockHoldingsByUser: { self: [] },
     fundHoldingsByUser: { self: [] },
+    fundWatchlistByUser: { self: [] },
   };
 }
 
@@ -55,6 +59,7 @@ beforeEach(() => {
     serverState.users.push({ ...user, isPrimary: false });
     serverState.stockHoldingsByUser[user.id] = [];
     serverState.fundHoldingsByUser[user.id] = [];
+    serverState.fundWatchlistByUser[user.id] = [];
   });
   api.renameUser.mockImplementation(async (id, name) => {
     serverState.users = serverState.users.map((user) => user.id === id ? { ...user, name } : user);
@@ -63,6 +68,7 @@ beforeEach(() => {
     serverState.users = serverState.users.filter((user) => user.id !== id);
     delete serverState.stockHoldingsByUser[id];
     delete serverState.fundHoldingsByUser[id];
+    delete serverState.fundWatchlistByUser[id];
     if (serverState.activeUserId === id) serverState.activeUserId = 'self';
   });
   api.setActiveUser.mockImplementation(async (id) => {
@@ -87,6 +93,15 @@ beforeEach(() => {
   api.removeFund.mockImplementation(async (userId, id) => {
     serverState.fundHoldingsByUser[userId] = (serverState.fundHoldingsByUser[userId] ?? []).filter((item) => item.id !== id);
   });
+  api.createFundWatchlistItem.mockImplementation(async (userId, item) => {
+    serverState.fundWatchlistByUser[userId] = [...(serverState.fundWatchlistByUser[userId] ?? []), item];
+  });
+  api.updateFundWatchlistItem.mockImplementation(async (userId, item) => {
+    serverState.fundWatchlistByUser[userId] = (serverState.fundWatchlistByUser[userId] ?? []).map((current) => current.id === item.id ? item : current);
+  });
+  api.removeFundWatchlistItem.mockImplementation(async (userId, id) => {
+    serverState.fundWatchlistByUser[userId] = (serverState.fundWatchlistByUser[userId] ?? []).filter((item) => item.id !== id);
+  });
 });
 
 const PortfolioStateProbe = () => {
@@ -95,6 +110,7 @@ const PortfolioStateProbe = () => {
     activeUserId,
     activeFundHoldings,
     activeStockHoldings,
+    activeFundWatchlist,
     persistenceStatus,
     addUser,
     removeUser,
@@ -103,6 +119,8 @@ const PortfolioStateProbe = () => {
     addStockHolding,
     removeFundHolding,
     removeStockHolding,
+    addFundWatchlistItem,
+    removeFundWatchlistItem,
   } = usePortfolioUsers();
 
   return (
@@ -110,9 +128,11 @@ const PortfolioStateProbe = () => {
       <span data-testid="active-user">{activeUser.name}</span>
       <span data-testid="fund-codes">{activeFundHoldings.map((item) => item.code).join(',')}</span>
       <span data-testid="stock-codes">{activeStockHoldings.map((item) => item.code).join(',')}</span>
+      <span data-testid="fund-watchlist-codes">{activeFundWatchlist.map((item) => item.code).join(',')}</span>
       <span data-testid="persistence-status">{persistenceStatus}</span>
       <button type="button" onClick={() => addFundHolding({ code: `F-${activeUser.name}`, name: '基金', amount: 1000, profit: 10 })}>add-fund</button>
       <button type="button" onClick={() => addStockHolding({ code: `S-${activeUser.name}`, name: '股票', quantity: 2, averageCost: 20, securitiesAccount: '测试账户' })}>add-stock</button>
+      <button type="button" onClick={() => void addFundWatchlistItem({ code: activeUser.id === 'self' ? '000001' : '110022', name: `自选-${activeUser.name}` })}>add-fund-watchlist</button>
       <button type="button" onClick={() => addUser('家人A')}>add-family</button>
       <button type="button" onClick={() => setActiveUserId('self')}>switch-self</button>
       <button type="button" onClick={() => setActiveUserId('user-a')}>switch-a</button>
@@ -121,6 +141,7 @@ const PortfolioStateProbe = () => {
       <button type="button" onClick={() => removeUser(activeUserId)}>remove-active</button>
       <button type="button" onClick={() => activeFundHoldings[0] && removeFundHolding(activeFundHoldings[0].id)}>remove-fund</button>
       <button type="button" onClick={() => activeStockHoldings[0] && removeStockHolding(activeStockHoldings[0].id)}>remove-stock</button>
+      <button type="button" onClick={() => activeFundWatchlist[0] && void removeFundWatchlistItem(activeFundWatchlist[0].id)}>remove-fund-watchlist</button>
     </div>
   );
 };
@@ -144,30 +165,44 @@ describe('PortfolioUserContext persistence consistency', () => {
     await waitUntilReady();
     expect(screen.getByTestId('fund-codes')).toHaveTextContent('F-本人');
     expect(screen.getByTestId('stock-codes')).toHaveTextContent('S-本人');
+    fireEvent.click(screen.getByRole('button', { name: 'add-fund-watchlist' }));
+    await waitUntilReady();
+    expect(screen.getByTestId('fund-watchlist-codes')).toHaveTextContent('000001');
 
     fireEvent.click(screen.getByRole('button', { name: 'add-family' }));
     await waitFor(() => expect(screen.getByTestId('active-user')).toHaveTextContent('家人A'));
     await waitUntilReady();
     expect(screen.getByTestId('fund-codes')).toBeEmptyDOMElement();
     expect(screen.getByTestId('stock-codes')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('fund-watchlist-codes')).toBeEmptyDOMElement();
 
     fireEvent.click(screen.getByRole('button', { name: 'add-fund' }));
     await waitUntilReady();
     expect(screen.getByTestId('fund-codes')).toHaveTextContent('F-家人A');
     expect(screen.getByTestId('stock-codes')).toBeEmptyDOMElement();
+    fireEvent.click(screen.getByRole('button', { name: 'add-fund-watchlist' }));
+    await waitUntilReady();
+    expect(screen.getByTestId('fund-watchlist-codes')).toHaveTextContent('110022');
 
     fireEvent.click(screen.getByRole('button', { name: 'switch-self' }));
     await waitUntilReady();
     expect(screen.getByTestId('fund-codes')).toHaveTextContent('F-本人');
     expect(screen.getByTestId('stock-codes')).toHaveTextContent('S-本人');
+    expect(screen.getByTestId('fund-watchlist-codes')).toHaveTextContent('000001');
+
+    fireEvent.click(screen.getByRole('button', { name: 'remove-fund-watchlist' }));
+    await waitUntilReady();
+    expect(screen.getByTestId('fund-watchlist-codes')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('fund-codes')).toHaveTextContent('F-本人');
 
     fireEvent.click(screen.getByRole('button', { name: 'remove-stock' }));
     await waitUntilReady();
     expect(screen.getByTestId('stock-codes')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('fund-watchlist-codes')).toBeEmptyDOMElement();
     expect(screen.getByTestId('fund-codes')).toHaveTextContent('F-本人');
   });
 
-  it('rejects invalid switches and clears both domains when a secondary user is removed', async () => {
+  it('rejects invalid switches and clears holdings and watchlists when a secondary user is removed', async () => {
     renderProbe();
     await waitUntilReady();
 
@@ -177,6 +212,8 @@ describe('PortfolioUserContext persistence consistency', () => {
     await waitUntilReady();
     fireEvent.click(screen.getByRole('button', { name: 'add-stock' }));
     await waitUntilReady();
+    fireEvent.click(screen.getByRole('button', { name: 'add-fund-watchlist' }));
+    await waitUntilReady();
     fireEvent.click(screen.getByRole('button', { name: 'switch-invalid' }));
     expect(screen.getByTestId('active-user')).toHaveTextContent('家人A');
 
@@ -185,6 +222,7 @@ describe('PortfolioUserContext persistence consistency', () => {
     expect(screen.getByTestId('active-user')).toHaveTextContent('本人');
     expect(screen.getByTestId('fund-codes')).toBeEmptyDOMElement();
     expect(screen.getByTestId('stock-codes')).toBeEmptyDOMElement();
+    expect(screen.getByTestId('fund-watchlist-codes')).toBeEmptyDOMElement();
 
     fireEvent.click(screen.getByRole('button', { name: 'remove-active' }));
     expect(screen.getByTestId('active-user')).toHaveTextContent('本人');
@@ -204,6 +242,20 @@ describe('PortfolioUserContext persistence consistency', () => {
     expect(screen.getByTestId('persistence-status')).toHaveTextContent('error');
   });
 
+  it('rolls back a fund watchlist item when local persistence fails', async () => {
+    const failedCreate = deferred<void>();
+    api.createFundWatchlistItem.mockImplementationOnce(() => failedCreate.promise);
+    renderProbe();
+    await waitUntilReady();
+
+    fireEvent.click(screen.getByRole('button', { name: 'add-fund-watchlist' }));
+    expect(screen.getByTestId('fund-watchlist-codes')).toHaveTextContent('000001');
+
+    await act(async () => failedCreate.reject(new Error('database unavailable')));
+    await waitFor(() => expect(screen.getByTestId('fund-watchlist-codes')).toBeEmptyDOMElement());
+    expect(screen.getByTestId('persistence-status')).toHaveTextContent('error');
+  });
+
   it('serializes active-user writes so an older request cannot finish after the newer choice', async () => {
     serverState = {
       users: [
@@ -214,6 +266,7 @@ describe('PortfolioUserContext persistence consistency', () => {
       activeUserId: 'self',
       stockHoldingsByUser: { self: [], 'user-a': [], 'user-b': [] },
       fundHoldingsByUser: { self: [], 'user-a': [], 'user-b': [] },
+      fundWatchlistByUser: { self: [], 'user-a': [], 'user-b': [] },
     };
     const firstResponse = deferred<WorkspacePortfolioStateDto>();
     const secondResponse = deferred<WorkspacePortfolioStateDto>();

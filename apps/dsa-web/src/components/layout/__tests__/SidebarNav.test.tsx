@@ -212,6 +212,7 @@ describe('SidebarNav', () => {
     );
 
     expect(screen.getByRole('link', { name: '问基金' })).toHaveAttribute('href', '/funds/ask');
+    expect(screen.getByRole('link', { name: '基金自选' })).toHaveAttribute('href', '/funds/watchlist');
     expect(screen.getByRole('link', { name: '基金持仓' })).toHaveAttribute('href', '/funds/portfolio');
     expect(screen.getByRole('link', { name: '行业周期' })).toHaveAttribute('href', '/funds/industry-cycle');
     expect(screen.queryByRole('link', { name: '问股票' })).not.toBeInTheDocument();

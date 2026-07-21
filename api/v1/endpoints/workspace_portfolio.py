@@ -5,13 +5,16 @@ from datetime import datetime, timezone
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api.deps import get_db
 from api.v1.schemas.workspace_portfolio import (
     WorkspaceFundHoldingCreate,
     WorkspaceFundHoldingItem,
+    WorkspaceFundWatchlistCreate,
+    WorkspaceFundWatchlistItem,
     WorkspacePortfolioBackupImportRequest,
     WorkspacePortfolioBackupImportResponse,
     WorkspacePortfolioBackupPayload,
@@ -27,13 +30,14 @@ from api.v1.schemas.workspace_portfolio import (
     WorkspaceUserItem,
     WorkspaceUserRename,
 )
-from src.storage import WorkspaceFundHolding, WorkspaceHoldingHistoryEntry, WorkspaceHoldingRecycleEntry, WorkspacePortfolioBackup, WorkspacePortfolioPreference, WorkspaceStockHolding, WorkspaceUser
+from src.storage import WorkspaceFundHolding, WorkspaceFundWatchlistItem as WorkspaceFundWatchlistRow, WorkspaceHoldingHistoryEntry, WorkspaceHoldingRecycleEntry, WorkspacePortfolioBackup, WorkspacePortfolioPreference, WorkspaceStockHolding, WorkspaceUser
 
 router = APIRouter()
 PRIMARY_USER_ID = 'self'
 BACKUP_FORMAT = 'dsa-workspace-portfolio-backup'
 BACKUP_VERSION = 1
 MAX_HOLDINGS_PER_DOMAIN = 1000
+MAX_FUND_WATCHLIST_ITEMS = 1000
 ACTIVE_USER_PREFERENCE_KEY = 'active_user_id'
 
 
@@ -48,6 +52,14 @@ def _normalize_name(name: str) -> str:
     if not normalized:
         raise HTTPException(status_code=422, detail='workspace_portfolio.name_required')
     return normalized
+
+
+def _normalize_fund_watchlist_values(payload: WorkspaceFundWatchlistCreate) -> dict[str, str | None]:
+    name = ' '.join(payload.name.split())[:100]
+    if not name:
+        raise HTTPException(status_code=422, detail='workspace_portfolio.fund_watchlist_name_required')
+    notes = payload.notes.strip() if payload.notes else None
+    return {'code': payload.code, 'name': name, 'notes': notes or None}
 
 
 def _ensure_primary(db: Session) -> WorkspaceUser:
@@ -94,8 +106,12 @@ def _state_from_db(db: Session) -> WorkspacePortfolioState:
     users = db.scalars(select(WorkspaceUser).order_by(WorkspaceUser.is_primary.desc(), WorkspaceUser.created_at)).all()
     stocks = db.scalars(select(WorkspaceStockHolding).order_by(WorkspaceStockHolding.created_at)).all()
     funds = db.scalars(select(WorkspaceFundHolding).order_by(WorkspaceFundHolding.created_at)).all()
+    fund_watchlist = db.scalars(
+        select(WorkspaceFundWatchlistRow).order_by(WorkspaceFundWatchlistRow.created_at)
+    ).all()
     stock_map = {user.id: [] for user in users}
     fund_map = {user.id: [] for user in users}
+    fund_watchlist_map = {user.id: [] for user in users}
     for row in stocks:
         stock_map.setdefault(row.user_id, []).append(WorkspaceStockHoldingItem(
             id=row.id, code=row.code, name=row.name, quantity=row.quantity,
@@ -106,7 +122,17 @@ def _state_from_db(db: Session) -> WorkspacePortfolioState:
             id=row.id, code=row.code, name=row.name, amount=row.amount, profit=row.profit,
             target_allocation=row.target_allocation, notes=row.notes,
         ))
-    return WorkspacePortfolioState(users=[_user_item(row) for row in users], active_user_id=_active_user_id(db, users), stock_holdings_by_user=stock_map, fund_holdings_by_user=fund_map)
+    for row in fund_watchlist:
+        fund_watchlist_map.setdefault(row.user_id, []).append(WorkspaceFundWatchlistItem(
+            id=row.id, code=row.code, name=row.name, notes=row.notes,
+        ))
+    return WorkspacePortfolioState(
+        users=[_user_item(row) for row in users],
+        active_user_id=_active_user_id(db, users),
+        stock_holdings_by_user=stock_map,
+        fund_holdings_by_user=fund_map,
+        fund_watchlist_by_user=fund_watchlist_map,
+    )
 
 
 def _backup_payload_from_state(state: WorkspacePortfolioState) -> WorkspacePortfolioBackupPayload:
@@ -117,6 +143,7 @@ def _backup_payload_from_state(state: WorkspacePortfolioState) -> WorkspacePortf
         users=state.users,
         stock_holdings_by_user=state.stock_holdings_by_user,
         fund_holdings_by_user=state.fund_holdings_by_user,
+        fund_watchlist_by_user=state.fund_watchlist_by_user,
     )
 
 
@@ -129,8 +156,10 @@ def _validate_backup(backup: WorkspacePortfolioBackupPayload) -> WorkspacePortfo
         raise HTTPException(status_code=422, detail='workspace_portfolio.backup_primary_required')
     stock_ids: set[str] = set()
     fund_ids: set[str] = set()
+    fund_watchlist_ids: set[str] = set()
     stock_count = 0
     fund_count = 0
+    fund_watchlist_count = 0
     for user_id, holdings in backup.stock_holdings_by_user.items():
         if user_id not in user_ids or len(holdings) > MAX_HOLDINGS_PER_DOMAIN:
             raise HTTPException(status_code=422, detail='workspace_portfolio.backup_invalid_stock_map')
@@ -145,9 +174,27 @@ def _validate_backup(backup: WorkspacePortfolioBackupPayload) -> WorkspacePortfo
             if holding.id in fund_ids:
                 raise HTTPException(status_code=422, detail='workspace_portfolio.backup_duplicate_fund_id')
             fund_ids.add(holding.id); fund_count += 1
-    if stock_count > MAX_HOLDINGS_PER_DOMAIN or fund_count > MAX_HOLDINGS_PER_DOMAIN:
+    for user_id, items in backup.fund_watchlist_by_user.items():
+        if user_id not in user_ids or len(items) > MAX_FUND_WATCHLIST_ITEMS:
+            raise HTTPException(status_code=422, detail='workspace_portfolio.backup_invalid_fund_watchlist_map')
+        codes: set[str] = set()
+        for item in items:
+            if item.id in fund_watchlist_ids:
+                raise HTTPException(status_code=422, detail='workspace_portfolio.backup_duplicate_fund_watchlist_id')
+            if item.code in codes:
+                raise HTTPException(status_code=422, detail='workspace_portfolio.backup_duplicate_fund_watchlist_code')
+            fund_watchlist_ids.add(item.id)
+            codes.add(item.code)
+            fund_watchlist_count += 1
+    if stock_count > MAX_HOLDINGS_PER_DOMAIN or fund_count > MAX_HOLDINGS_PER_DOMAIN or fund_watchlist_count > MAX_FUND_WATCHLIST_ITEMS:
         raise HTTPException(status_code=422, detail='workspace_portfolio.backup_too_large')
-    return WorkspacePortfolioBackupPreview(users=len(backup.users), stock_holdings=stock_count, fund_holdings=fund_count, exported_at=backup.exported_at)
+    return WorkspacePortfolioBackupPreview(
+        users=len(backup.users),
+        stock_holdings=stock_count,
+        fund_holdings=fund_count,
+        fund_watchlist_items=fund_watchlist_count,
+        exported_at=backup.exported_at,
+    )
 
 
 def _save_restore_point(db: Session, state: WorkspacePortfolioState, reason: str) -> str:
@@ -164,6 +211,7 @@ def _save_restore_point(db: Session, state: WorkspacePortfolioState, reason: str
 def _replace_state(db: Session, backup: WorkspacePortfolioBackupPayload) -> WorkspacePortfolioState:
     db.execute(delete(WorkspaceStockHolding))
     db.execute(delete(WorkspaceFundHolding))
+    db.execute(delete(WorkspaceFundWatchlistRow))
     db.execute(delete(WorkspaceUser))
     for user in backup.users:
         db.add(WorkspaceUser(id=user.id, name=_normalize_name(user.name), is_primary=user.is_primary))
@@ -173,6 +221,9 @@ def _replace_state(db: Session, backup: WorkspacePortfolioBackupPayload) -> Work
     for user_id, holdings in backup.fund_holdings_by_user.items():
         for holding in holdings:
             db.add(WorkspaceFundHolding(user_id=user_id, **holding.model_dump()))
+    for user_id, items in backup.fund_watchlist_by_user.items():
+        for item in items:
+            db.add(WorkspaceFundWatchlistRow(user_id=user_id, **item.model_dump()))
     db.flush()
     _save_active_user_id(db, PRIMARY_USER_ID)
     return _state_from_db(db)
@@ -297,6 +348,67 @@ def remove_user(user_id: str, request: Request, db: Session = Depends(get_db)) -
         preference.value = PRIMARY_USER_ID
     db.execute(delete(WorkspaceStockHolding).where(WorkspaceStockHolding.user_id == user_id))
     db.execute(delete(WorkspaceFundHolding).where(WorkspaceFundHolding.user_id == user_id))
+    db.execute(delete(WorkspaceFundWatchlistRow).where(WorkspaceFundWatchlistRow.user_id == user_id))
+    db.delete(row); db.commit()
+
+
+@router.post('/users/{user_id}/fund-watchlist', response_model=WorkspaceFundWatchlistItem, status_code=status.HTTP_201_CREATED)
+def create_fund_watchlist_item(user_id: str, payload: WorkspaceFundWatchlistCreate, request: Request, db: Session = Depends(get_db)) -> WorkspaceFundWatchlistItem:
+    _require_local(request); _require_user(db, user_id)
+    item_count = db.scalar(select(func.count()).select_from(WorkspaceFundWatchlistRow).where(WorkspaceFundWatchlistRow.user_id == user_id)) or 0
+    if item_count >= MAX_FUND_WATCHLIST_ITEMS:
+        raise HTTPException(status_code=409, detail='workspace_portfolio.fund_watchlist_limit_reached')
+    values = _normalize_fund_watchlist_values(payload)
+    existing = db.scalar(select(WorkspaceFundWatchlistRow).where(
+        WorkspaceFundWatchlistRow.user_id == user_id,
+        WorkspaceFundWatchlistRow.code == values['code'],
+    ))
+    if existing is not None:
+        raise HTTPException(status_code=409, detail='workspace_portfolio.fund_watchlist_duplicate')
+    row = WorkspaceFundWatchlistRow(
+        id=payload.id or f'fund-watch-{uuid4().hex}',
+        user_id=user_id,
+        **values,
+    )
+    db.add(row)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail='workspace_portfolio.fund_watchlist_conflict') from exc
+    return WorkspaceFundWatchlistItem(id=row.id, **values)
+
+
+@router.patch('/users/{user_id}/fund-watchlist/{item_id}', response_model=WorkspaceFundWatchlistItem)
+def update_fund_watchlist_item(user_id: str, item_id: str, payload: WorkspaceFundWatchlistCreate, request: Request, db: Session = Depends(get_db)) -> WorkspaceFundWatchlistItem:
+    _require_local(request); _require_user(db, user_id)
+    row = db.get(WorkspaceFundWatchlistRow, item_id)
+    if row is None or row.user_id != user_id:
+        raise HTTPException(status_code=404, detail='workspace_portfolio.fund_watchlist_item_not_found')
+    values = _normalize_fund_watchlist_values(payload)
+    duplicate = db.scalar(select(WorkspaceFundWatchlistRow).where(
+        WorkspaceFundWatchlistRow.user_id == user_id,
+        WorkspaceFundWatchlistRow.code == values['code'],
+        WorkspaceFundWatchlistRow.id != item_id,
+    ))
+    if duplicate is not None:
+        raise HTTPException(status_code=409, detail='workspace_portfolio.fund_watchlist_duplicate')
+    for key, value in values.items():
+        setattr(row, key, value)
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=409, detail='workspace_portfolio.fund_watchlist_conflict') from exc
+    return WorkspaceFundWatchlistItem(id=row.id, **values)
+
+
+@router.delete('/users/{user_id}/fund-watchlist/{item_id}', status_code=status.HTTP_204_NO_CONTENT)
+def remove_fund_watchlist_item(user_id: str, item_id: str, request: Request, db: Session = Depends(get_db)) -> None:
+    _require_local(request); _require_user(db, user_id)
+    row = db.get(WorkspaceFundWatchlistRow, item_id)
+    if row is None or row.user_id != user_id:
+        raise HTTPException(status_code=404, detail='workspace_portfolio.fund_watchlist_item_not_found')
     db.delete(row); db.commit()
 
 

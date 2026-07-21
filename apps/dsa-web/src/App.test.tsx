@@ -215,4 +215,13 @@ describe('App routing behavior', () => {
     expect(await screen.findByTestId('fund-center-ask')).toBeInTheDocument();
     expect(screen.queryByTestId('chat-page')).not.toBeInTheDocument();
   });
+
+  it('routes the fund watchlist inside the fund workspace', async () => {
+    window.history.pushState({}, '', '/funds/watchlist');
+
+    render(<App />);
+
+    expect(await screen.findByTestId('fund-center-watchlist')).toBeInTheDocument();
+    expect(setCurrentRoute).toHaveBeenCalledWith('/funds/watchlist');
+  });
 });

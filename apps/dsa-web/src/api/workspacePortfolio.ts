@@ -4,11 +4,13 @@ import { toCamelCase } from './utils';
 export type WorkspaceUserDto = { id: string; name: string; isPrimary: boolean };
 export type WorkspaceStockHoldingDto = { id: string; code: string; name: string; quantity: number; averageCost: number; securitiesAccount: string; notes?: string };
 export type WorkspaceFundHoldingDto = { id: string; code: string; name: string; amount: number; profit: number; targetAllocation?: number; notes?: string };
+export type WorkspaceFundWatchlistDto = { id: string; code: string; name: string; notes?: string };
 export type WorkspacePortfolioStateDto = {
   users: WorkspaceUserDto[];
   activeUserId: string;
   stockHoldingsByUser: Record<string, WorkspaceStockHoldingDto[]>;
   fundHoldingsByUser: Record<string, WorkspaceFundHoldingDto[]>;
+  fundWatchlistByUser: Record<string, WorkspaceFundWatchlistDto[]>;
 };
 export type WorkspacePortfolioBackupDto = WorkspacePortfolioStateDto & {
   format: 'dsa-workspace-portfolio-backup';
@@ -19,6 +21,7 @@ export type WorkspacePortfolioBackupPreviewDto = {
   users: number;
   stockHoldings: number;
   fundHoldings: number;
+  fundWatchlistItems: number;
   exportedAt: string;
   willReplaceCurrentWorkspace: boolean;
 };
@@ -41,6 +44,9 @@ const snakeStock = (item: WorkspaceStockHoldingDto) => ({
 const snakeFund = (item: WorkspaceFundHoldingDto) => ({
   id: item.id, code: item.code, name: item.name, amount: item.amount, profit: item.profit,
   target_allocation: item.targetAllocation, notes: item.notes,
+});
+const snakeFundWatchlist = (item: WorkspaceFundWatchlistDto) => ({
+  id: item.id, code: item.code, name: item.name, notes: item.notes,
 });
 
 export const workspacePortfolioApi = {
@@ -78,6 +84,15 @@ export const workspacePortfolioApi = {
   },
   async updateFund(userId: string, holding: WorkspaceFundHoldingDto): Promise<void> {
     await apiClient.patch(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/funds/${encodeURIComponent(holding.id)}`, snakeFund(holding));
+  },
+  async createFundWatchlistItem(userId: string, item: WorkspaceFundWatchlistDto): Promise<void> {
+    await apiClient.post(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/fund-watchlist`, snakeFundWatchlist(item));
+  },
+  async updateFundWatchlistItem(userId: string, item: WorkspaceFundWatchlistDto): Promise<void> {
+    await apiClient.patch(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/fund-watchlist/${encodeURIComponent(item.id)}`, snakeFundWatchlist(item));
+  },
+  async removeFundWatchlistItem(userId: string, id: string): Promise<void> {
+    await apiClient.delete(`/api/v1/workspace-portfolio/users/${encodeURIComponent(userId)}/fund-watchlist/${encodeURIComponent(id)}`);
   },
   async exportBackup(): Promise<WorkspacePortfolioBackupDto> {
     const response = await apiClient.get<Record<string, unknown>>('/api/v1/workspace-portfolio/backup/export');

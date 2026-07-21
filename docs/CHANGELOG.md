@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 > For user-friendly release highlights, see the [GitHub Releases](https://github.com/ZhuLinsen/daily_stock_analysis/releases) page.
 
 ## [Unreleased]
+- [新功能] 持久化阶段 E3 增加按用户隔离的基金自选：支持手动新增、编辑和确认移出，六位基金代码在同一用户内去重，重启及工作台备份/恢复后仍保留；自选与基金持仓独立，不自动查询公开数据、不读取账户、不交易。
 - [修复] Build E2 将用户、股票持仓和基金持仓持久化收敛到现有 SQLAlchemy workspace 链路，移除未被生产代码调用的第二套 `stock_fund_quality.db`、重复持仓表和 schema 版本实现；补充重启、隔离、回收站、历史记录、前端失败回读与乱序响应测试，不读取真实持仓或密钥。
 - [安全改进] Portable-M3.4 为 GitHub 资产下载加入 30 秒请求超时；任一文件失败时只清理应用创建的本次临时下载目录。
 - [安全改进] Portable-M3.3 为 ZIP 与校验文件下载加入 1.5 GiB 响应长度和实际流量上限，超限立即拒绝并清理临时目标文件。

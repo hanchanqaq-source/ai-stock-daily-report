@@ -29,8 +29,16 @@ export type QuickStockHolding = {
   notes?: string;
 };
 
+export type FundWatchlistItem = {
+  id: string;
+  code: string;
+  name: string;
+  notes?: string;
+};
+
 type FundHoldingInput = Omit<QuickFundHolding, 'id'>;
 type StockHoldingInput = Omit<QuickStockHolding, 'id'>;
+type FundWatchlistInput = Omit<FundWatchlistItem, 'id'>;
 
 type PortfolioUserContextValue = {
   users: PortfolioUserProfile[];
@@ -38,6 +46,7 @@ type PortfolioUserContextValue = {
   activeUserId: string;
   activeFundHoldings: readonly QuickFundHolding[];
   activeStockHoldings: readonly QuickStockHolding[];
+  activeFundWatchlist: readonly FundWatchlistItem[];
   persistenceStatus: 'loading' | 'ready' | 'error';
   addUser: (name: string) => PortfolioUserProfile | null;
   renameUser: (id: string, name: string) => boolean;
@@ -49,6 +58,9 @@ type PortfolioUserContextValue = {
   removeStockHolding: (holdingId: string) => void;
   updateFundHolding: (holding: QuickFundHolding) => Promise<boolean>;
   updateStockHolding: (holding: QuickStockHolding) => Promise<boolean>;
+  addFundWatchlistItem: (input: FundWatchlistInput) => Promise<boolean>;
+  updateFundWatchlistItem: (item: FundWatchlistItem) => Promise<boolean>;
+  removeFundWatchlistItem: (itemId: string) => Promise<boolean>;
   replaceWorkspaceState: (state: WorkspacePortfolioStateDto) => void;
 };
 
@@ -60,6 +72,7 @@ const PRIMARY_USER: PortfolioUserProfile = {
 
 const EMPTY_FUND_HOLDINGS: readonly QuickFundHolding[] = [];
 const EMPTY_STOCK_HOLDINGS: readonly QuickStockHolding[] = [];
+const EMPTY_FUND_WATCHLIST: readonly FundWatchlistItem[] = [];
 
 const fallbackContext: PortfolioUserContextValue = {
   users: [PRIMARY_USER],
@@ -67,6 +80,7 @@ const fallbackContext: PortfolioUserContextValue = {
   activeUserId: PRIMARY_USER.id,
   activeFundHoldings: EMPTY_FUND_HOLDINGS,
   activeStockHoldings: EMPTY_STOCK_HOLDINGS,
+  activeFundWatchlist: EMPTY_FUND_WATCHLIST,
   persistenceStatus: 'ready',
   addUser: () => null,
   renameUser: () => false,
@@ -78,6 +92,9 @@ const fallbackContext: PortfolioUserContextValue = {
   removeStockHolding: () => undefined,
   updateFundHolding: async () => false,
   updateStockHolding: async () => false,
+  addFundWatchlistItem: async () => false,
+  updateFundWatchlistItem: async () => false,
+  removeFundWatchlistItem: async () => false,
   replaceWorkspaceState: () => undefined,
 };
 
@@ -100,6 +117,9 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
   const [stockHoldingsByUser, setStockHoldingsByUser] = useState<Record<string, readonly QuickStockHolding[]>>({
     [PRIMARY_USER.id]: EMPTY_STOCK_HOLDINGS,
   });
+  const [fundWatchlistByUser, setFundWatchlistByUser] = useState<Record<string, readonly FundWatchlistItem[]>>({
+    [PRIMARY_USER.id]: EMPTY_FUND_WATCHLIST,
+  });
   const [persistenceStatus, setPersistenceStatus] = useState<'loading' | 'ready' | 'error'>('loading');
   const requestSeq = useRef(0);
   const mutationQueue = useRef<Promise<void>>(Promise.resolve());
@@ -109,6 +129,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     setUsers(nextUsers);
     setFundHoldingsByUser(state.fundHoldingsByUser);
     setStockHoldingsByUser(state.stockHoldingsByUser);
+    setFundWatchlistByUser(state.fundWatchlistByUser ?? {});
     setActiveUserIdState(nextUsers.some((user) => user.id === state.activeUserId) ? state.activeUserId : PRIMARY_USER.id);
   }, []);
 
@@ -167,6 +188,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
   const activeUser = users.find((user) => user.id === activeUserId) ?? users[0] ?? PRIMARY_USER;
   const activeFundHoldings = fundHoldingsByUser[activeUser.id] ?? EMPTY_FUND_HOLDINGS;
   const activeStockHoldings = stockHoldingsByUser[activeUser.id] ?? EMPTY_STOCK_HOLDINGS;
+  const activeFundWatchlist = fundWatchlistByUser[activeUser.id] ?? EMPTY_FUND_WATCHLIST;
 
   const setActiveUserId = useCallback((id: string) => {
     if (!users.some((user) => user.id === id)) return;
@@ -186,6 +208,7 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     setUsers((current) => [...current, nextUser]);
     setFundHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_FUND_HOLDINGS }));
     setStockHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_STOCK_HOLDINGS }));
+    setFundWatchlistByUser((current) => ({ ...current, [nextUser.id]: EMPTY_FUND_WATCHLIST }));
     setActiveUserIdState(nextUser.id);
     void runMutation(async () => {
       await workspacePortfolioApi.createUser(nextUser);
@@ -216,6 +239,11 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
       return next;
     });
     setStockHoldingsByUser((current) => {
+      const next = { ...current };
+      delete next[id];
+      return next;
+    });
+    setFundWatchlistByUser((current) => {
       const next = { ...current };
       delete next[id];
       return next;
@@ -271,12 +299,49 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     return runMutation(() => workspacePortfolioApi.updateStock(activeUser.id, holding));
   }, [activeUser.id, runMutation, stockHoldingsByUser]);
 
+  const addFundWatchlistItem = useCallback(async (input: FundWatchlistInput): Promise<boolean> => {
+    const userId = activeUser.id;
+    const currentItems = fundWatchlistByUser[userId] ?? EMPTY_FUND_WATCHLIST;
+    if (currentItems.some((item) => item.code === input.code)) return false;
+    const item = { ...input, id: createHoldingId('fund-watch') };
+    setFundWatchlistByUser((current) => ({
+      ...current,
+      [userId]: [...(current[userId] ?? EMPTY_FUND_WATCHLIST), item],
+    }));
+    return runMutation(() => workspacePortfolioApi.createFundWatchlistItem(userId, item));
+  }, [activeUser.id, fundWatchlistByUser, runMutation]);
+
+  const updateFundWatchlistItem = useCallback(async (item: FundWatchlistItem): Promise<boolean> => {
+    const userId = activeUser.id;
+    const currentItems = fundWatchlistByUser[userId] ?? EMPTY_FUND_WATCHLIST;
+    if (!currentItems.some((current) => current.id === item.id)) return false;
+    if (currentItems.some((current) => current.id !== item.id && current.code === item.code)) return false;
+    setFundWatchlistByUser((current) => ({
+      ...current,
+      [userId]: (current[userId] ?? EMPTY_FUND_WATCHLIST).map((currentItem) => (
+        currentItem.id === item.id ? item : currentItem
+      )),
+    }));
+    return runMutation(() => workspacePortfolioApi.updateFundWatchlistItem(userId, item));
+  }, [activeUser.id, fundWatchlistByUser, runMutation]);
+
+  const removeFundWatchlistItem = useCallback(async (itemId: string): Promise<boolean> => {
+    const userId = activeUser.id;
+    if (!(fundWatchlistByUser[userId] ?? EMPTY_FUND_WATCHLIST).some((item) => item.id === itemId)) return false;
+    setFundWatchlistByUser((current) => ({
+      ...current,
+      [userId]: (current[userId] ?? EMPTY_FUND_WATCHLIST).filter((item) => item.id !== itemId),
+    }));
+    return runMutation(() => workspacePortfolioApi.removeFundWatchlistItem(userId, itemId));
+  }, [activeUser.id, fundWatchlistByUser, runMutation]);
+
   const value = useMemo<PortfolioUserContextValue>(() => ({
     users,
     activeUser,
     activeUserId: activeUser.id,
     activeFundHoldings,
     activeStockHoldings,
+    activeFundWatchlist,
     persistenceStatus,
     addUser,
     renameUser,
@@ -288,10 +353,14 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     removeStockHolding,
     updateFundHolding,
     updateStockHolding,
+    addFundWatchlistItem,
+    updateFundWatchlistItem,
+    removeFundWatchlistItem,
     replaceWorkspaceState,
   }), [
     activeFundHoldings,
     activeStockHoldings,
+    activeFundWatchlist,
     persistenceStatus,
     activeUser,
     addFundHolding,
@@ -301,6 +370,9 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     removeStockHolding,
     updateFundHolding,
     updateStockHolding,
+    addFundWatchlistItem,
+    updateFundWatchlistItem,
+    removeFundWatchlistItem,
     replaceWorkspaceState,
     removeUser,
     renameUser,
