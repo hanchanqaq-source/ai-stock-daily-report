@@ -60,10 +60,13 @@ def _highlights(section: str) -> list[str]:
 def _previous_tag(tag: str) -> str:
     tags = _run_git("tag", "--sort=-v:refname").splitlines()
     semver_tags = [t for t in tags if re.fullmatch(r"v\d+\.\d+\.\d+", t)]
-    for current, previous in zip(semver_tags, semver_tags[1:]):
-        if current == tag:
-            return previous
-    return semver_tags[1] if len(semver_tags) > 1 else ""
+    requested = tuple(int(part) for part in tag[1:].split("."))
+    older = [
+        candidate
+        for candidate in semver_tags
+        if tuple(int(part) for part in candidate[1:].split(".")) < requested
+    ]
+    return max(older, key=lambda item: tuple(int(part) for part in item[1:].split(".")), default="")
 
 
 def _commit_subjects(previous_tag: str, tag: str) -> list[str]:

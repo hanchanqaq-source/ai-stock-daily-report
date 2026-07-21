@@ -1,5 +1,11 @@
 # Errors and Lessons
 
+## 自动发布：不能依赖 Actions 自带令牌推送 tag 后再次触发其他工作流
+
+- 风险：由 GitHub Actions 使用仓库 `GITHUB_TOKEN` 创建的 tag，不能按人工推送 tag 的方式假设它会连锁触发所有发布工作流；如果先建 Release 再等待其他工作流，构建失败时还会留下无资产半成品。
+- 固定规则：授权发布必须显式调用可复用的桌面构建工作流，从默认分支的精确提交先完成全部平台构建与本地资产校验；成功后才创建 annotated tag、上传正式 Release，并对远端附件契约再次复核。
+- 授权边界：普通 `main` 合并不发布；专用 Release 请求只接受仓库所有者，手动入口必须输入与版本号一致的精确确认文本；既有 tag/Release 一律拒绝覆盖。
+
 ## Windows Release：CI 脚本中不要用非 ASCII 进程名作 `Get-Process -Name` 参数
 
 - 现象：Windows GitHub runner 读取打包 PowerShell 脚本时，将中文进程名错误解析为多个参数，导致 Electron 打包尚未开始即失败，后续安装包、Portable ZIP 与 `.sha256` 全部跳过。
