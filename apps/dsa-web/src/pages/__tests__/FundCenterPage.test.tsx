@@ -95,12 +95,16 @@ describe('FundCenterPage', () => {
     expect(screen.getByText('见行业穿透页')).toBeInTheDocument();
   });
 
-  it('keeps fund questions separate from the stock chat implementation', () => {
+  it('prepares fund question subjects without starting public lookup or AI', () => {
     renderPage('ask');
 
     expect(screen.getByRole('heading', { name: '问基金' })).toBeInTheDocument();
-    expect(screen.getByText(/输入六位基金代码并逐次确认后读取公开资料/)).toBeInTheDocument();
-    expect(screen.getByText(/当前页面没有对应的自动分析/)).toBeInTheDocument();
+    expect(screen.getByText('持久化阶段 E4 已接入统一基金来源选择')).toBeInTheDocument();
+    expect(screen.getByText(/这里只准备当前用户的基金代码上下文/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('基金代码'), { target: { value: '000001, 110022' } });
+    expect(screen.getByText(/已准备基金对象/)).toHaveTextContent('000001、110022');
+    expect(apiMocks.fetchAksharePublicFund).not.toHaveBeenCalled();
+    expect(apiMocks.compareAksharePublicFunds).not.toHaveBeenCalled();
   });
 
   it('shows D4 advice for the active user without reading automatically', () => {

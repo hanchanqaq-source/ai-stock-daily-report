@@ -7,6 +7,7 @@
 - 数据库配置：后端只读取 `DATABASE_PATH` / `Config.database_path`；默认值为 `./data/stock_analysis.db`，`Config.get_db_url()` 会创建其父目录。
 - 桌面运行时：Electron 只向后端传入一个 `DATABASE_PATH`。便携更新保留 `data/stock_analysis.db`、`data/stock_analysis.db-wal` 和 `data/stock_analysis.db-shm`。
 - 基金自选：使用同一数据库中的 `workspace_fund_watchlist_items`，按 `user_id` 隔离；它不是基金持仓，同一基金可分别存在于自选和持仓中。
+- 基金分析来源：基金首页、问基金对象准备、基金对比、行业穿透和行业周期统一支持“手动输入 / 我的持仓 / 我的自选”；后两项只读取 `PortfolioUserContext` 中的当前用户状态，选择本身不写数据库、不自动联网。
 - 禁止平行实现：不得再创建 `stock_fund_quality.db`、第二套 `users` / `stock_holdings` / `fund_holdings` 表或独立 schema 版本体系。
 
 ## 迁移与测试
@@ -21,5 +22,7 @@
 
 - 本机 API 写入失败时，前端会重新读取完整服务端状态并显示错误；不要让乐观更新长期停留在界面中。
 - 基金自选同一用户内按六位基金代码去重；重复添加返回冲突，不得静默覆盖名称或备注。
+- 切换工作台用户后，基金分析页必须清空上一用户的临时代码、只读确认和查询结果；不得把另一用户的持仓或自选继续作为当前分析对象。
+- 选择持仓或自选基金后仍需勾选只读确认并点击页面执行按钮；若仅切换来源或勾选基金便发起网络请求，属于回归错误。
 - 若重新读取也失败，保留明确错误状态，让用户核对后重试；不得静默假定保存成功。
 - 更新或迁移前不得覆盖数据库文件。后续迁移必须先建立备份，并验证主文件及 WAL/SHM 的处理方式。

@@ -2,6 +2,7 @@ import { Activity, Factory, LoaderCircle, TrendingUp } from 'lucide-react';
 import { useState } from 'react';
 import { fundDataApi, type FundIndustryCycleReadonlyResponse } from '../../api/fundData';
 import { Card, InlineAlert } from '../common';
+import FundAnalysisSourceSelector, { type FundAnalysisSelection } from './FundAnalysisSourceSelector';
 
 type Props = {
   language: 'zh' | 'en';
@@ -21,21 +22,17 @@ const PRODUCTIVITY_LABELS = {
   en: { improving: 'Improving', stable: 'Stable', weakening: 'Weakening', insufficient: 'Insufficient evidence' },
 } as const;
 
-function parseCodes(value: string): string[] {
-  return value.trim().split(/[\s,，;；]+/).filter(Boolean);
-}
-
 function metric(value: string | null, suffix = '%'): string {
   return value === null ? '缺失' : `${value}${suffix}`;
 }
 
 const FundIndustryCyclePanel = ({ language }: Props) => {
-  const [codesText, setCodesText] = useState('');
+  const [selection, setSelection] = useState<FundAnalysisSelection>({ source: 'manual', codes: [] });
   const [approved, setApproved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [response, setResponse] = useState<FundIndustryCycleReadonlyResponse | null>(null);
-  const codes = parseCodes(codesText);
+  const codes = selection.codes;
   const validCodes = codes.length >= 1
     && codes.length <= 4
     && codes.every((code) => /^\d{6}$/.test(code))
@@ -74,23 +71,21 @@ const FundIndustryCyclePanel = ({ language }: Props) => {
       <Card padding="md">
         <div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-cyan" /><h2 className="font-semibold text-foreground">{language === 'zh' ? '读取基金行业周期证据' : 'Read fund industry-cycle evidence'}</h2></div>
         <p className="mt-2 text-xs leading-5 text-secondary-text">
-          {language === 'zh' ? '输入 1–4 个不重复的六位基金代码。最多分析合计权重最高的 6 个可核验行业，每次读取都需要重新确认。' : 'Enter 1–4 unique six-digit fund codes. Up to six verifiable industries by aggregate weight are analyzed, with approval required each time.'}
+          {language === 'zh' ? '从手动输入、当前用户持仓或当前用户自选中选择 1–4 只基金。最多分析合计权重最高的 6 个可核验行业，每次读取都需要重新确认。' : 'Choose 1–4 funds from manual input, active-user holdings, or the active-user watchlist. Up to six verifiable industries by aggregate weight are analyzed, with approval required each time.'}
         </p>
-        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
-          <label className="flex-1 text-sm text-secondary-text">
-            <span className="mb-1 block">{language === 'zh' ? '基金代码' : 'Fund codes'}</span>
-            <input
-              aria-label={language === 'zh' ? '基金代码' : 'Fund codes'}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground outline-none focus:border-cyan"
-              placeholder="例如 000001, 110022"
-              value={codesText}
-              onChange={(event) => {
-                setCodesText(event.target.value);
-                setResponse(null);
-                setError('');
-              }}
-            />
-          </label>
+        <FundAnalysisSourceSelector
+          language={language}
+          minimum={1}
+          maximum={4}
+          inputLabel={language === 'zh' ? '基金代码' : 'Fund codes'}
+          placeholder="例如 000001, 110022"
+          onSelectionChange={(nextSelection) => {
+            setSelection(nextSelection);
+            setResponse(null);
+            setError('');
+          }}
+        />
+        <div className="mt-4 flex justify-end">
           <button type="button" className="btn-primary flex min-w-40 items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50" disabled={!validCodes || !approved || loading} onClick={run}>
             {loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
             {loading ? (language === 'zh' ? '读取中' : 'Loading') : (language === 'zh' ? '读取周期证据' : 'Read cycle evidence')}
@@ -100,7 +95,7 @@ const FundIndustryCyclePanel = ({ language }: Props) => {
           <input type="checkbox" className="mt-1" checked={approved} onChange={(event) => setApproved(event.target.checked)} />
           <span>{language === 'zh' ? '我确认本次仅读取公开基金、行业行情和业绩报表，在内存中计算；不读取账户、不交易、不通知、不调用 AI、不保存。' : 'I approve this public fund, industry market, and financial report lookup for in-memory calculation only: no accounts, trading, notifications, AI, or persistence.'}</span>
         </label>
-        {!validCodes && codesText.trim() && <p className="mt-2 text-xs text-amber-300">{language === 'zh' ? '需要 1–4 个不重复的六位基金代码。' : 'Enter 1–4 unique six-digit fund codes.'}</p>}
+        {!validCodes && codes.length > 0 && <p className="mt-2 text-xs text-amber-300">{language === 'zh' ? '需要 1–4 个不重复的六位基金代码。' : 'Enter 1–4 unique six-digit fund codes.'}</p>}
         {error && <p className="mt-3 text-sm text-red-400" role="alert">{error}</p>}
       </Card>
 
