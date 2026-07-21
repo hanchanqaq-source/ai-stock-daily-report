@@ -115,3 +115,15 @@ def test_github_login_from_pr_network_error_warns_with_pr_and_exception_type(
     assert "PR #127" in caplog.text
     assert "exception_type=URLError" in caplog.text
     assert "secret-token" not in caplog.text
+
+
+def test_previous_tag_supports_release_candidate_before_tag_creation(monkeypatch) -> None:
+    module = _load_release_notes_module()
+    monkeypatch.setattr(
+        module,
+        "_run_git",
+        lambda *args: "v3.21.0\nv3.20.9\nv3.9.0\nnot-semver",
+    )
+
+    assert module._previous_tag("v3.21.1") == "v3.21.0"
+    assert module._previous_tag("v3.21.0") == "v3.20.9"

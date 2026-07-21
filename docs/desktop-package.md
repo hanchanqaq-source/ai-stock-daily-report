@@ -75,11 +75,44 @@ powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1
   - macOS Intel：`daily-stock-analysis-macos-x64-<tag>.dmg`
   - macOS Apple Silicon：`daily-stock-analysis-macos-arm64-<tag>.dmg`
 
-建议发布流程：
+### 授权后自动发布（推荐）
+
+`.github/workflows/authorized-release.yml` 提供单次、显式授权的完整发布编排。普通代码合并不会触发它，也不会因为 `main` 更新而自动发布。
+
+ChatGPT / Codex 操作流程：
+
+1. 用户明确回复 `授权发布 vX.Y.Z`。
+2. 助手通过已连接的 GitHub 账号创建标题严格为 `[release] vX.Y.Z` 的专用 Issue，并在正文带上内部授权标记。
+3. 只有仓库所有者创建的这种专用 Issue 才会进入发布；协作者或普通 Issue 不会触发。
+4. GitHub 从默认分支 `main` 的精确提交构建 Windows、macOS Intel 和 macOS Apple Silicon 产物。
+5. 全部平台构建成功后，工作流才创建新的 annotated tag（附注标签）和正式 Release；任一平台失败时不创建新标签或半成品 Release。
+6. 发布后再次核对 Windows 安装包、免安装 ZIP、Portable ZIP、`.sha256`、`latest.yml`、blockmap 和两种 macOS DMG。全部齐全且非空后，工作流在请求 Issue 中回报结果并自动关闭它。
+
+GitHub 网页手动备用入口：
+
+| 英文界面 | 中文说明 |
+| --- | --- |
+| `Actions` | 操作 / 自动化 |
+| `Authorized Release` | 授权发布 |
+| `Run workflow` | 运行工作流 |
+| `Release tag` | 发布版本号，例如 `v3.21.1` |
+| `Confirmation` | 确认文本，必须精确输入 `PUBLISH v3.21.1` |
+
+安全边界：
+
+- 只接受 `vMAJOR.MINOR.PATCH` 三段式版本号，且必须大于仓库现有最高版本。
+- 已存在的 Git tag 或 GitHub Release 一律拒绝，不覆盖、不删除、不复用。
+- 只发布默认分支的精确提交，不接受功能分支或任意 SHA。
+- Portable ZIP 与 `.sha256` 会在上传前做真实 SHA-256 匹配；Release 上传后再按固定文件契约核对一次。
+- 此流程只编排桌面 Release，不触碰持仓、数据库、`.env`、密钥、通知、交易或本机文件。
+
+传统发布流程仍兼容：
 
 1. 合并代码到 `main`
 2. 由自动打 tag 工作流生成版本（或手动创建 tag）
 3. `desktop-release` 工作流自动构建并把两个平台安装包附加到对应 GitHub Release
+
+回滚自动发布机制时，revert 引入 `authorized-release.yml`、Release 校验脚本及 `desktop-release.yml` 可复用入口的提交即可；已发布的历史 tag 和 Release 不会被自动删除或改写。
 
 ## 发版前可复现验证（桌面更新链路）
 

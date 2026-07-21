@@ -5,6 +5,10 @@ on:
   pull_request:
     paths:
       - '.github/workflows/desktop-portable-preview.yml'
+      - '.github/workflows/desktop-release.yml'
+      - '.github/workflows/authorized-release.yml'
+      - '.github/scripts/prepare_authorized_release.py'
+      - '.github/scripts/check_release_assets.py'
       - 'apps/dsa-desktop/**'
       - 'apps/dsa-web/**'
       - 'api/**'
