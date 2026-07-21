@@ -46,6 +46,16 @@ def test_complete_release_asset_set_passes(tmp_path: Path) -> None:
     module.verify_assets(tmp_path, "v3.21.1")
 
 
+def test_sha256_file_streams_large_inputs(tmp_path: Path, monkeypatch) -> None:
+    module = _load_module()
+    monkeypatch.setattr(module, "HASH_CHUNK_SIZE", 4)
+    payload = b"streamed portable payload"
+    archive = tmp_path / "portable.zip"
+    archive.write_bytes(payload)
+
+    assert module.sha256_file(archive) == hashlib.sha256(payload).hexdigest()
+
+
 def test_missing_release_asset_is_rejected(tmp_path: Path) -> None:
     module = _load_module()
     _create_assets(module, tmp_path)

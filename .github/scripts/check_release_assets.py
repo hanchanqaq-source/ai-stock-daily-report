@@ -9,6 +9,15 @@ from pathlib import Path
 
 
 TAG_PATTERN = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+HASH_CHUNK_SIZE = 1024 * 1024
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(HASH_CHUNK_SIZE), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def expected_asset_names(tag: str) -> set[str]:
@@ -45,7 +54,7 @@ def verify_assets(asset_dir: Path, tag: str) -> None:
     checksum_match = re.fullmatch(r"([0-9a-fA-F]{64})\s{2}(.+)", checksum_line)
     if not checksum_match or checksum_match.group(2) != portable_name:
         raise ValueError("Portable checksum file must contain the exact ZIP filename")
-    actual_hash = hashlib.sha256((asset_dir / portable_name).read_bytes()).hexdigest()
+    actual_hash = sha256_file(asset_dir / portable_name)
     if actual_hash.lower() != checksum_match.group(1).lower():
         raise ValueError("Portable ZIP SHA-256 does not match its checksum file")
 
