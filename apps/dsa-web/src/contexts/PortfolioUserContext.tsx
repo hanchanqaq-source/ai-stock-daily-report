@@ -101,36 +101,68 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
     [PRIMARY_USER.id]: EMPTY_STOCK_HOLDINGS,
   });
   const [persistenceStatus, setPersistenceStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const localMutationStarted = useRef(false);
+  const requestSeq = useRef(0);
+  const mutationQueue = useRef<Promise<void>>(Promise.resolve());
 
-  const persist = useCallback((operation: Promise<void>) => {
-    operation.then(() => setPersistenceStatus('ready')).catch(() => setPersistenceStatus('error'));
-  }, []);
-
-  const replaceWorkspaceState = useCallback((state: WorkspacePortfolioStateDto) => {
-    localMutationStarted.current = true;
+  const applyWorkspaceState = useCallback((state: WorkspacePortfolioStateDto) => {
     const nextUsers = state.users.length ? state.users : [PRIMARY_USER];
     setUsers(nextUsers);
     setFundHoldingsByUser(state.fundHoldingsByUser);
     setStockHoldingsByUser(state.stockHoldingsByUser);
     setActiveUserIdState(nextUsers.some((user) => user.id === state.activeUserId) ? state.activeUserId : PRIMARY_USER.id);
-    setPersistenceStatus('ready');
   }, []);
+
+  const refreshFromServer = useCallback(async (requestId: number): Promise<boolean> => {
+    const state = await workspacePortfolioApi.getState();
+    if (requestId !== requestSeq.current) return false;
+    applyWorkspaceState(state);
+    return true;
+  }, [applyWorkspaceState]);
+
+  const runMutation = useCallback(async (
+    operation: () => Promise<void | WorkspacePortfolioStateDto>,
+  ): Promise<boolean> => {
+    const requestId = ++requestSeq.current;
+    setPersistenceStatus('loading');
+    const pendingOperation = mutationQueue.current.then(() => operation());
+    mutationQueue.current = pendingOperation.then(() => undefined, () => undefined);
+    try {
+      const state = await pendingOperation;
+      if (requestId !== requestSeq.current) return true;
+      if (state) applyWorkspaceState(state);
+      else await refreshFromServer(requestId);
+      if (requestId === requestSeq.current) setPersistenceStatus('ready');
+      return true;
+    } catch {
+      if (requestId !== requestSeq.current) return false;
+      try {
+        await refreshFromServer(requestId);
+      } catch {
+        // Keep the visible error state if both the mutation and reconciliation fail.
+      }
+      if (requestId === requestSeq.current) setPersistenceStatus('error');
+      return false;
+    }
+  }, [applyWorkspaceState, refreshFromServer]);
+
+  const replaceWorkspaceState = useCallback((state: WorkspacePortfolioStateDto) => {
+    requestSeq.current += 1;
+    applyWorkspaceState(state);
+    setPersistenceStatus('ready');
+  }, [applyWorkspaceState]);
 
   useEffect(() => {
     let active = true;
+    const requestId = ++requestSeq.current;
     workspacePortfolioApi.getState().then((state) => {
-      if (!active || localMutationStarted.current) return;
-      setUsers(state.users.length ? state.users : [PRIMARY_USER]);
-      setFundHoldingsByUser(state.fundHoldingsByUser);
-      setStockHoldingsByUser(state.stockHoldingsByUser);
-      setActiveUserIdState(state.users.some((user) => user.id === state.activeUserId) ? state.activeUserId : PRIMARY_USER.id);
+      if (!active || requestId !== requestSeq.current) return;
+      applyWorkspaceState(state);
       setPersistenceStatus('ready');
     }).catch(() => {
-      if (active) setPersistenceStatus('error');
+      if (active && requestId === requestSeq.current) setPersistenceStatus('error');
     });
     return () => { active = false; };
-  }, []);
+  }, [applyWorkspaceState]);
 
   const activeUser = users.find((user) => user.id === activeUserId) ?? users[0] ?? PRIMARY_USER;
   const activeFundHoldings = fundHoldingsByUser[activeUser.id] ?? EMPTY_FUND_HOLDINGS;
@@ -139,8 +171,8 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
   const setActiveUserId = useCallback((id: string) => {
     if (!users.some((user) => user.id === id)) return;
     setActiveUserIdState(id);
-    persist(workspacePortfolioApi.setActiveUser(id).then(replaceWorkspaceState));
-  }, [persist, replaceWorkspaceState, users]);
+    void runMutation(() => workspacePortfolioApi.setActiveUser(id));
+  }, [runMutation, users]);
 
   const addUser = useCallback((name: string): PortfolioUserProfile | null => {
     const normalized = normalizeName(name);
@@ -151,32 +183,32 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
       name: normalized,
       isPrimary: false,
     };
-    localMutationStarted.current = true;
     setUsers((current) => [...current, nextUser]);
     setFundHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_FUND_HOLDINGS }));
     setStockHoldingsByUser((current) => ({ ...current, [nextUser.id]: EMPTY_STOCK_HOLDINGS }));
     setActiveUserIdState(nextUser.id);
-    persist(workspacePortfolioApi.createUser(nextUser).then(() => workspacePortfolioApi.setActiveUser(nextUser.id)).then(replaceWorkspaceState));
+    void runMutation(async () => {
+      await workspacePortfolioApi.createUser(nextUser);
+      return workspacePortfolioApi.setActiveUser(nextUser.id);
+    });
     return nextUser;
-  }, [persist, replaceWorkspaceState]);
+  }, [runMutation]);
 
   const renameUser = useCallback((id: string, name: string): boolean => {
     const normalized = normalizeName(name);
     if (!normalized || !users.some((user) => user.id === id)) return false;
 
-    localMutationStarted.current = true;
     setUsers((current) => current.map((user) => (
       user.id === id ? { ...user, name: normalized } : user
     )));
-    persist(workspacePortfolioApi.renameUser(id, normalized));
+    void runMutation(() => workspacePortfolioApi.renameUser(id, normalized));
     return true;
-  }, [persist, users]);
+  }, [runMutation, users]);
 
   const removeUser = useCallback((id: string): boolean => {
     const target = users.find((user) => user.id === id);
     if (!target || target.isPrimary) return false;
 
-    localMutationStarted.current = true;
     setUsers((current) => current.filter((user) => user.id !== id));
     setFundHoldingsByUser((current) => {
       const next = { ...current };
@@ -189,71 +221,55 @@ export const PortfolioUserProvider: React.FC<{ children: React.ReactNode }> = ({
       return next;
     });
     setActiveUserIdState((current) => (current === id ? PRIMARY_USER.id : current));
-    persist(workspacePortfolioApi.removeUser(id));
+    void runMutation(() => workspacePortfolioApi.removeUser(id));
     return true;
-  }, [persist, users]);
+  }, [runMutation, users]);
 
   const addFundHolding = useCallback((input: FundHoldingInput): QuickFundHolding => {
     const holding = { ...input, id: createHoldingId('fund') };
-    localMutationStarted.current = true;
     setFundHoldingsByUser((current) => ({
       ...current,
       [activeUser.id]: [...(current[activeUser.id] ?? EMPTY_FUND_HOLDINGS), holding],
     }));
-    persist(workspacePortfolioApi.createFund(activeUser.id, holding));
+    void runMutation(() => workspacePortfolioApi.createFund(activeUser.id, holding));
     return holding;
-  }, [activeUser.id, persist]);
+  }, [activeUser.id, runMutation]);
 
   const addStockHolding = useCallback((input: StockHoldingInput): QuickStockHolding => {
     const holding = { ...input, id: createHoldingId('stock') };
-    localMutationStarted.current = true;
     setStockHoldingsByUser((current) => ({
       ...current,
       [activeUser.id]: [...(current[activeUser.id] ?? EMPTY_STOCK_HOLDINGS), holding],
     }));
-    persist(workspacePortfolioApi.createStock(activeUser.id, holding));
+    void runMutation(() => workspacePortfolioApi.createStock(activeUser.id, holding));
     return holding;
-  }, [activeUser.id, persist]);
+  }, [activeUser.id, runMutation]);
 
   const removeFundHolding = useCallback((holdingId: string) => {
-    localMutationStarted.current = true;
     setFundHoldingsByUser((current) => ({
       ...current,
       [activeUser.id]: (current[activeUser.id] ?? EMPTY_FUND_HOLDINGS).filter((item) => item.id !== holdingId),
     }));
-    persist(workspacePortfolioApi.removeFund(activeUser.id, holdingId));
-  }, [activeUser.id, persist]);
+    void runMutation(() => workspacePortfolioApi.removeFund(activeUser.id, holdingId));
+  }, [activeUser.id, runMutation]);
 
   const removeStockHolding = useCallback((holdingId: string) => {
-    localMutationStarted.current = true;
     setStockHoldingsByUser((current) => ({
       ...current,
       [activeUser.id]: (current[activeUser.id] ?? EMPTY_STOCK_HOLDINGS).filter((item) => item.id !== holdingId),
     }));
-    persist(workspacePortfolioApi.removeStock(activeUser.id, holdingId));
-  }, [activeUser.id, persist]);
+    void runMutation(() => workspacePortfolioApi.removeStock(activeUser.id, holdingId));
+  }, [activeUser.id, runMutation]);
 
   const updateFundHolding = useCallback(async (holding: QuickFundHolding): Promise<boolean> => {
     if (!(fundHoldingsByUser[activeUser.id] ?? []).some((item) => item.id === holding.id)) return false;
-    try {
-      await workspacePortfolioApi.updateFund(activeUser.id, holding);
-      localMutationStarted.current = true;
-      setFundHoldingsByUser((current) => ({ ...current, [activeUser.id]: (current[activeUser.id] ?? EMPTY_FUND_HOLDINGS).map((item) => item.id === holding.id ? holding : item) }));
-      setPersistenceStatus('ready');
-      return true;
-    } catch { setPersistenceStatus('error'); return false; }
-  }, [activeUser.id, fundHoldingsByUser]);
+    return runMutation(() => workspacePortfolioApi.updateFund(activeUser.id, holding));
+  }, [activeUser.id, fundHoldingsByUser, runMutation]);
 
   const updateStockHolding = useCallback(async (holding: QuickStockHolding): Promise<boolean> => {
     if (!(stockHoldingsByUser[activeUser.id] ?? []).some((item) => item.id === holding.id)) return false;
-    try {
-      await workspacePortfolioApi.updateStock(activeUser.id, holding);
-      localMutationStarted.current = true;
-      setStockHoldingsByUser((current) => ({ ...current, [activeUser.id]: (current[activeUser.id] ?? EMPTY_STOCK_HOLDINGS).map((item) => item.id === holding.id ? holding : item) }));
-      setPersistenceStatus('ready');
-      return true;
-    } catch { setPersistenceStatus('error'); return false; }
-  }, [activeUser.id, stockHoldingsByUser]);
+    return runMutation(() => workspacePortfolioApi.updateStock(activeUser.id, holding));
+  }, [activeUser.id, runMutation, stockHoldingsByUser]);
 
   const value = useMemo<PortfolioUserContextValue>(() => ({
     users,
