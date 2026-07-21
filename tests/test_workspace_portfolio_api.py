@@ -1,6 +1,7 @@
 """Integration tests for Build E1 local workspace persistence."""
 
 import os
+import sqlite3
 import tempfile
 import unittest
 from pathlib import Path
@@ -21,11 +22,38 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         DatabaseManager.reset_instance()
         self.client = TestClient(create_app(static_dir=Path(self.temp_dir.name) / 'static'))
 
+    def restart_backend(self, suffix: str = 'restart') -> None:
+        DatabaseManager.reset_instance()
+        Config.reset_instance()
+        self.client = TestClient(create_app(static_dir=Path(self.temp_dir.name) / f'static-{suffix}'))
+
     def tearDown(self) -> None:
         DatabaseManager.reset_instance()
         Config.reset_instance()
         os.environ.pop('DATABASE_PATH', None)
         self.temp_dir.cleanup()
+
+    def test_workspace_schema_is_the_only_portfolio_persistence_source(self) -> None:
+        self.assertEqual(self.client.get('/api/v1/workspace-portfolio').status_code, 200)
+        with sqlite3.connect(self.db_path) as connection:
+            tables = {
+                row[0]
+                for row in connection.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            }
+        self.assertTrue({
+            'schema_migrations',
+            'workspace_users',
+            'workspace_portfolio_preferences',
+            'workspace_stock_holdings',
+            'workspace_fund_holdings',
+            'workspace_portfolio_backups',
+            'workspace_holding_recycle_entries',
+            'workspace_holding_history_entries',
+        }.issubset(tables))
+        self.assertTrue({
+            'users', 'stock_holdings', 'fund_holdings', 'schema_version', 'data_migrations',
+        }.isdisjoint(tables))
+        self.assertFalse((self.db_path.parent / 'stock_fund_quality.db').exists())
 
     def test_state_survives_backend_restart_and_keeps_domains_separate(self) -> None:
         initial = self.client.get('/api/v1/workspace-portfolio')
@@ -39,9 +67,7 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
         self.assertEqual(self.client.post('/api/v1/workspace-portfolio/users/user-family-a/stocks', json=stock).status_code, 201)
         self.assertEqual(self.client.post('/api/v1/workspace-portfolio/users/user-family-a/funds', json=fund).status_code, 201)
 
-        DatabaseManager.reset_instance()
-        Config.reset_instance()
-        self.client = TestClient(create_app(static_dir=Path(self.temp_dir.name) / 'static-after-restart'))
+        self.restart_backend('holdings-restart')
         restored = self.client.get('/api/v1/workspace-portfolio').json()
         self.assertEqual(restored['stock_holdings_by_user']['user-family-a'][0]['code'], '600519')
         self.assertEqual(restored['fund_holdings_by_user']['user-family-a'][0]['code'], '000001')
@@ -51,16 +77,88 @@ class WorkspacePortfolioApiTest(unittest.TestCase):
     def test_active_user_selection_survives_restart_and_resets_if_user_is_removed(self) -> None:
         self.client.get('/api/v1/workspace-portfolio')
         self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-active', 'name': '当前用户'})
+        renamed = self.client.patch('/api/v1/workspace-portfolio/users/user-active', json={'name': '已改名用户'})
+        self.assertEqual(renamed.status_code, 200, renamed.text)
+        self.assertEqual(renamed.json()['name'], '已改名用户')
         selected = self.client.put('/api/v1/workspace-portfolio/active-user/user-active')
         self.assertEqual(selected.status_code, 200, selected.text)
         self.assertEqual(selected.json()['active_user_id'], 'user-active')
 
-        DatabaseManager.reset_instance()
-        Config.reset_instance()
-        self.client = TestClient(create_app(static_dir=Path(self.temp_dir.name) / 'static-after-active-restart'))
-        self.assertEqual(self.client.get('/api/v1/workspace-portfolio').json()['active_user_id'], 'user-active')
+        self.restart_backend('active-user-restart')
+        restarted = self.client.get('/api/v1/workspace-portfolio').json()
+        self.assertEqual(restarted['active_user_id'], 'user-active')
+        self.assertEqual(next(user for user in restarted['users'] if user['id'] == 'user-active')['name'], '已改名用户')
         self.assertEqual(self.client.delete('/api/v1/workspace-portfolio/users/user-active').status_code, 204)
         self.assertEqual(self.client.get('/api/v1/workspace-portfolio').json()['active_user_id'], 'self')
+
+    def test_stock_crud_restart_recycle_history_and_domain_isolation(self) -> None:
+        self.client.get('/api/v1/workspace-portfolio')
+        self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-stock', 'name': '股票用户'})
+        created = self.client.post('/api/v1/workspace-portfolio/users/user-stock/stocks', json={
+            'id': 'stock-persist', 'code': '600519', 'name': '测试股票', 'quantity': 1,
+            'average_cost': 100, 'securities_account': '账户A', 'notes': '初始备注',
+        })
+        self.assertEqual(created.status_code, 201, created.text)
+        self.client.post('/api/v1/workspace-portfolio/users/user-stock/funds', json={
+            'id': 'fund-neighbor', 'code': '000001', 'name': '隔离基金', 'amount': 1000, 'profit': 10,
+        })
+        updated = self.client.patch('/api/v1/workspace-portfolio/users/user-stock/stocks/stock-persist', json={
+            'code': '600519', 'name': '测试股票', 'quantity': 3, 'average_cost': 120,
+            'securities_account': '账户B', 'notes': '重启后仍需存在',
+        })
+        self.assertEqual(updated.status_code, 200, updated.text)
+
+        self.restart_backend('stock-restart')
+        state = self.client.get('/api/v1/workspace-portfolio').json()
+        stock = state['stock_holdings_by_user']['user-stock'][0]
+        self.assertEqual((stock['quantity'], stock['average_cost'], stock['securities_account'], stock['notes']), (3, 120, '账户B', '重启后仍需存在'))
+        self.assertEqual(state['fund_holdings_by_user']['user-stock'][0]['id'], 'fund-neighbor')
+        self.assertEqual(state['stock_holdings_by_user']['self'], [])
+
+        deleted = self.client.delete('/api/v1/workspace-portfolio/users/user-stock/stocks/stock-persist')
+        self.assertEqual(deleted.status_code, 204, deleted.text)
+        state = self.client.get('/api/v1/workspace-portfolio').json()
+        self.assertEqual(state['stock_holdings_by_user']['user-stock'], [])
+        self.assertEqual(state['fund_holdings_by_user']['user-stock'][0]['id'], 'fund-neighbor')
+        recycle = self.client.get('/api/v1/workspace-portfolio/users/user-stock/recycle-bin').json()
+        self.assertEqual((recycle[0]['asset_type'], recycle[0]['holding']['id']), ('stock', 'stock-persist'))
+        history = self.client.get('/api/v1/workspace-portfolio/users/user-stock/holding-history?asset_type=stock').json()
+        self.assertEqual({item['action'] for item in history}, {'created', 'updated', 'deleted'})
+
+    def test_fund_crud_restart_recycle_history_and_domain_isolation(self) -> None:
+        self.client.get('/api/v1/workspace-portfolio')
+        self.client.post('/api/v1/workspace-portfolio/users', json={'id': 'user-fund', 'name': '基金用户'})
+        created = self.client.post('/api/v1/workspace-portfolio/users/user-fund/funds', json={
+            'id': 'fund-persist', 'code': '000001', 'name': '测试基金', 'amount': 1000,
+            'profit': 10, 'target_allocation': 20, 'notes': '初始备注',
+        })
+        self.assertEqual(created.status_code, 201, created.text)
+        self.client.post('/api/v1/workspace-portfolio/users/user-fund/stocks', json={
+            'id': 'stock-neighbor', 'code': 'AAPL', 'name': '隔离股票', 'quantity': 1,
+            'average_cost': 100, 'securities_account': '账户A',
+        })
+        updated = self.client.patch('/api/v1/workspace-portfolio/users/user-fund/funds/fund-persist', json={
+            'code': '000001', 'name': '测试基金', 'amount': 2500, 'profit': 80,
+            'target_allocation': 35, 'notes': '重启后仍需存在',
+        })
+        self.assertEqual(updated.status_code, 200, updated.text)
+
+        self.restart_backend('fund-restart')
+        state = self.client.get('/api/v1/workspace-portfolio').json()
+        fund = state['fund_holdings_by_user']['user-fund'][0]
+        self.assertEqual((fund['amount'], fund['profit'], fund['target_allocation'], fund['notes']), (2500, 80, 35, '重启后仍需存在'))
+        self.assertEqual(state['stock_holdings_by_user']['user-fund'][0]['id'], 'stock-neighbor')
+        self.assertEqual(state['fund_holdings_by_user']['self'], [])
+
+        deleted = self.client.delete('/api/v1/workspace-portfolio/users/user-fund/funds/fund-persist')
+        self.assertEqual(deleted.status_code, 204, deleted.text)
+        state = self.client.get('/api/v1/workspace-portfolio').json()
+        self.assertEqual(state['fund_holdings_by_user']['user-fund'], [])
+        self.assertEqual(state['stock_holdings_by_user']['user-fund'][0]['id'], 'stock-neighbor')
+        recycle = self.client.get('/api/v1/workspace-portfolio/users/user-fund/recycle-bin').json()
+        self.assertEqual((recycle[0]['asset_type'], recycle[0]['holding']['id']), ('fund', 'fund-persist'))
+        history = self.client.get('/api/v1/workspace-portfolio/users/user-fund/holding-history?asset_type=fund').json()
+        self.assertEqual({item['action'] for item in history}, {'created', 'updated', 'deleted'})
 
     def test_deleting_secondary_user_cascades_quick_holdings_and_protects_primary(self) -> None:
         self.client.get('/api/v1/workspace-portfolio')

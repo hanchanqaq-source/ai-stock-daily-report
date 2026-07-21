@@ -1,38 +1,72 @@
-# 股票基金双中心 Build E2：本机数据备份与恢复
+# Build E2：用户、股票持仓和基金持仓持久化收敛与重启验收
 
-## 范围
+## 架构结论
 
-Build E2 为本机工作台增加可迁移的数据闭环：用户档案、股票快速持仓和基金快速持仓可以导出为 JSON 备份文件；导入前先在本机预览并校验，明确确认后才以备份内容覆盖当前工作台数据。
+Build E2 不再从零建立持久化。审计确认生产前端、API、备份、回收站和历史记录已经使用既有 SQLAlchemy workspace 链路，因此最终只保留这一套正式数据源：
 
-导入前，程序会把当前工作台状态保存为本机恢复点。用户可恢复最近的恢复点；每次恢复前也会再创建一个新的恢复点，避免二次误操作。
+`PortfolioUserContext → workspacePortfolioApi → /api/v1/workspace-portfolio → FastAPI get_db → SQLAlchemy Session → src.storage → DATABASE_PATH 指向的 SQLite 数据库`
 
-## 明确不导出的内容
+## 审计结果
 
-- `.env`、API Key、Token、Webhook 和任何设置密钥；
-- Electron safeStorage / Windows DPAPI 凭证或其文件路径；
-- 日志、数据库文件、真实账户、交易记录、通知配置和 Provider 返回内容。
+- `src.storage` 中的 `workspace_*` 模型已被生产 API 实际调用。
+- `src/repositories/sqlite_foundation.py` 与 `src/services/sqlite_foundation_service.py` 只有其新增测试和文档引用，没有生产 API、前端或桌面启动调用方。
+- 保留两套实现会形成两个数据库、两套用户/持仓表和两个 schema 版本来源，无法可靠确定哪一份数据是真相。
+- 收敛前已全仓搜索 `sqlite_foundation`、`LocalPersistenceService` 与 `LocalFoundationRepository` 调用方；移除后不得存在剩余引用。
 
-备份格式固定为 `dsa-workspace-portfolio-backup` 版本 1，仅可由绑定 `127.0.0.1` 的本机 API 读取和写入。
+## 唯一正式数据库
 
-## 使用方式
+- 配置入口：`DATABASE_PATH` / `Config.database_path`。
+- 默认文件：`./data/stock_analysis.db`。
+- 正式表：`workspace_users`、`workspace_portfolio_preferences`、`workspace_stock_holdings`、`workspace_fund_holdings`、`workspace_portfolio_backups`、`workspace_holding_recycle_entries`、`workspace_holding_history_entries`。
+- 迁移记录：既有 `schema_migrations`。
+- Windows 便携运行：`data/stock_analysis.db` 及其 WAL/SHM 文件属于用户数据，更新时保留。
 
-1. 进入“用户管理”，点击“导出备份文件”，保存下载的 JSON 文件。
-2. 在新电脑或重装后的程序中点击“选择备份文件”。
-3. 点击“预览导入内容”，核对用户数、股票持仓数和基金持仓数。
-4. 只有确认要覆盖当前本机工作台时，点击“确认覆盖导入”。
-5. 如需撤销，点击“恢复最近一个恢复点”。
+以下内容不是正式数据源，且不得重新引入：
 
-## 校验与限制
+- `stock_fund_quality.db`；
+- 独立 `users` / `stock_holdings` / `fund_holdings` 表；
+- 独立 `schema_version` / `data_migrations`；
+- 两套数据库之间的静默双写或双向同步。
 
-- 必须有且仅有一个主用户 `self`（本人）；用户和持仓 ID 必须唯一。
-- 股票/基金持仓只能属于备份内已有用户；未知字段、无效数字、重复 ID 和超量数据均会拒绝导入。
-- 预览不写入数据库；未确认的导入也不会修改任何数据。
-- 当前仅覆盖 Build E1 的快速持仓工作台，不会导入或合并股票高级管理中的交易、资金流水或券商 CSV。
+## 前端一致性
 
-## 验收
+`PortfolioUserContext` 可在请求发出时进行即时界面更新，但必须遵守以下规则：
 
-- 导出文件只含约定的六个工作台字段；
-- 预览和未确认导入均不修改当前数据；
-- 确认导入会创建恢复点并替换工作台数据；
-- 恢复点可以恢复被覆盖的数据，同时保留下一次撤销所需的新恢复点；
-- 请求不在 `127.0.0.1` / `::1` / 测试客户端时被拒绝。
+1. API 成功后使用返回的完整服务端状态，或重新读取 `/api/v1/workspace-portfolio`。
+2. API 失败后重新读取完整服务端状态，撤销未写入数据库的乐观结果，并显示持久化错误。
+3. mutation 按发起顺序写入服务端；初次加载和 mutation 同时使用递增请求序号，旧响应不得覆盖更新的用户或持仓状态。
+4. 多个快速操作全部落库后，由最后一个请求重新读取完整状态，避免较早操作晚完成后只存在于数据库、不存在于界面。
+5. 外部导入/恢复应用完整状态时，使此前尚未完成的旧请求失效。
+6. 不引入大型状态管理框架，前端仍不得直接连接 SQLite。
+
+## 重启验收
+
+后端回归测试使用临时 `DATABASE_PATH` 和虚构数据，并通过重置 `DatabaseManager` / `Config`、重新创建 FastAPI 应用与数据库会话验证：
+
+- 首次启动创建“本人”，主用户不可删除；
+- 新增、改名、切换和删除普通用户，当前用户在重启后恢复；
+- 删除当前普通用户后回退到“本人”；
+- 股票数量、成本、证券账户、备注在重启后保留；
+- 基金金额、持有收益、目标仓位、备注在重启后保留；
+- 用户之间、股票与基金之间保持隔离；
+- 删除后回收站与修改历史仍正常；
+- 临时库存在 `workspace_*` 与 `schema_migrations`，不存在第二套持仓表和 schema 版本表；
+- 测试目录不生成 `stock_fund_quality.db`。
+
+前端定向测试验证：
+
+- 用户、股票和基金状态隔离；
+- API 失败后重新读取服务端状态；
+- 旧请求响应不能覆盖较新的当前用户状态。
+
+桌面端既有回归测试继续验证更新和回退保留 `data/stock_analysis.db`、WAL、SHM 与其他用户目录。
+
+## 既有备份与恢复能力
+
+原有版本化 JSON 导出、导入预览、明确确认覆盖和恢复点能力继续保留。它只处理工作台用户与快速持仓，不导出 `.env`、密钥、DPAPI 凭证、日志、数据库文件、真实账户或交易记录。
+
+## 安全与回滚
+
+- 不读取用户真实数据库、`.env`、Token、API Key、Cookie 或 Webhook。
+- 不连接真实证券/基金账户，不使用真实持仓测试，不自动交易。
+- 回滚本次代码时不得删除或改写现有 `stock_analysis.db`；只恢复代码，workspace 数据表原样保留。
