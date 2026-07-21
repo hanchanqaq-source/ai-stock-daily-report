@@ -2,23 +2,20 @@ import { GitCompareArrows, Layers3, LoaderCircle } from 'lucide-react';
 import { useState } from 'react';
 import { fundDataApi, type FundComparisonReadonlyResponse } from '../../api/fundData';
 import { Card, InlineAlert } from '../common';
+import FundAnalysisSourceSelector, { type FundAnalysisSelection } from './FundAnalysisSourceSelector';
 
 type FundComparisonPanelProps = {
   mode: 'compare' | 'industry-exposure';
   language: 'zh' | 'en';
 };
 
-function parseFundCodes(value: string): string[] {
-  return value.trim().split(/[\s,，;；]+/).filter(Boolean);
-}
-
 const FundComparisonPanel = ({ mode, language }: FundComparisonPanelProps) => {
-  const [codesText, setCodesText] = useState('');
+  const [selection, setSelection] = useState<FundAnalysisSelection>({ source: 'manual', codes: [] });
   const [approved, setApproved] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<FundComparisonReadonlyResponse | null>(null);
-  const codes = parseFundCodes(codesText);
+  const codes = selection.codes;
   const minimum = mode === 'compare' ? 2 : 1;
   const validCodes = codes.length >= minimum
     && codes.length <= 4
@@ -57,27 +54,25 @@ const FundComparisonPanel = ({ mode, language }: FundComparisonPanelProps) => {
       />
 
       <Card padding="md">
-        <div className="flex items-center gap-2">{icon}<h2 className="font-semibold text-foreground">{language === 'zh' ? (mode === 'compare' ? '手动对比基金' : '查看行业穿透') : (mode === 'compare' ? 'Compare funds manually' : 'Review industry exposure')}</h2></div>
+        <div className="flex items-center gap-2">{icon}<h2 className="font-semibold text-foreground">{language === 'zh' ? (mode === 'compare' ? '选择并对比基金' : '选择并查看行业穿透') : (mode === 'compare' ? 'Choose and compare funds' : 'Choose and review industry exposure')}</h2></div>
         <p className="mt-2 text-xs leading-5 text-secondary-text">
           {language === 'zh'
-            ? `${mode === 'compare' ? '请输入 2–4 个' : '请输入 1–4 个'}六位基金代码，用逗号或空格分隔。每次读取都需要重新确认。`
-            : `Enter ${mode === 'compare' ? '2–4' : '1–4'} six-digit fund codes separated by commas or spaces. Every lookup requires approval.`}
+            ? `可手动输入，或从当前用户的持仓、自选中选择 ${mode === 'compare' ? '2–4' : '1–4'} 只基金。每次读取都需要重新确认。`
+            : `Enter codes manually or choose ${mode === 'compare' ? '2–4' : '1–4'} funds from the active user’s holdings or watchlist. Every lookup requires approval.`}
         </p>
-        <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
-          <label className="flex-1 text-sm text-secondary-text">
-            <span className="mb-1 block">{language === 'zh' ? '基金代码' : 'Fund codes'}</span>
-            <input
-              aria-label={language === 'zh' ? '基金代码' : 'Fund codes'}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground outline-none focus:border-cyan"
-              placeholder={mode === 'compare' ? '例如 000001, 110022' : '例如 000001'}
-              value={codesText}
-              onChange={(event) => {
-                setCodesText(event.target.value);
-                setResult(null);
-                setError('');
-              }}
-            />
-          </label>
+        <FundAnalysisSourceSelector
+          language={language}
+          minimum={minimum}
+          maximum={4}
+          inputLabel={language === 'zh' ? '基金代码' : 'Fund codes'}
+          placeholder={mode === 'compare' ? '例如 000001, 110022' : '例如 000001'}
+          onSelectionChange={(nextSelection) => {
+            setSelection(nextSelection);
+            setResult(null);
+            setError('');
+          }}
+        />
+        <div className="mt-4 flex justify-end">
           <button
             type="button"
             className="btn-primary flex min-w-40 items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -92,7 +87,7 @@ const FundComparisonPanel = ({ mode, language }: FundComparisonPanelProps) => {
           <input type="checkbox" className="mt-1" checked={approved} onChange={(event) => setApproved(event.target.checked)} />
           <span>{language === 'zh' ? '我确认本次只读取公开基金披露并在内存中计算，不读取账户、不交易、不通知、不调用 AI、不保存。' : 'I approve this public disclosure lookup and in-memory calculation only: no account access, trading, notifications, AI, or persistence.'}</span>
         </label>
-        {!validCodes && codesText.trim() && (
+        {!validCodes && codes.length > 0 && (
           <p className="mt-2 text-xs text-amber-300">{language === 'zh' ? `需要 ${minimum}–4 个不重复的六位基金代码。` : `Enter ${minimum}–4 unique six-digit fund codes.`}</p>
         )}
         {error && <p className="mt-3 text-sm text-red-400" role="alert">{error}</p>}

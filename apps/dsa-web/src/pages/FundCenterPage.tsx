@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fundDataApi, type FundPublicReadonlyResponse } from '../api/fundData';
 import { Card, EmptyState, InlineAlert } from '../components/common';
+import FundAnalysisSourceSelector, { type FundAnalysisSelection } from '../components/funds/FundAnalysisSourceSelector';
 import FundComparisonPanel from '../components/funds/FundComparisonPanel';
 import FundIndustryCyclePanel from '../components/funds/FundIndustryCyclePanel';
 import FundPortfolioAdvicePanel from '../components/funds/FundPortfolioAdvicePanel';
@@ -45,24 +46,14 @@ const HOME_LINKS = [
   { section: 'advice', icon: ShieldAlert, path: '/funds/advice' },
 ] as const;
 
-const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
-  const navigate = useNavigate();
-  const { language } = useUiLanguage();
-  const { activeUser, activeFundHoldings } = usePortfolioUsers();
-  const [title, description] = SECTION_META[language][section];
-  const isHome = section === 'home';
-  const isWatchlistPage = section === 'watchlist';
-  const isD2Page = section === 'compare' || section === 'industry-exposure';
-  const isD3Page = section === 'industry-cycle';
-  const isD4Page = section === 'advice';
-  const [fundCode, setFundCode] = useState('');
+const FundPublicLookupPanel = ({ language }: { language: 'zh' | 'en' }) => {
+  const [selection, setSelection] = useState<FundAnalysisSelection>({ source: 'manual', codes: [] });
   const [readOnlyApproved, setReadOnlyApproved] = useState(false);
   const [lookupResult, setLookupResult] = useState<FundPublicReadonlyResponse | null>(null);
   const [lookupError, setLookupError] = useState('');
   const [lookupLoading, setLookupLoading] = useState(false);
-  const validFundCode = /^\d{6}$/.test(fundCode);
-
-  useEffect(() => { document.title = `${title} - 股票基金质量分析系统`; }, [title]);
+  const fundCode = selection.codes[0] ?? '';
+  const validFundCode = selection.codes.length === 1 && /^\d{6}$/.test(fundCode);
 
   const runFundLookup = async () => {
     if (!validFundCode || !readOnlyApproved || lookupLoading) return;
@@ -83,6 +74,143 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
   };
 
   return (
+    <Card padding="md">
+      <h2 className="font-semibold text-foreground">{language === 'zh' ? '选择并读取公开基金数据' : 'Choose and read public fund data'}</h2>
+      <p className="mt-2 text-sm leading-6 text-secondary-text">
+        {language === 'zh' ? '可手动输入，也可从当前用户的基金持仓或基金自选中选择。数据来自 AKShare 公共接口，仅保存在当前页面内存中；选择基金不会自动读取。' : 'Enter a code manually or choose from the active user’s holdings or watchlist. Data comes from public AKShare interfaces and remains in page memory only; selecting a fund never starts a lookup.'}
+      </p>
+      <FundAnalysisSourceSelector
+        language={language}
+        minimum={1}
+        maximum={1}
+        inputLabel={language === 'zh' ? '六位基金代码' : 'Six-digit fund code'}
+        placeholder={language === 'zh' ? '例如 000001' : 'For example 000001'}
+        onSelectionChange={(nextSelection) => {
+          setSelection(nextSelection);
+          setLookupResult(null);
+          setLookupError('');
+        }}
+      />
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          className="btn-primary flex min-w-40 items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={!validFundCode || !readOnlyApproved || lookupLoading}
+          onClick={runFundLookup}
+        >
+          {lookupLoading && <LoaderCircle className="h-4 w-4 animate-spin" />}
+          {lookupLoading ? (language === 'zh' ? '读取中' : 'Loading') : (language === 'zh' ? '手动读取' : 'Read now')}
+        </button>
+      </div>
+      <label className="mt-3 flex items-start gap-2 text-xs leading-5 text-secondary-text">
+        <input
+          type="checkbox"
+          className="mt-1"
+          checked={readOnlyApproved}
+          onChange={(event) => setReadOnlyApproved(event.target.checked)}
+        />
+        <span>{language === 'zh' ? '我确认本次仅获取公开只读基金数据，不读取账户、不交易、不通知、不调用 AI、不保存。' : 'I approve this public read-only lookup only: no account access, trading, notifications, AI, or persistence.'}</span>
+      </label>
+      {!validFundCode && selection.codes.length > 0 && <p className="mt-2 text-xs text-amber-300">{language === 'zh' ? '请选择 1 只六位基金代码。' : 'Select one six-digit fund code.'}</p>}
+      {lookupError && <p className="mt-3 text-sm text-red-400" role="alert">{lookupError}</p>}
+      {lookupResult?.status === 'completed-readonly' && lookupResult.bundle && (
+        <div className="mt-5 space-y-4" data-testid="fund-public-readonly-result">
+          <div className="flex flex-wrap items-center gap-2 text-xs text-secondary-text">
+            <span className="rounded-full border border-border px-3 py-1">{lookupResult.providerLabel}</span>
+            <span>{language === 'zh' ? '读取时间' : 'Fetched'}：{lookupResult.bundle.source.fetched_at}</span>
+            <span>{language === 'zh' ? '状态' : 'Status'}：{lookupResult.bundle.data_status}</span>
+          </div>
+          {(lookupResult.bundle.reason || lookupResult.bundle.missing_sections.length > 0) && (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-300">
+              {lookupResult.bundle.reason || (language === 'zh' ? '部分数据区块缺失。' : 'Some data sections are missing.')}
+              {lookupResult.bundle.missing_sections.length > 0 && ` ${language === 'zh' ? '缺失区块' : 'Missing'}：${lookupResult.bundle.missing_sections.join(', ')}`}
+            </p>
+          )}
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg border border-border p-3"><p className="text-xs text-secondary-text">{language === 'zh' ? '基金名称' : 'Fund'}</p><p className="mt-1 font-medium text-foreground">{lookupResult.bundle.profile?.name ?? '缺失'}</p></div>
+            <div className="rounded-lg border border-border p-3"><p className="text-xs text-secondary-text">{language === 'zh' ? '基金类型' : 'Type'}</p><p className="mt-1 font-medium text-foreground">{lookupResult.bundle.profile?.fund_type ?? '缺失'}</p></div>
+            <div className="rounded-lg border border-border p-3"><p className="text-xs text-secondary-text">{language === 'zh' ? '单位净值' : 'Unit NAV'}</p><p className="mt-1 font-medium text-foreground">{lookupResult.bundle.nav?.unit_nav ?? '缺失'}</p></div>
+            <div className="rounded-lg border border-border p-3"><p className="text-xs text-secondary-text">{language === 'zh' ? '净值日期' : 'NAV date'}</p><p className="mt-1 font-medium text-foreground">{lookupResult.bundle.nav?.nav_date ?? '缺失'}</p></div>
+          </div>
+          {lookupResult.bundle.holdings && (
+            <div>
+              <h3 className="text-sm font-semibold text-foreground">{language === 'zh' ? '最新披露前十大持仓' : 'Latest disclosed top holdings'} · {lookupResult.bundle.holdings.report_period}</h3>
+              <div className="mt-2 overflow-x-auto">
+                <table className="w-full min-w-128 text-left text-xs">
+                  <thead className="text-secondary-text"><tr><th className="py-2">{language === 'zh' ? '代码' : 'Code'}</th><th>{language === 'zh' ? '名称' : 'Name'}</th><th>{language === 'zh' ? '权重' : 'Weight'}</th><th>{language === 'zh' ? '行业' : 'Industry'}</th></tr></thead>
+                  <tbody>
+                    {lookupResult.bundle.holdings.positions.map((position) => (
+                      <tr key={position.security_code} className="border-t border-border">
+                        <td className="py-2 text-foreground">{position.security_code}</td>
+                        <td className="text-foreground">{position.security_name}</td>
+                        <td className="text-foreground">{position.weight_pct}%</td>
+                        <td className="text-secondary-text">{position.industry.industry_name ?? (language === 'zh' ? '见行业穿透页' : 'See industry exposure')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+};
+
+const FundAskSourcePanel = ({ language }: { language: 'zh' | 'en' }) => {
+  const [selection, setSelection] = useState<FundAnalysisSelection>({ source: 'manual', codes: [] });
+  const validCodes = selection.codes.length >= 1
+    && selection.codes.length <= 4
+    && selection.codes.every((code) => /^\d{6}$/.test(code))
+    && new Set(selection.codes).size === selection.codes.length;
+
+  return (
+    <div className="space-y-4" data-testid="fund-ask-source-panel">
+      <InlineAlert
+        variant="info"
+        title={language === 'zh' ? '持久化阶段 E4：准备基金问答对象' : 'Persistence E4: prepare fund question subjects'}
+        message={language === 'zh'
+          ? '这里只准备当前用户的基金代码上下文，不会自动读取公开数据、启动 AI 或保存会话；基金问答会话接入留到后续阶段。'
+          : 'This only prepares active-user fund codes. It does not read public data, start AI, or save a conversation; fund Q&A integration remains a later stage.'}
+      />
+      <Card padding="md">
+        <h2 className="font-semibold text-foreground">{language === 'zh' ? '选择问基金对象' : 'Choose fund question subjects'}</h2>
+        <FundAnalysisSourceSelector
+          language={language}
+          minimum={1}
+          maximum={4}
+          inputLabel={language === 'zh' ? '基金代码' : 'Fund codes'}
+          placeholder={language === 'zh' ? '例如 000001, 110022' : 'For example 000001, 110022'}
+          onSelectionChange={setSelection}
+        />
+        {validCodes ? (
+          <p className="mt-4 rounded-lg border border-cyan/30 bg-cyan/5 px-3 py-2 text-sm text-foreground">
+            {language === 'zh' ? '已准备基金对象' : 'Fund subjects ready'}：{selection.codes.join('、')}
+          </p>
+        ) : selection.codes.length > 0 ? (
+          <p className="mt-4 text-xs text-amber-300">{language === 'zh' ? '需要 1–4 个不重复的六位基金代码。' : 'Enter 1–4 unique six-digit fund codes.'}</p>
+        ) : null}
+      </Card>
+    </div>
+  );
+};
+
+const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
+  const navigate = useNavigate();
+  const { language } = useUiLanguage();
+  const { activeUser, activeFundHoldings } = usePortfolioUsers();
+  const [title, description] = SECTION_META[language][section];
+  const isHome = section === 'home';
+  const isAskPage = section === 'ask';
+  const isWatchlistPage = section === 'watchlist';
+  const isD2Page = section === 'compare' || section === 'industry-exposure';
+  const isD3Page = section === 'industry-cycle';
+  const isD4Page = section === 'advice';
+
+  useEffect(() => { document.title = `${title} - 股票基金质量分析系统`; }, [title]);
+
+  return (
     <div className="min-h-screen space-y-5 p-4 md:p-6" data-testid={`fund-center-${section}`}>
       <section className="space-y-2">
         <div className="flex items-center gap-3"><Landmark className="h-6 w-6 text-cyan" /><h1 className="text-xl font-semibold text-foreground md:text-2xl">{title}</h1></div>
@@ -93,11 +221,13 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
       <InlineAlert
         variant="info"
         title={language === 'zh'
-          ? (isWatchlistPage ? '持久化阶段 E3 已接入基金自选' : isD4Page ? 'Build D4 已接入当前用户基金组合风险与配置复核建议' : isD3Page ? 'Build D3 已接入行业周期与经营生产力代理证据' : isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
-          : (isWatchlistPage ? 'Persistence E3 fund watchlists are connected' : isD4Page ? 'Build D4 active-user fund portfolio risk and allocation review is connected' : isD3Page ? 'Build D3 industry-cycle and operating-productivity proxy evidence is connected' : isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
+          ? (isWatchlistPage ? '持久化阶段 E3 已接入基金自选' : isAskPage ? '持久化阶段 E4 已接入统一基金来源选择' : isD4Page ? 'Build D4 已接入当前用户基金组合风险与配置复核建议' : isD3Page ? 'Build D3 已接入行业周期与经营生产力代理证据' : isD2Page ? 'Build D2 已接入基金对比与披露行业穿透' : 'AKShare 基金公开数据支持本机手动只读查询')
+          : (isWatchlistPage ? 'Persistence E3 fund watchlists are connected' : isAskPage ? 'Persistence E4 unified fund source selection is connected' : isD4Page ? 'Build D4 active-user fund portfolio risk and allocation review is connected' : isD3Page ? 'Build D3 industry-cycle and operating-productivity proxy evidence is connected' : isD2Page ? 'Build D2 fund comparison and disclosed industry exposure are connected' : 'AKShare public fund data supports manual local read-only lookup')}
         message={language === 'zh'
           ? (isWatchlistPage
               ? '仅保存手动输入的基金代码、名称和备注到当前用户的本机数据库；不读取账户、不自动查询、不自动加入持仓、不交易。'
+              : isAskPage
+              ? '可从手动输入、当前用户基金持仓或基金自选准备问答对象；选择只停留在当前页面，不自动读取数据、不调用 AI、不保存会话。'
               : isD4Page
               ? '使用当前页面内存基金持仓计算集中度、目标偏离和公开证据覆盖；建议只供人工复核，不读取真实账户、不自动执行。'
               : isD3Page
@@ -107,6 +237,8 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
               : 'Build D1 仅在您输入六位基金代码并逐次确认后读取公开资料、正式净值和披露持仓；不读取账户，不调用 AI，不通知、不交易、不持久化。')
           : (isWatchlistPage
               ? 'Only manually entered fund codes, names, and notes are saved to the active user local database. No account access, automatic lookup, holdings changes, or trading.'
+              : isAskPage
+              ? 'Prepare question subjects from manual input, active-user holdings, or the active-user watchlist. Selection remains on this page and never reads data, calls AI, or saves a conversation automatically.'
               : isD4Page
               ? 'Uses current in-memory fund holdings for concentration, target drift, and public-evidence coverage. Guidance is review-only, with no account access or automatic execution.'
               : isD3Page
@@ -133,90 +265,7 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
 
       {isHome ? (
         <>
-          <Card padding="md">
-            <h2 className="font-semibold text-foreground">{language === 'zh' ? '读取公开基金数据' : 'Read public fund data'}</h2>
-            <p className="mt-2 text-sm leading-6 text-secondary-text">
-              {language === 'zh' ? '数据来自 AKShare 公共接口，仅保存在当前页面内存中。基金披露行业配置已在“行业持仓穿透”页面接入；单只证券行业仍不强行推测。' : 'Data comes from public AKShare interfaces and remains in page memory only. Fund-level disclosed industry allocation is available on Industry exposure; individual security industries are not inferred.'}
-            </p>
-            <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-end">
-              <label className="flex-1 text-sm text-secondary-text">
-                <span className="mb-1 block">{language === 'zh' ? '六位基金代码' : 'Six-digit fund code'}</span>
-                <input
-                  aria-label={language === 'zh' ? '六位基金代码' : 'Six-digit fund code'}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-foreground outline-none focus:border-cyan"
-                  inputMode="numeric"
-                  maxLength={6}
-                  placeholder="例如 000001"
-                  value={fundCode}
-                  onChange={(event) => {
-                    setFundCode(event.target.value.replace(/\D/g, '').slice(0, 6));
-                    setLookupResult(null);
-                    setLookupError('');
-                  }}
-                />
-              </label>
-              <button
-                type="button"
-                className="btn-primary flex min-w-40 items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!validFundCode || !readOnlyApproved || lookupLoading}
-                onClick={runFundLookup}
-              >
-                {lookupLoading && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                {lookupLoading ? (language === 'zh' ? '读取中' : 'Loading') : (language === 'zh' ? '手动读取' : 'Read now')}
-              </button>
-            </div>
-            <label className="mt-3 flex items-start gap-2 text-xs leading-5 text-secondary-text">
-              <input
-                type="checkbox"
-                className="mt-1"
-                checked={readOnlyApproved}
-                onChange={(event) => setReadOnlyApproved(event.target.checked)}
-              />
-              <span>{language === 'zh' ? '我确认本次仅获取公开只读基金数据，不读取账户、不交易、不通知、不调用 AI、不保存。' : 'I approve this public read-only lookup only: no account access, trading, notifications, AI, or persistence.'}</span>
-            </label>
-            {lookupError && <p className="mt-3 text-sm text-red-400" role="alert">{lookupError}</p>}
-            {lookupResult?.status === 'completed-readonly' && lookupResult.bundle && (
-              <div className="mt-5 space-y-4" data-testid="fund-public-readonly-result">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-secondary-text">
-                  <span className="rounded-full border border-border px-3 py-1">{lookupResult.providerLabel}</span>
-                  <span>{language === 'zh' ? '读取时间' : 'Fetched'}：{lookupResult.bundle.source.fetched_at}</span>
-                  <span>{language === 'zh' ? '状态' : 'Status'}：{lookupResult.bundle.data_status}</span>
-                </div>
-                {(lookupResult.bundle.reason || lookupResult.bundle.missing_sections.length > 0) && (
-                  <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-300">
-                    {lookupResult.bundle.reason || (language === 'zh' ? '部分数据区块缺失。' : 'Some data sections are missing.')}
-                    {lookupResult.bundle.missing_sections.length > 0 && ` ${language === 'zh' ? '缺失区块' : 'Missing'}：${lookupResult.bundle.missing_sections.join(', ')}`}
-                  </p>
-                )}
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-lg border border-border p-3"><p className="text-xs text-secondary-text">{language === 'zh' ? '基金名称' : 'Fund'}</p><p className="mt-1 font-medium text-foreground">{lookupResult.bundle.profile?.name ?? '缺失'}</p></div>
-                  <div className="rounded-lg border border-border p-3"><p className="text-xs text-secondary-text">{language === 'zh' ? '基金类型' : 'Type'}</p><p className="mt-1 font-medium text-foreground">{lookupResult.bundle.profile?.fund_type ?? '缺失'}</p></div>
-                  <div className="rounded-lg border border-border p-3"><p className="text-xs text-secondary-text">{language === 'zh' ? '单位净值' : 'Unit NAV'}</p><p className="mt-1 font-medium text-foreground">{lookupResult.bundle.nav?.unit_nav ?? '缺失'}</p></div>
-                  <div className="rounded-lg border border-border p-3"><p className="text-xs text-secondary-text">{language === 'zh' ? '净值日期' : 'NAV date'}</p><p className="mt-1 font-medium text-foreground">{lookupResult.bundle.nav?.nav_date ?? '缺失'}</p></div>
-                </div>
-                {lookupResult.bundle.holdings && (
-                  <div>
-                    <h3 className="text-sm font-semibold text-foreground">{language === 'zh' ? '最新披露前十大持仓' : 'Latest disclosed top holdings'} · {lookupResult.bundle.holdings.report_period}</h3>
-                    <div className="mt-2 overflow-x-auto">
-                      <table className="w-full min-w-128 text-left text-xs">
-                        <thead className="text-secondary-text"><tr><th className="py-2">{language === 'zh' ? '代码' : 'Code'}</th><th>{language === 'zh' ? '名称' : 'Name'}</th><th>{language === 'zh' ? '权重' : 'Weight'}</th><th>{language === 'zh' ? '行业' : 'Industry'}</th></tr></thead>
-                        <tbody>
-                          {lookupResult.bundle.holdings.positions.map((position) => (
-                            <tr key={position.security_code} className="border-t border-border">
-                              <td className="py-2 text-foreground">{position.security_code}</td>
-                              <td className="text-foreground">{position.security_name}</td>
-                              <td className="text-foreground">{position.weight_pct}%</td>
-                              <td className="text-secondary-text">{position.industry.industry_name ?? (language === 'zh' ? '见行业穿透页' : 'See industry exposure')}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-          </Card>
+          <FundPublicLookupPanel key={activeUser.id} language={language} />
           <Card padding="md" variant="gradient">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div><h2 className="font-semibold text-foreground">{language === 'zh' ? '基金持仓' : 'Fund holdings'}</h2><p className="mt-1 text-sm text-secondary-text">{language === 'zh' ? '查看和快速录入当前用户的基金持仓。' : 'Review and quick-enter fund holdings for the active user.'}</p></div>
@@ -232,10 +281,12 @@ const FundCenterPage: React.FC<FundCenterPageProps> = ({ section }) => {
         </>
       ) : isWatchlistPage ? (
         <FundWatchlistPanel key={activeUser.id} language={language} />
+      ) : isAskPage ? (
+        <FundAskSourcePanel key={activeUser.id} language={language} />
       ) : isD2Page ? (
-        <FundComparisonPanel mode={section === 'compare' ? 'compare' : 'industry-exposure'} language={language} />
+        <FundComparisonPanel key={`${activeUser.id}-${section}`} mode={section === 'compare' ? 'compare' : 'industry-exposure'} language={language} />
       ) : isD3Page ? (
-        <FundIndustryCyclePanel language={language} />
+        <FundIndustryCyclePanel key={activeUser.id} language={language} />
       ) : isD4Page ? (
         <FundPortfolioAdvicePanel language={language} activeUserName={activeUser.name} holdings={activeFundHoldings} />
       ) : (

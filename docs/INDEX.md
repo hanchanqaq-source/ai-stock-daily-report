@@ -91,6 +91,7 @@
 | [股票基金双中心 Build E1：本地数据库持久化](stock_fund_dual_center_build_e1.md) | 用户、股票快速持仓、基金快速持仓的本机 SQLite 持久化、隔离、恢复与侧栏完整显示 |
 | [股票基金双中心 Build E2：本机数据备份与恢复](stock_fund_dual_center_build_e2.md) | 工作台用户、股票/基金快速持仓及基金自选的 JSON 导出、预览校验、确认覆盖导入和本机恢复点；不含密钥或设置 |
 | [持久化阶段 E3：基金自选](stock_fund_persistence_e3_fund_watchlist.md) | 按当前用户隔离的基金自选新增、编辑、确认移出、重启持久化与备份兼容；与基金持仓独立 |
+| [持久化阶段 E4：基金分析来源统一](stock_fund_persistence_e4_fund_analysis_sources.md) | 将手动输入、当前用户基金持仓和当前用户基金自选统一接入基金资料、问答对象、对比、行业穿透和行业周期入口；选择不自动联网或持久化 |
 | [股票基金双中心 Build E3：快速持仓编辑](stock_fund_dual_center_build_e3.md) | 当前用户的股票/基金快速持仓分区编辑、先校验落库再更新页面、跨用户保护与失败保留旧值 |
 | [股票基金双中心 Build E4：快速持仓回收站](stock_fund_dual_center_build_e4.md) | 删除确认、按用户隔离的本机回收站与恢复最近删除持仓 |
 | [股票基金双中心 Build E5：持仓变更历史](stock_fund_dual_center_build_e5.md) | 按用户、股票/基金分离记录快速持仓的新增、编辑、删除和恢复 |

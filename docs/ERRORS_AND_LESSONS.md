@@ -238,6 +238,20 @@ class FakeAkshareFetcher:
 
 - 固定规则：程序文件替换失败时立即使用恢复点回退；data/config/logs/plugins 不参与替换或回退。
 
+### 持久化阶段 E4：React 组件文件不要混合导出运行期工具函数
+
+- 现象：基金来源选择器的定向测试通过，但 Web lint 报 `react-refresh/only-export-components`。
+- 根因：同一个 `.tsx` 文件既默认导出 React 组件，又导出运行期代码解析函数，破坏 Fast Refresh 的组件文件约束。
+- 正确处理：把无 UI 的解析、标准化等纯函数放入独立 `.ts` 工具文件，组件文件只导出组件和 TypeScript 类型。
+- 固定规则：新增可复用 React 组件时，定向测试后必须继续跑 lint；测试通过不能替代 Fast Refresh 与工程规则检查。
+
+### 云端 Desktop 依赖安装：只改 npm 缓存不足以避开 Electron 默认缓存
+
+- 现象：`npm install --cache /tmp/...` 仍因 Electron 尝试创建只读的 `/root/.cache/electron` 而失败。
+- 根因：npm 包缓存和 Electron 二进制缓存是两套目录；只调整 npm `--cache` 不会改变 Electron 使用的系统缓存根目录。
+- 正确处理：在受限临时环境中同时设置可写的 `XDG_CACHE_HOME`，再安装既有依赖，例如 `XDG_CACHE_HOME=/tmp/xdg-cache npm install --cache /tmp/npm-cache`。
+- 固定规则：该处理只用于临时验证环境，不写入项目脚本、不修改依赖版本，也不能把环境安装失败误报为 Desktop 测试失败。
+
 1. 公共构造器、函数签名、模块级符号发生变化时，全仓搜索旧调用和旧 patch 路径。
 2. 确认 CI 是单文件测试还是完整离线测试，不能把本地单测通过等同于全仓回归通过。
 3. Fake/Stub 必须覆盖真实调用方访问的最小接口，包括排序字段、名称和执行方法。
